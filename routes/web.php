@@ -11,6 +11,7 @@
 |
 */
 
+use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 
@@ -87,6 +88,7 @@ Route::get('/page-option/page-with-hover-sidebar', 'MainController@pageWithHover
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('/register', [RegisterController::class, 'register'])->name('register');
 
 Route::get('/login/v3', 'MainController@loginV3')->name('login-v3');
 Route::get('/register/v3', 'MainController@registerV3')->name('register-v3');

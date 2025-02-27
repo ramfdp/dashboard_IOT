@@ -75,15 +75,5 @@ return [
 				'route-name' => 'table-manage-combine'
 			]]
 		]]
-	],[
-		'icon' => 'fa fa-key',
-		'title' => 'Login & Register',
-		'url' => 'javascript:;',
-		'caret' => true,
-		'sub_menu' => [[
-			'url' => '/register/v3',
-			'title' => 'Register v3',
-			'route-name' => 'register-v3'
-		]]
 	]]
 ];
