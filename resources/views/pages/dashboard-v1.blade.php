@@ -55,69 +55,47 @@
             <div class="widget widget-stats bg-blue">
                 <div class="stats-icon"><i class="fa fa-lightbulb"></i></div>
                 <div class="stats-info">
-                    <h4>Lampu</h4>
-                    <p id="lampu-value">0%</p>
+                    <h4>Total Penggunaan Lampu</h4>
+                    <p id="lampu-value">0 KWh</p>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-4 col-md-6">
             <div class="widget widget-stats bg-info">
                 <div class="stats-icon"><i class="fa fa-snowflake"></i></div>
                 <div class="stats-info">
-                    <h4>Pendingin Ruangan</h4>
-                    <p id="ac-value">0%</p>
+                    <h4>Total Penggunaan Pendingin Ruangan</h4>
+                    <p id="ac-value">0 KWh</p>
                 </div>
             </div>
         </div>
-        
+
         <div class="col-xl-4 col-md-6">
             <div class="widget widget-stats bg-orange">
                 <div class="stats-icon"><i class="fa fa-bolt"></i></div>
                 <div class="stats-info">
-                    <h4>Penggunaan Listrik</h4>
+                    <h4>Total Penggunaan Listrik</h4>
                     <p id="listrik-value">0 KWh</p>
                 </div>
             </div>
         </div>
     </div>
     <!-- END SECTION: Parameter Penggunaan -->
-    
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            function animateNumbers(elementId, targetValue, unit = "") {
-                let element = document.getElementById(elementId);
-                let counter = 0;
-                let interval = setInterval(() => {
-                    counter = Math.floor(Math.random() * targetValue);
-                    element.innerHTML = counter + unit;
-                }, 50);
 
-                setTimeout(() => {
-                    clearInterval(interval);
-                    element.innerHTML = targetValue + unit;
-                }, 2000);
-            }
-
-            animateNumbers("lampu-value", 53.4, "%");
-            animateNumbers("ac-value", 96.2, "%");
-            animateNumbers("listrik-value", 132, " KWh");
-        });
-    </script>
-    
     <!-- Monitoring Gauge Chart -->
     <div class="section mt-4">
-        <h2 class="text-center mb-4">Penggunaan Listrik</h2>
+        <h2 class="panel-title mb-0 text-center mb-4">Penggunaan Listrik</h2>
         <div class="row">
             <div class="col-md-3 text-center">
-                <h4>Gedung Wisma</h4>
-                <canvas id="chartWisma"></canvas>
-                <p id="usageWisma" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+                <h4>Gudang CM-2</h4>
+                <canvas id="chartCM2"></canvas>
+                <p id="usageCM2" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
             </div>
             <div class="col-md-3 text-center">
-                <h4>Hotel</h4>
-                <canvas id="chartHotel"></canvas>
-                <p id="usageHotel" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+                <h4>Gudang CM-3</h4>
+                <canvas id="chartCM3"></canvas>
+                <p id="usageCM3" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
             </div>
             <div class="col-md-3 text-center">
                 <h4>Sport Center</h4>
@@ -126,21 +104,41 @@
             </div>
             <div class="col-md-3 text-center">
                 <h4>Gudang CM-1</h4>
-                <canvas id="chartGudang"></canvas>
-                <p id="usageGudang" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+                <canvas id="chartCM1"></canvas>
+                <p id="usageCM1" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+            </div>
+            <div class="section text-center my-5">
+                <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
             </div>
         </div>
     </div>
-    
+
     <script>
-        function createChart(canvasId, usageId, initialValue) {
+        let usageValues = {
+            CM2: 50,
+            CM3: 90,
+            Sport: 75.2,
+            CM1: 70.33
+        };
+
+        function updateTotalUsage() {
+            let totalUsage = usageValues.CM2 + usageValues.CM3 + usageValues.Sport + usageValues.CM1;
+            let lampuUsage = totalUsage * 0.5; // Asumsi 50% untuk lampu
+            let acUsage = totalUsage * 0.5; // Asumsi 50% untuk AC
+
+            document.getElementById("lampu-value").innerText = lampuUsage.toFixed(1) + " KWh";
+            document.getElementById("ac-value").innerText = acUsage.toFixed(1) + " KWh";
+            document.getElementById("listrik-value").innerText = totalUsage.toFixed(1) + " KWh";
+        }
+
+        function createChart(canvasId, usageId, key) {
             let ctx = document.getElementById(canvasId).getContext("2d");
             let chart = new Chart(ctx, {
                 type: "doughnut",
                 data: {
                     labels: ["Digunakan", "Sisa Kapasitas"],
                     datasets: [{
-                        data: [initialValue, 100 - initialValue],
+                        data: [usageValues[key], 100 - usageValues[key]],
                         backgroundColor: ["#ff5733", "#ddd"],
                         borderWidth: 1
                     }]
@@ -154,18 +152,35 @@
                     }
                 }
             });
-            document.getElementById(usageId).innerText = initialValue + " KWh";
+
+            document.getElementById(usageId).innerText = usageValues[key] + " KWh";
+
             return chart;
         }
-        
-        document.addEventListener("DOMContentLoaded", function() {
-            let chartWisma = createChart("chartWisma", "usageWisma", 70);
-            let chartHotel = createChart("chartHotel", "usageHotel", 76);
-            let chartSport = createChart("chartSport", "usageSport", 90);
-            let chartGudang = createChart("chartGudang", "usageGudang", 65);
-        });
-    </script>
 
+        document.addEventListener("DOMContentLoaded", function() {
+            let chartCM2 = createChart("chartCM2", "usageCM2", "CM2");
+            let chartCM3 = createChart("chartCM3", "usageCM3", "CM3");
+            let chartSport = createChart("chartSport", "usageSport", "Sport");
+            let chartGudang = createChart("chartCM1", "usageCM1", "CM1");
+
+            updateTotalUsage();
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+    let usageValues = {
+        CM2: 50,
+        CM3: 90,
+        Sport: 75.2,
+        CM1: 70.33
+    };
+
+    // Simpan nilai ke sessionStorage agar halaman lain bisa mengakses
+    sessionStorage.setItem("usageValues", JSON.stringify(usageValues));
+});
+
+
+    </script>
 
 	<!-- BEGIN row -->
 	<div class="row">

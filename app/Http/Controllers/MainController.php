@@ -12,6 +12,9 @@ class MainController extends Controller {
     public function dashboardV3() {
         return view('pages/dashboard-v3');
     }
+    public function dashboardDetailCm2() {
+        return view('pages/dashboard-detail-wisma');
+    }
     
     public function emailInbox() {
         return view('pages/email-inbox');
