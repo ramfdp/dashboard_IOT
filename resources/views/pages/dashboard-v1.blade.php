@@ -34,27 +34,29 @@
 	<script src="/assets/plugins/jvectormap-content/world-mill.js"></script>
 	<script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
 	<script src="/assets/js/demo/dashboard.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 @endpush
 
 @section('content')
 	<!-- BEGIN breadcrumb -->
-	<ol class="breadcrumb float-xl-end">
-		<li class="breadcrumb-item"><a href="javascript:;">Home</a></li>
-		<li class="breadcrumb-item active">Dashboard</li>
-	</ol>
-	<!-- END breadcrumb -->
-	<!-- BEGIN page-header -->
-	<h1 class="page-header">Dashboard <small>Selamat Datang User</small></h1>
-	<!-- END page-header -->
-
-    <!-- BEGIN row -->
+    <ol class="breadcrumb float-xl-end">
+        <li class="breadcrumb-item"><a href="javascript:;">Home</a></li>
+        <li class="breadcrumb-item active">Dashboard</li>
+    </ol>
+    <!-- END breadcrumb -->
+    
+    <!-- BEGIN page-header -->
+    <h1 class="page-header">Dashboard <small>Selamat Datang di IOT Smart Building Controller</small></h1>
+    <!-- END page-header -->
+    
+    <!-- SECTION: Parameter Penggunaan -->
     <div class="row">
         <div class="col-xl-4 col-md-6">
             <div class="widget widget-stats bg-blue">
                 <div class="stats-icon"><i class="fa fa-lightbulb"></i></div>
                 <div class="stats-info">
                     <h4>Lampu</h4>
-                    <p id="lampu-value">0%</p>    
+                    <p id="lampu-value">0%</p>
                 </div>
             </div>
         </div>
@@ -64,7 +66,7 @@
                 <div class="stats-icon"><i class="fa fa-snowflake"></i></div>
                 <div class="stats-info">
                     <h4>Pendingin Ruangan</h4>
-                    <p id="ac-value">0%</p>    
+                    <p id="ac-value">0%</p>
                 </div>
             </div>
         </div>
@@ -74,31 +76,93 @@
                 <div class="stats-icon"><i class="fa fa-bolt"></i></div>
                 <div class="stats-info">
                     <h4>Penggunaan Listrik</h4>
-                    <p id="listrik-value">0 KWh</p>    
+                    <p id="listrik-value">0 KWh</p>
                 </div>
             </div>
         </div>
     </div>
-
+    <!-- END SECTION: Parameter Penggunaan -->
+    
     <script>
-        function animateNumbers(elementId, targetValue, unit = "") {
-            let element = document.getElementById(elementId);
-            let counter = 0;
-            let interval = setInterval(() => {
-                counter = Math.floor(Math.random() * targetValue);
-                element.innerHTML = counter + unit;
-            }, 50);
-
-            setTimeout(() => {
-                clearInterval(interval);
-                element.innerHTML = targetValue + unit;
-            }, 2000);
-        }
-
         document.addEventListener("DOMContentLoaded", function() {
+            function animateNumbers(elementId, targetValue, unit = "") {
+                let element = document.getElementById(elementId);
+                let counter = 0;
+                let interval = setInterval(() => {
+                    counter = Math.floor(Math.random() * targetValue);
+                    element.innerHTML = counter + unit;
+                }, 50);
+
+                setTimeout(() => {
+                    clearInterval(interval);
+                    element.innerHTML = targetValue + unit;
+                }, 2000);
+            }
+
             animateNumbers("lampu-value", 53.4, "%");
             animateNumbers("ac-value", 96.2, "%");
             animateNumbers("listrik-value", 132, " KWh");
+        });
+    </script>
+    
+    <!-- Monitoring Gauge Chart -->
+    <div class="section mt-4">
+        <h2 class="text-center mb-4">Penggunaan Listrik</h2>
+        <div class="row">
+            <div class="col-md-3 text-center">
+                <h4>Gedung Wisma</h4>
+                <canvas id="chartWisma"></canvas>
+                <p id="usageWisma" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <h4>Hotel</h4>
+                <canvas id="chartHotel"></canvas>
+                <p id="usageHotel" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <h4>Sport Center</h4>
+                <canvas id="chartSport"></canvas>
+                <p id="usageSport" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <h4>Gudang CM-1</h4>
+                <canvas id="chartGudang"></canvas>
+                <p id="usageGudang" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function createChart(canvasId, usageId, initialValue) {
+            let ctx = document.getElementById(canvasId).getContext("2d");
+            let chart = new Chart(ctx, {
+                type: "doughnut",
+                data: {
+                    labels: ["Digunakan", "Sisa Kapasitas"],
+                    datasets: [{
+                        data: [initialValue, 100 - initialValue],
+                        backgroundColor: ["#ff5733", "#ddd"],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    circumference: 180,
+                    rotation: 270,
+                    cutout: "70%",
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+            document.getElementById(usageId).innerText = initialValue + " KWh";
+            return chart;
+        }
+        
+        document.addEventListener("DOMContentLoaded", function() {
+            let chartWisma = createChart("chartWisma", "usageWisma", 70);
+            let chartHotel = createChart("chartHotel", "usageHotel", 76);
+            let chartSport = createChart("chartSport", "usageSport", 90);
+            let chartGudang = createChart("chartGudang", "usageGudang", 65);
         });
     </script>
 

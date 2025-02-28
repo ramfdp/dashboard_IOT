@@ -14,9 +14,9 @@
         <div class="news-feed">
             <div class="news-image" style="background-image: url(/assets/img/login-bg/login-bg-15.jpg)"></div>
             <div class="news-caption">
-                <h4 class="caption-title"><b>Color</b> Admin App</h4>
+                <h4 class="caption-title"><b>IOT</b> Control Panel</h4>
                 <p>
-                    As a Color Admin app administrator, you use the Color Admin console to manage your organization’s account, such as add new users, manage security settings, and turn on the services you want your team to access.
+					Controlling IOT basis Web
                 </p>
             </div>
         </div>
@@ -27,7 +27,7 @@
             <!-- BEGIN register-header -->
             <div class="register-header mb-25px h1">
                 <div class="mb-1">Sign Up</div>
-                <small class="d-block fs-15px lh-16">Create your Color Admin Account. It’s free and always will be.</small>
+                <small class="d-block fs-15px lh-16">Ayo Buat Akun untuk Mengakses IOT Control Panel</small>
             </div>
             <!-- END register-header -->
             
