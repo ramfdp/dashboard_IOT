@@ -27,7 +27,14 @@ class SensorController extends Controller
             'datetime' => now()
         ];
 
+        Sensor::create($message);
         EventHandler::dispatch($message);
+
+        // Kirim response JSON
+        return response()->json([
+            'succes' => true,
+            'message' => 'Data sensor berhasil disimpan dan dikirim ke WebSocket'
+        ], 201);
     }
 
     /**
