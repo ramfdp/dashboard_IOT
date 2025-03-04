@@ -9,7 +9,5 @@ class Sensor extends Model
 {
     use HasFactory;
 
-    protected $table = 'dht11_data'; // Nama tabel di MySQL
-    protected $fillable = ['temperature', 'humidity', 'created_at'];
-    public $timestamps = false; // Karena timestamp otomatis dari MySQL
+    protected $guarded = ['id'];
 }
