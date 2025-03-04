@@ -62,6 +62,17 @@
         </div>
 
         <div class="col-xl-4 col-md-6">
+            <div class="widget widget-stats bg-blue">
+                <div class="stats-icon"><i class="fa fa-thermometer-half"></i></div>
+                <div class="stats-info">
+                    <h4>Suhu Ruangan</h4>
+                    <p id="suhu-value">0 °C</p>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-xl-4 col-md-6">
             <div class="widget widget-stats bg-info">
                 <div class="stats-icon"><i class="fa fa-snowflake"></i></div>
                 <div class="stats-info">
@@ -157,6 +168,20 @@
 
             return chart;
         }
+
+        function fetchSuhu() {
+        fetch('https://api.example.com/get-temperature') // Ganti dengan endpoint API suhu yang benar
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("suhu-value").innerText = data.suhu + " °C";
+            })
+            .catch(error => console.error('Error fetching suhu:', error));
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            fetchSuhu(); // Panggil fungsi saat halaman dimuat
+            setInterval(fetchSuhu, 5000); // Perbarui setiap 5 detik
+        });
 
         document.addEventListener("DOMContentLoaded", function() {
             let chartCM2 = createChart("chartCM2", "usageCM2", "CM2");

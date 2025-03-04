@@ -14,12 +14,15 @@
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\SensorController;
 
 
 Route::get('/', function () {
 	return redirect('/login/v3');
 });
 Route::get('/dashboard/v1', 'MainController@dashboardV1')->name('dashboard-v1');
+
+Route::get('/sensor/data', [SensorController::class, 'index']);
 
 Route::get('/form/elements', 'MainController@formElements')->name('form-elements');
 Route::get('/form/plugins', 'MainController@formPlugins')->name('form-plugins');
