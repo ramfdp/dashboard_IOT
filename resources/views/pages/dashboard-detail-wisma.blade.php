@@ -122,13 +122,12 @@
                 document.getElementById("sport-center-value").innerText = usageValues.Sport.toFixed(2) + " KWh";
             }
         });
+    </script>
 
-
-</script>
     <!-- BEGIN row -->
     <div class="row">
-        <!-- BEGIN col-8 -->
-        <div class="col-xl-8">
+        <!-- BEGIN col-12 -->
+        <div class="col-xl-12">
             <div class="widget-chart with-sidebar" data-bs-theme="dark">
                 <div class="widget-chart-content bg-gray-800">
                     <h4 class="chart-title">
@@ -152,7 +151,82 @@
                 </div>
             </div>
         </div>
-        <!-- END col-8 -->
+
+        <div class="col-xl-12">
+            <div class="widget-chart with-sidebar" data-bs-theme="dark">
+                <div class="widget-chart-content bg-gray-800">
+                    <h4 class="chart-title">
+                        Penggunaan Listrik CM-2
+                        <small>Distribusi Penggunaan Energi</small>
+                    </h4>
+                    <div id="visitors-line-chart" class="widget-chart-full-width dark-mode" style="height: 257px;"></div>
+                </div>
+                <div class="widget-chart-sidebar bg-gray-900">
+                    <div class="chart-number">
+                        70.33 KWh
+                        <small>Total Penggunaan Listrik</small>
+                    </div>
+                    <div class="flex-grow-1 d-flex align-items-center">
+                        <div id="visitors-donut-chart" data-bs-theme="dark" style="height: 180px"></div>
+                    </div>
+                    <ul class="chart-legend fs-11px">
+                        <li><i class="fa fa-circle fa-fw text-primary fs-9px me-5px t-minus-1"></i> 40.0% <span>Penggunaan Lampu</span></li>
+                        <li><i class="fa fa-circle fa-fw text-info fs-9px me-5px t-minus-1"></i> 60.0% <span>Penggunaan Pendingin Ruangan</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-12">
+            <div class="widget-chart with-sidebar" data-bs-theme="dark">
+                <div class="widget-chart-content bg-gray-800">
+                    <h4 class="chart-title">
+                        Penggunaan Listrik CM-3
+                        <small>Distribusi Penggunaan Energi</small>
+                    </h4>
+                    <div id="visitors-line-chart" class="widget-chart-full-width dark-mode" style="height: 257px;"></div>
+                </div>
+                <div class="widget-chart-sidebar bg-gray-900">
+                    <div class="chart-number">
+                        70.33 KWh
+                        <small>Total Penggunaan Listrik</small>
+                    </div>
+                    <div class="flex-grow-1 d-flex align-items-center">
+                        <div id="visitors-donut-chart" data-bs-theme="dark" style="height: 180px"></div>
+                    </div>
+                    <ul class="chart-legend fs-11px">
+                        <li><i class="fa fa-circle fa-fw text-primary fs-9px me-5px t-minus-1"></i> 40.0% <span>Penggunaan Lampu</span></li>
+                        <li><i class="fa fa-circle fa-fw text-info fs-9px me-5px t-minus-1"></i> 60.0% <span>Penggunaan Pendingin Ruangan</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-12">
+            <div class="widget-chart with-sidebar" data-bs-theme="dark">
+                <div class="widget-chart-content bg-gray-800">
+                    <h4 class="chart-title">
+                        Penggunaan Listrik Sport Center
+                        <small>Distribusi Penggunaan Energi</small>
+                    </h4>
+                    <div id="visitors-line-chart" class="widget-chart-full-width dark-mode" style="height: 257px;"></div>
+                </div>
+                <div class="widget-chart-sidebar bg-gray-900">
+                    <div class="chart-number">
+                        70.33 KWh
+                        <small>Total Penggunaan Listrik</small>
+                    </div>
+                    <div class="flex-grow-1 d-flex align-items-center">
+                        <div id="visitors-donut-chart" data-bs-theme="dark" style="height: 180px"></div>
+                    </div>
+                    <ul class="chart-legend fs-11px">
+                        <li><i class="fa fa-circle fa-fw text-primary fs-9px me-5px t-minus-1"></i> 40.0% <span>Penggunaan Lampu</span></li>
+                        <li><i class="fa fa-circle fa-fw text-info fs-9px me-5px t-minus-1"></i> 60.0% <span>Penggunaan Pendingin Ruangan</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- END col-12 -->
     </div>
     <!-- END row -->
 

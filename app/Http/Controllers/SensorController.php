@@ -60,4 +60,24 @@ class SensorController extends Controller
     {
         //
     }
+
+    public function latest()
+    {
+        $sensor = Sensor::latest()->first(); // Ambil data terbaru
+
+        if (!$sensor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data sensor tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'temperature' => $sensor->temperature,
+            'humidity' => $sensor->humidity,
+            'datetime' => $sensor->created_at
+        ]);
+    }
+
 }

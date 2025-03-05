@@ -20,3 +20,4 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 Route::post('/sensor', [SensorController::class, 'store']);
+Route::get('/sensor/latest', [SensorController::class, 'latest']);

@@ -125,74 +125,9 @@
     </div>
 
     <script>
-        let usageValues = {
-            CM2: 50,
-            CM3: 90,
-            Sport: 75.2,
-            CM1: 70.33
-        };
+    // Endpoint API untuk suhu dari Laravel
+    const API_URL = "http://127.0.0.1:8000/api/sensor/latest";
 
-        function updateTotalUsage() {
-            let totalUsage = usageValues.CM2 + usageValues.CM3 + usageValues.Sport + usageValues.CM1;
-            let lampuUsage = totalUsage * 0.5; // Asumsi 50% untuk lampu
-            let acUsage = totalUsage * 0.5; // Asumsi 50% untuk AC
-
-            document.getElementById("lampu-value").innerText = lampuUsage.toFixed(1) + " KWh";
-            document.getElementById("ac-value").innerText = acUsage.toFixed(1) + " KWh";
-            document.getElementById("listrik-value").innerText = totalUsage.toFixed(1) + " KWh";
-        }
-
-        function createChart(canvasId, usageId, key) {
-            let ctx = document.getElementById(canvasId).getContext("2d");
-            let chart = new Chart(ctx, {
-                type: "doughnut",
-                data: {
-                    labels: ["Digunakan", "Sisa Kapasitas"],
-                    datasets: [{
-                        data: [usageValues[key], 100 - usageValues[key]],
-                        backgroundColor: ["#ff5733", "#ddd"],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    circumference: 180,
-                    rotation: 270,
-                    cutout: "70%",
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-
-            document.getElementById(usageId).innerText = usageValues[key] + " KWh";
-
-            return chart;
-        }
-
-        function fetchSuhu() {
-        fetch('https://api.example.com/get-temperature') // Ganti dengan endpoint API suhu yang benar
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("suhu-value").innerText = data.suhu + " °C";
-            })
-            .catch(error => console.error('Error fetching suhu:', error));
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            fetchSuhu(); // Panggil fungsi saat halaman dimuat
-            setInterval(fetchSuhu, 5000); // Perbarui setiap 5 detik
-        });
-
-        document.addEventListener("DOMContentLoaded", function() {
-            let chartCM2 = createChart("chartCM2", "usageCM2", "CM2");
-            let chartCM3 = createChart("chartCM3", "usageCM3", "CM3");
-            let chartSport = createChart("chartSport", "usageSport", "Sport");
-            let chartGudang = createChart("chartCM1", "usageCM1", "CM1");
-
-            updateTotalUsage();
-        });
-
-        document.addEventListener("DOMContentLoaded", function() {
     let usageValues = {
         CM2: 50,
         CM3: 90,
@@ -200,12 +135,82 @@
         CM1: 70.33
     };
 
-    // Simpan nilai ke sessionStorage agar halaman lain bisa mengakses
-    sessionStorage.setItem("usageValues", JSON.stringify(usageValues));
-});
+    function updateTotalUsage() {
+        let totalUsage = usageValues.CM2 + usageValues.CM3 + usageValues.Sport + usageValues.CM1;
+        let lampuUsage = totalUsage * 0.5; // Asumsi 50% untuk lampu
+        let acUsage = totalUsage * 0.5; // Asumsi 50% untuk AC
 
+        document.getElementById("lampu-value").innerText = lampuUsage.toFixed(1) + " KWh";
+        document.getElementById("ac-value").innerText = acUsage.toFixed(1) + " KWh";
+        document.getElementById("listrik-value").innerText = totalUsage.toFixed(1) + " KWh";
+    }
 
-    </script>
+    function createChart(canvasId, usageId, key) {
+        let ctx = document.getElementById(canvasId).getContext("2d");
+        let chart = new Chart(ctx, {
+            type: "doughnut",
+            data: {
+                labels: ["Digunakan", "Sisa Kapasitas"],
+                datasets: [{
+                    data: [usageValues[key], 100 - usageValues[key]],
+                    backgroundColor: ["#ff5733", "#ddd"],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                circumference: 180,
+                rotation: 270,
+                cutout: "70%",
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+
+        document.getElementById(usageId).innerText = usageValues[key] + " KWh";
+        return chart;
+    }
+
+    async function fetchSuhu() {
+        try {
+            let response = await fetch(API_URL);
+            let data = await response.json();
+            
+            if (data.success) {
+                document.getElementById("suhu-value").innerText = data.temperature + " °C";
+            } else {
+                console.error("Gagal mengambil data suhu");
+            }
+        } catch (error) {
+            console.error("Error fetching suhu:", error);
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        fetchSuhu(); // Panggil saat halaman dimuat
+        setInterval(fetchSuhu, 5000); // Perbarui setiap 5 detik
+
+        let chartCM2 = createChart("chartCM2", "usageCM2", "CM2");
+        let chartCM3 = createChart("chartCM3", "usageCM3", "CM3");
+        let chartSport = createChart("chartSport", "usageSport", "Sport");
+        let chartGudang = createChart("chartCM1", "usageCM1", "CM1");
+
+        updateTotalUsage();
+
+        // Inisialisasi Pusher untuk real-time
+        Pusher.logToConsole = true;
+        var pusher = new Pusher("c77afdf15a167aa70311", { cluster: "ap1" });
+
+        var channel = pusher.subscribe("sensor-data");
+        channel.bind("update-suhu", function(data) {
+            document.getElementById("suhu-value").innerText = data.temperature + " °C";
+        });
+
+        // Simpan data ke sessionStorage agar bisa dipakai di halaman lain
+        sessionStorage.setItem("usageValues", JSON.stringify(usageValues));
+    });
+</script>
+
 
 	<!-- BEGIN row -->
 	<div class="row">
