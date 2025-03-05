@@ -70,9 +70,9 @@
             <a href="#" class="navbar-link dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
                 <img src="/assets/img/user/user-13.jpg" alt="" /> 
                 <span>
-    <span class="d-none d-md-inline">{{ auth()->user()->name }}</span>
-    <b class="caret"></b>
-</span>
+                        <span class="d-none d-md-inline">{{ auth()->user()->name }}</span>
+                        <b class="caret"></b>
+                </span>
 
             </a>
             @include('includes.component.header-dropdown-profile')

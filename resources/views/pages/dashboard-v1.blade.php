@@ -252,7 +252,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <!-- BEGIN col-4 -->
-<div class="col-xl-4">
+<div class="col-xl-12>
     <!-- BEGIN panel -->
     <div class="panel panel-inverse shadow-sm rounded-lg" data-sortable-id="index-usage">
         <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
