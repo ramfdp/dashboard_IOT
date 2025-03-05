@@ -1,6 +1,6 @@
 @extends('layouts.default')
 
-@section('title', 'Managed Tables - Buttons')
+@section('title', 'History KWh')
 
 @push('css')
     <link href="/assets/plugins/datatables.net-bs5/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
@@ -9,99 +9,78 @@
 @endpush
 
 @push('scripts')
-    @php ob_start(); @endphp
     <script src="/assets/plugins/datatables.net/js/jquery.dataTables.min.js"></script>
     <script src="/assets/plugins/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
     <script src="/assets/plugins/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
     <script src="/assets/plugins/datatables.net-responsive-bs5/js/responsive.bootstrap5.min.js"></script>
     <script src="/assets/plugins/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
     <script src="/assets/plugins/datatables.net-buttons-bs5/js/buttons.bootstrap5.min.js"></script>
-    <script src="/assets/plugins/datatables.net-buttons/js/buttons.colVis.min.js"></script>
-    <script src="/assets/plugins/datatables.net-buttons/js/buttons.flash.min.js"></script>
     <script src="/assets/plugins/datatables.net-buttons/js/buttons.html5.min.js"></script>
     <script src="/assets/plugins/datatables.net-buttons/js/buttons.print.min.js"></script>
+    <script src="/assets/plugins/jszip/dist/jszip.min.js"></script>
     <script src="/assets/plugins/pdfmake/build/pdfmake.min.js"></script>
     <script src="/assets/plugins/pdfmake/build/vfs_fonts.js"></script>
-    <script src="/assets/plugins/jszip/dist/jszip.min.js"></script>
-    <script src="/assets/js/demo/table-manage-buttons.demo.js"></script>
-    <script src="/assets/plugins/@highlightjs/cdn-assets/highlight.min.js"></script>
-    <script src="/assets/js/demo/render.highlight.js"></script>
-    @php echo ob_get_clean(); @endphp
+
+    <script>
+        $(document).ready(function () {
+            $('#history-kwh-table').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: '{{ route('history-kwh.index') }}',
+                    type: 'GET',
+                    error: function(xhr, error, thrown) {
+                        console.error("AJAX Error: ", error, thrown, xhr.responseText);
+                        alert("Terjadi kesalahan saat mengambil data. Periksa konsol untuk detail.");
+                    }
+                },
+                columns: [
+                    { data: 'id', name: 'id' },
+                    { data: 'tegangan', name: 'tegangan' },
+                    { data: 'arus', name: 'arus' },
+                    { data: 'daya', name: 'daya' },
+                    { data: 'energi', name: 'energi' },
+                    { data: 'frekuensi', name: 'frekuensi' },
+                    { data: 'power_factor', name: 'power_factor' },
+                    { data: 'tanggal_input', name: 'tanggal_input' }
+                ],
+                dom: '<"row"<"col-md-6"B><"col-md-6"fr>>t<"row"<"col-md-5"i><"col-md-7"p>>',
+                buttons: [
+                    { extend: 'copy', className: 'btn-sm' },
+                    { extend: 'csv', className: 'btn-sm' },
+                    { extend: 'excel', className: 'btn-sm' },
+                    { extend: 'pdf', className: 'btn-sm' },
+                    { extend: 'print', className: 'btn-sm' }
+                ]
+            });
+        });
+    </script>
 @endpush
 
 @section('content')
-    <!-- BEGIN breadcrumb -->
-    <ol class="breadcrumb float-xl-end">
-        <li class="breadcrumb-item"><a href="">Home</a></li>
-        <li class="breadcrumb-item"><a href="">Tables</a></li>
-        <li class="breadcrumb-item"><a href="">Managed Tables</a></li>
-        <li class="breadcrumb-item active">Buttons</li>
-    </ol>
-    <!-- END breadcrumb -->
-    <!-- BEGIN page-header -->
-    <h1 class="page-header">Managed Tables - Buttons <small>header small text goes here...</small></h1>
-    <!-- END page-header -->
-    <!-- BEGIN row -->
     <div class="row">
         <div class="col-xl-12">
-            <!-- BEGIN panel -->
             <div class="panel panel-inverse">
                 <div class="panel-heading">
-                    <h4 class="panel-title">DataTable - Buttons</h4>
-                    <div class="panel-heading-btn">
-                        <a href="" class="btn btn-xs btn-icon btn-default" data-toggle="panel-expand"><i class="fa fa-expand"></i></a>
-                        <a href="" class="btn btn-xs btn-icon btn-success" data-toggle="panel-reload"><i class="fa fa-redo"></i></a>
-                        <a href="" class="btn btn-xs btn-icon btn-warning" data-toggle="panel-collapse"><i class="fa fa-minus"></i></a>
-                        <a href="" class="btn btn-xs btn-icon btn-danger" data-toggle="panel-remove"><i class="fa fa-times"></i></a>
-                    </div>
+                    <h4 class="panel-title">History KWh Data</h4>
                 </div>
                 <div class="panel-body">
-                    <table id="data-table-buttons" class="table table-striped table-bordered align-middle w-100 text-nowrap">
+                    <table id="history-kwh-table" class="table table-striped table-bordered align-middle w-100 text-nowrap">
                         <thead>
                             <tr>
-                                <th width="1%"></th>
-                                <th width="1%" data-orderable="false"></th>
-                                <th class="text-nowrap">Rendering engine</th>
-                                <th class="text-nowrap">Browser</th>
-                                <th class="text-nowrap">Platform(s)</th>
-                                <th class="text-nowrap">Engine version</th>
-                                <th class="text-nowrap">CSS grade</th>
+                                <th>ID</th>
+                                <th>Tegangan (V)</th>
+                                <th>Arus (A)</th>
+                                <th>Daya (W)</th>
+                                <th>Energi (kWh)</th>
+                                <th>Frekuensi (Hz)</th>
+                                <th>Power Factor</th>
+                                <th>Tanggal Input</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr class="odd gradeX">
-                                <td width="1%" class="fw-bold">1</td>
-                                <td width="1%"><img src="/assets/img/user/user-1.jpg" class="rounded h-30px my-n1 mx-n1" /></td>
-                                <td>Trident</td>
-                                <td>Internet Explorer 4.0</td>
-                                <td>Win 95+</td>
-                                <td>4</td>
-                                <td>X</td>
-                            </tr>
-                            <tr class="even gradeC">
-                                <td width="1%" class="fw-bold">2</td>
-                                <td width="1%"><img src="/assets/img/user/user-2.jpg" class="rounded h-30px my-n1 mx-n1" /></td>
-                                <td>Trident</td>
-                                <td>Internet Explorer 5.0</td>
-                                <td>Win 95+</td>
-                                <td>5</td>
-                                <td>C</td>
-                            </tr>
-                            <tr class="odd gradeA">
-                                <td width="1%" class="fw-bold">3</td>
-                                <td width="1%"><img src="/assets/img/user/user-3.jpg" class="rounded h-30px my-n1 mx-n1" /></td>
-                                <td>Trident</td>
-                                <td>Internet Explorer 5.5</td>
-                                <td>Win 95+</td>
-                                <td>5.5</td>
-                                <td>A</td>
-                            </tr>
-                        </tbody>
                     </table>
                 </div>
             </div>
-            <!-- END panel -->
         </div>
     </div>
-    <!-- END row -->
 @endsection

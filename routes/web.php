@@ -15,6 +15,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SensorController;
+use App\Http\Controllers\HistoryKwhController;
 
 
 Route::get('/', function () {
@@ -100,3 +101,6 @@ Route::get('/login/v3', 'MainController@loginV3')->name('login-v3');
 Route::get('/register/v3', 'MainController@registerV3')->name('register-v3');
 
 Route::get('/helper/css', 'MainController@helperCSS')->name('helper-css');
+
+Route::get('/history-kwh', [HistoryKwhController::class, 'index'])->name('history-kwh.index');
+Route::get('/history-kwh/latest', [HistoryKwhController::class, 'latest'])->name('history-kwh.latest');
