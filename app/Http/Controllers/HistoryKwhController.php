@@ -30,6 +30,7 @@ class HistoryKwhController extends Controller
                 return DataTables::of($data)
                     ->toJson();
             }
+            
     
             return view('pages.table-manage-buttons'); 
         } catch (\Exception $e) {
