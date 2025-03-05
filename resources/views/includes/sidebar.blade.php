@@ -15,14 +15,15 @@
 						<img src="/assets/img/user/user-13.jpg" alt="" />
 					</div>
 					<div class="menu-profile-info">
-						<div class="d-flex align-items-center">
-							<div class="flex-grow-1">
-								Sean Ngu
-							</div>
-							<div class="menu-caret ms-auto"></div>
+					<div class="d-flex align-items-center">
+						<div class="flex-grow-1">
+							{{ Auth::user()->name }}
 						</div>
-						<small>Front end developer</small>
+						<div class="menu-caret ms-auto"></div>
 					</div>
+					<small>{{ Auth::user()->role ?? 'User' }}</small> <!-- Menampilkan role jika tersedia -->
+				</div>
+
 				</a>
 			</div>
 			<div id="appSidebarProfileMenu" class="collapse">

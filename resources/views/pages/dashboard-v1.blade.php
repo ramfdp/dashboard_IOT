@@ -95,34 +95,39 @@
     <!-- END SECTION: Parameter Penggunaan -->
 
     <!-- Monitoring Gauge Chart -->
-    <div class="section mt-4">
-        <h2 class="panel-title mb-0 text-center mb-4">Penggunaan Listrik</h2>
-        <div class="row">
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-2</h4>
-                <canvas id="chartCM2"></canvas>
-                <p id="usageCM2" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
-            </div>
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-3</h4>
-                <canvas id="chartCM3"></canvas>
-                <p id="usageCM3" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
-            </div>
-            <div class="col-md-3 text-center">
-                <h4>Sport Center</h4>
-                <canvas id="chartSport"></canvas>
-                <p id="usageSport" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
-            </div>
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-1</h4>
-                <canvas id="chartCM1"></canvas>
-                <p id="usageCM1" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
-            </div>
-            <div class="section text-center my-5">
-                <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
-            </div>
+<div class="col-md-12">
+    <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+        <h6 class="panel-title mb-0">Penggunaan Listrik</h6>
+    </div>
+    <div class="row mt-4">
+        <div class="col-md-3 text-center">
+            <h4>Gudang CM-2</h4>
+            <canvas id="chartCM2"></canvas>
+            <p id="usageCM2" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+        </div>
+        <div class="col-md-3 text-center">
+            <h4>Gudang CM-3</h4>
+            <canvas id="chartCM3"></canvas>
+            <p id="usageCM3" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+        </div>
+        <div class="col-md-3 text-center">
+            <h4>Sport Center</h4>
+            <canvas id="chartSport"></canvas>
+            <p id="usageSport" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+        </div>
+        <div class="col-md-3 text-center">
+            <h4>Gudang CM-1</h4>
+            <canvas id="chartCM1"></canvas>
+            <p id="usageCM1" class="mt-2 fs-5 font-weight-bold">0 KWh</p>
+        </div>
+        <div class="section text-center my-5">
+            <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
         </div>
     </div>
+</div>
+
+
+
 
     <script>
         // Endpoint API untuk suhu dari Laravel
