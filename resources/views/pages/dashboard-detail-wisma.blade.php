@@ -245,4 +245,8 @@
             buatGrafik("chart-listrik-sport", [25, 23, 30, 28, 33, 36, 45, 40], [18, 15, 22, 24, 26, 30, 38, 35], [13, 10, 14, 17, 19, 21, 27, 24]);
         });
     </script>
+
+        <div class="section text-center my-5">
+            <a href="{{ route('dashboard-v1') }}" class="btn btn-primary w-100 py-3">kembali</a>
+        </div>
 @endsection 
