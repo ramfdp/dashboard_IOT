@@ -35,6 +35,7 @@
 	<script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
 	<script src="/assets/js/demo/dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
 @endpush
 
 @section('content')
@@ -216,50 +217,100 @@
         });
     </script>
 
+    <!-- BEGIN row -->
+    <div class="row">
+        <!-- BEGIN COL-12 -->
+        <div class="col-md-12">
+            <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
+                <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+                    <h4 class="panel-title mb-0">Perangkat</h4>
+                    <select class="form-select w-auto bg-light border-0" id="building-select">
+                        <option value="all">Semua Gedung</option>
+                        <option value="itms">ITMS</option>
+                        <option value="ksi">KSI</option>
+                        <option value="hc">HC</option>
+                    </select>
+                </div>
+                <div class="panel-body p-4">
+                    <div class="row g-3">
+                        @php
+                            $devices = [
+                                ['id' => 'lampu-switch', 'label' => 'Lampu', 'icon' => 'fa-lightbulb'],
+                                ['id' => 'air-switch', 'label' => 'Air', 'icon' => 'fa-tint'],
+                                ['id' => 'ac-switch', 'label' => 'AC', 'icon' => 'fa-snowflake']
+                            ];
+                        @endphp
 
-	<!-- BEGIN row -->
-	<div class="row">
+                        @foreach ($devices as $device)
+                            <div class="col-md-4 d-flex align-items-center">
+                                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
+                                <div class="form-check form-switch ms-3">
+                                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
+                                    <label class="form-check-label fw-bold" for="{{ $device['id'] }}">{{ $device['label'] }}</label>
+                                </div>
+                                <!-- Indikator Lampu -->
+                                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;"></div>
+                            </div>
+                            <div id="{{ $device['id'] }}-status" class="status-text text-center p-2 mt-2 d-none border rounded"></div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END COL-12 -->
+    </div>
+    <!-- END row -->
 
-		<!-- BEGIN COL-12 -->
-		<div class="col-md-12">
-			<div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
-				<div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
-					<h4 class="panel-title mb-0">Perangkat</h4>
-					<select class="form-select w-auto bg-light border-0" id="building-select">
-						<option value="all">Semua Gedung</option>
-						<option value="itms">ITMS</option>
-						<option value="ksi">KSI</option>
-						<option value="hc">HC</option>
-					</select>
-				</div>
-				<div class="panel-body p-4">
-					<div class="row g-3">
-						@php
-							$devices = [
-								['id' => 'lampu-switch', 'label' => 'Lampu', 'icon' => 'fa-lightbulb'],  // Font Awesome
-								['id' => 'air-switch', 'label' => 'Air', 'icon' => 'fa-tint'],  // Font Awesome
-								['id' => 'ac-switch', 'label' => 'AC', 'icon' => 'fa-snowflake']  // Font Awesome
-							];
-						@endphp
+    <!-- JavaScript untuk Mengontrol Indikator -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Ambil semua tombol switch
+            const switches = document.querySelectorAll('.device-switch');
 
-						@foreach ($devices as $device)
-							<div class="col-md-4 d-flex align-items-center">
-								<i class="fa {{ $device['icon'] }} text-primary fs-4"></i> 
-								<div class="form-check form-switch  ms-3">
-									<input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
-									<label class="form-check-label fw-bold" for="{{ $device['id'] }}">{{ $device['label'] }}</label>
-								</div>
-							</div>
-							<div id="{{ $device['id'] }}-status" class="status-text text-center p-2 mt-2 d-none border rounded"></div>
-						@endforeach
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- END COL-12 -->
+            switches.forEach(switchElement => {
+                console.log(`Menambahkan event listener untuk switch: ${switchElement.id}`); // Debugging
 
-		<!-- Pastikan Chart.js sudah dimuat -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                // Tambahkan event listener untuk setiap switch
+                switchElement.addEventListener('change', function () {
+                    console.log(`Switch ${this.id} diubah. Status: ${this.checked}`); // Debugging
+
+                    const deviceId = this.id; // Ambil ID switch
+                    const indicator = document.getElementById(`${deviceId}-indicator`); // Ambil elemen indikator
+
+                    console.log(`Indicator Element:`, indicator); // Debugging
+
+                    if (indicator) {
+                        if (this.checked) {
+                            indicator.style.backgroundColor = 'green'; // Nyala
+                        } else {
+                            indicator.style.backgroundColor = 'grey'; // Mati
+                        }
+                    } else {
+                        console.error(`Indicator dengan ID ${deviceId}-indicator tidak ditemukan!`);
+                    }
+
+                    // Tampilkan status (opsional)
+                    const statusText = document.getElementById(`${deviceId}-status`);
+                    if (statusText) {
+                        statusText.textContent = this.checked ? 'ON' : 'OFF';
+                        statusText.classList.remove('d-none');
+                    }
+                });
+
+                // Tambahkan event listener untuk klik (sebagai fallback)
+                switchElement.addEventListener('click', function () {
+                    console.log(`Switch ${this.id} diklik. Status: ${this.checked}`); // Debugging
+                });
+            });
+        });
+    </script>
+
+    <!-- CSS untuk Indikator -->
+    <style>
+        .indicator {
+            transition: background-color 0.3s ease; /* Animasi perubahan warna */
+        }
+    </style>
 		</div>
 		<!-- END col-4 -->
 	</div>
