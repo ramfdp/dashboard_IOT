@@ -2,21 +2,11 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | View Storage Paths
-    |--------------------------------------------------------------------------
-    |
-    | Most templating systems load templates from disk. Here you may specify
-    | an array of paths that should be checked for your views. Of course
-    | the usual Laravel view path has already been registered for you.
-    |
-    */
     'menu' => [
         [
             'icon' => 'fa fa-sitemap',
             'title' => 'Dashboard',
-            'url' => '/dashboard/v1', // Ubah langsung ke URL Dashboard v1
+            'url' => '/dashboard/v1',
             'route-name' => 'dashboard-v1'
         ],
         [
@@ -24,6 +14,12 @@ return [
             'title' => 'Tables',
             'url' => '/table/manage/buttons',
             'route-name' => 'table-manage-buttons'
+        ],
+        [
+            'icon' => 'fa fa-lightbulb-o', // Ikon lampu
+            'title' => 'Kontrol Lampu', // Nama menu
+            'url' => '/lampu/kontrol', // URL ke halaman kontrol lampu
+            'route-name' => 'lampu-kontrol'
         ]
     ]
 

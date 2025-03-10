@@ -232,29 +232,30 @@
                     </select>
                 </div>
                 <div class="panel-body p-4">
-                    <div class="row g-3">
-                        @php
-                            $devices = [
-                                ['id' => 'lampu-switch', 'label' => 'Lampu', 'icon' => 'fa-lightbulb'],
-                                ['id' => 'air-switch', 'label' => 'Air', 'icon' => 'fa-tint'],
-                                ['id' => 'ac-switch', 'label' => 'AC', 'icon' => 'fa-snowflake']
-                            ];
-                        @endphp
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+        @php
+            $devices = [
+                ['id' => 'lampu-switch', 'icon' => 'fa-lightbulb', 'label' => 'Lampu'],
+                ['id' => 'air-switch', 'icon' => 'fa-tint', 'label' => 'Air'],
+                ['id' => 'ac-switch', 'icon' => 'fa-snowflake', 'label' => 'AC']
+            ];
+        @endphp
 
-                        @foreach ($devices as $device)
-                            <div class="col-md-4 d-flex align-items-center">
-                                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
-                                <div class="form-check form-switch ms-3">
-                                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
-                                    <label class="form-check-label fw-bold" for="{{ $device['id'] }}">{{ $device['label'] }}</label>
-                                </div>
-                                <!-- Indikator Lampu -->
-                                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;"></div>
-                            </div>
-                            <div id="{{ $device['id'] }}-status" class="status-text text-center p-2 mt-2 d-none border rounded"></div>
-                        @endforeach
-                    </div>
+        @foreach ($devices as $device)
+            <div class="d-flex align-items-center mx-3">
+                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
+                <span class="ms-2">{{ $device['label'] }}</span>
+                <div class="form-check form-switch ms-3">
+                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
                 </div>
+                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" 
+                     style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;">
+                </div>
+            </div>
+        @endforeach
+    </div>
+</div>
+
             </div>
         </div>
         <!-- END COL-12 -->

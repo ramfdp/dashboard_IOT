@@ -68,7 +68,7 @@
                     <table id="history-kwh-table" class="table table-striped table-bordered align-middle w-100 text-nowrap">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>No</th>
                                 <th>Tegangan (V)</th>
                                 <th>Arus (A)</th>
                                 <th>Daya (W)</th>
