@@ -20,10 +20,19 @@
 
 @section('content')
 	<!-- BEGIN breadcrumb -->
-	<ol class="breadcrumb float-xl-end">
-		<li class="breadcrumb-item"><a href="{{ route('dashboard-v1') }}">Home</a></li>
-		<li class="breadcrumb-item active">dashboard Detail</li>
-	</ol>
+    @if(isset($breadcrumb))
+        <ol class="breadcrumb">
+            @foreach ($breadcrumb as $item)
+                @if ($item['route'])
+                    <li class="breadcrumb-item"><a href="{{ $item['route'] }}">{{ $item['name'] }}</a></li>
+                @else
+                    <li class="breadcrumb-item active">{{ $item['name'] }}</li>
+                @endif
+            @endforeach
+        </ol>
+    @endif
+
+
 	<!-- END breadcrumb -->
 	<!-- BEGIN page-header -->
 	<h1 class="page-header">Detail Penggunaan Listrik<small> anda bisa melihat penggunaan listrik di dalam sini</small></h1>
@@ -36,11 +45,9 @@
                 <div class="stats-icon stats-icon-lg"><i class="fa fa-globe fa-fw"></i></div>
                 <div class="stats-content">
                     <div class="stats-title">Gudang CM-2</div>
-                    <div class="stats-number" id="cm2-value">50 kWh</div>
-                    <div class="stats-progress progress">
-                        <div class="progress-bar" id="cm2-bar" style="width: 50%;"></div>
-                    </div>
-                    <div class="stats-desc">Daya digunakan: 50%</div>
+                    <div class="stats-number" id="cm2-value">{{ $penggunaanListrik['CM2'] ?? 'data tidak tersedia'  }} kWh</div>
+                    <div class="progress-bar" id="cm2-bar" style="width: {{ $penggunaanListrik['CM2'] ?? 'data tidak tersedia'  }}%;"></div>
+                    <div class="stats-desc">Daya digunakan: {{ $penggunaanListrik['CM2'] ?? 'data tidak tersedia'  }}%</div>
                 </div>
             </div>
         </div>
@@ -52,11 +59,9 @@
                 <div class="stats-icon stats-icon-lg"><i class="fa fa-dollar-sign fa-fw"></i></div>
                 <div class="stats-content">
                     <div class="stats-title">Gudang CM-1</div>
-                    <div class="stats-number" id="cm1-value">70.33 kWh</div>
-                    <div class="stats-progress progress">
-                        <div class="progress-bar" id="cm1-bar" style="width: 70.33%;"></div>
-                    </div>
-                    <div class="stats-desc">Daya digunakan: 70.33%</div>
+                    <div class="stats-number" id="cm1-value">{{ $penggunaanListrik['CM1'] ?? 'data tidak tersedia'  }} kWh</div>
+                    <div class="progress-bar" id="cm1-bar" style="width: {{ $penggunaanListrik['CM1'] ?? 'data tidak tersedia'  }}%;"></div>
+                    <div class="stats-desc">Daya digunakan: {{ $penggunaanListrik['CM1'] ?? 'data tidak tersedia'  }}%</div>
                 </div>
             </div>
         </div>
@@ -68,11 +73,9 @@
                 <div class="stats-icon stats-icon-lg"><i class="fa fa-archive fa-fw"></i></div>
                 <div class="stats-content">
                     <div class="stats-title">Gudang CM-3</div>
-                    <div class="stats-number" id="cm3-value">90 kWh</div>
-                    <div class="stats-progress progress">
-                        <div class="progress-bar" id="cm3-bar" style="width: 90%;"></div>
-                    </div>
-                    <div class="stats-desc">Daya digunakan: 90%</div>
+                    <div class="stats-number" id="cm3-value">{{ $penggunaanListrik['CM3'] ?? 'data tidak tersedia' }} kWh</div>
+                    <div class="progress-bar" id="cm3-bar" style="width: {{ $penggunaanListrik['CM3'] ?? 'data tidak tersedia'  }}%;"></div>
+                    <div class="stats-desc">Daya digunakan: {{ $penggunaanListrik['CM3'] ?? 'data tidak tersedia'  }}%</div>
                 </div>
             </div>
         </div>
@@ -84,11 +87,9 @@
                 <div class="stats-icon stats-icon-lg"><i class="fa fa-comment-alt fa-fw"></i></div>
                 <div class="stats-content">
                     <div class="stats-title">Sport Center</div>
-                    <div class="stats-number" id="sport-center-value">75.2 kWh</div>
-                    <div class="stats-progress progress">
-                        <div class="progress-bar" id="sport-center-bar" style="width: 75.2%;"></div>
-                    </div>
-                    <div class="stats-desc">Daya digunakan: 75.2%</div>
+                    <div class="stats-number" id="sport-center-value">{{ $penggunaanListrik['Sport'] ?? 'data tidak tersedia' }} kWh</div>
+                    <div class="progress-bar" id="sport-center-bar" style="width: {{ $penggunaanListrik['Sport'] ?? 'data tidak tersedia'  }}%;"></div>
+                    <div class="stats-desc">Daya digunakan: {{ $penggunaanListrik['Sport'] ?? 'data tidak tersedia' }}%</div>
                 </div>
             </div>
         </div>
@@ -99,29 +100,18 @@
     <!-- JavaScript untuk Update Real-time -->
     <script>
         function updateProgress(idValue, idBar, value) {
-            document.getElementById(idValue).innerText = value + " kWh";
+            document.getElementById(idValue).innerText = value.toFixed(2) + " kWh";
             document.getElementById(idBar).style.width = value + "%";
         }
 
         document.addEventListener("DOMContentLoaded", function() {
-            // Ambil nilai dari sessionStorage
-            let storedUsage = sessionStorage.getItem("usageValues");
-            
-            if (storedUsage) {
-                let usageValues = JSON.parse(storedUsage);
+            // Ambil nilai dari Laravel (bukan sessionStorage)
+            let usageValues = <?php echo json_encode($penggunaanListrik, 15, 512) ?>;
 
-                // Update progress bar sesuai nilai dari dashboard
-                document.getElementById("cm2-bar").style.width = usageValues.CM2 + "%";
-                document.getElementById("cm1-bar").style.width = usageValues.CM1 + "%";
-                document.getElementById("cm3-bar").style.width = usageValues.CM3 + "%";
-                document.getElementById("sport-center-bar").style.width = usageValues.Sport + "%";
-
-                // Update teks nilai KWh
-                document.getElementById("cm2-value").innerText = usageValues.CM2.toFixed(2) + " KWh";
-                document.getElementById("cm1-value").innerText = usageValues.CM1.toFixed(2) + " KWh";
-                document.getElementById("cm3-value").innerText = usageValues.CM3.toFixed(2) + " KWh";
-                document.getElementById("sport-center-value").innerText = usageValues.Sport.toFixed(2) + " KWh";
-            }
+            updateProgress("cm2-value", "cm2-bar", usageValues.CM2);
+            updateProgress("cm1-value", "cm1-bar", usageValues.CM1);
+            updateProgress("cm3-value", "cm3-bar", usageValues.CM3);
+            updateProgress("sport-center-value", "sport-center-bar", usageValues.Sport);
         });
     </script>
 
@@ -195,7 +185,7 @@
 </div>
 
 <!-- Grafik Penggunaan Listrik Sport Center -->
-<div class="card mt-4">
+<div class="card mt-4"> 
     <div class="card-header bg-dark text-white">
         <h5>Penggunaan Listrik Sport Center</h5>
     </div>

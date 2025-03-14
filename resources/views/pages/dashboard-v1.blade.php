@@ -1,6 +1,6 @@
 @extends('layouts.default')
 
-@section('title', 'Dashboard V1')
+@section('title', 'Dashboard')
 
 @push('css')
 	<link href="/assets/plugins/jvectormap-next/jquery-jvectormap.css" rel="stylesheet" />

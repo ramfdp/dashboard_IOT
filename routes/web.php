@@ -16,6 +16,8 @@ use App\Http\Controllers\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SensorController;
 use App\Http\Controllers\HistoryKwhController;
+use App\Http\Controllers\ListrikController;
+
 
 
 Route::get('/', function () {
@@ -95,6 +97,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::post('/register', [RegisterController::class, 'register'])->name('register');
 Route::get('/dashboardDetail', 'MainController@dashboardDetailCm2')->name('dashboardDetail');
+Route::get('/listrik/detail/{id}', [ListrikController::class, 'detail'])->name('listrik.detail');
 
 
 Route::get('/login/v3', 'MainController@loginV3')->name('login-v3');
