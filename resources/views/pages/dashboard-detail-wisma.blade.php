@@ -106,7 +106,7 @@
 
         document.addEventListener("DOMContentLoaded", function() {
             // Ambil nilai dari Laravel (bukan sessionStorage)
-            let usageValues = <?php echo json_encode($penggunaanListrik, 15, 512) ?>;
+            let usageValues = <?php echo json_encode($penggunaanListrik ?? [], JSON_NUMERIC_CHECK, 512) ?>;
 
             updateProgress("cm2-value", "cm2-bar", usageValues.CM2);
             updateProgress("cm1-value", "cm1-bar", usageValues.CM1);
