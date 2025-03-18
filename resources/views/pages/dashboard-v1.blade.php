@@ -34,8 +34,7 @@
 	<script src="/assets/plugins/jvectormap-content/world-mill.js"></script>
 	<script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
 	<script src="/assets/js/demo/dashboard.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
 @endpush
 
 @section('content')
@@ -126,8 +125,6 @@
         </div>
     </div>
 </div>
-
-
 
 
     <script>

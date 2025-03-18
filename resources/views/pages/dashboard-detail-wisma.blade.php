@@ -16,6 +16,7 @@
 	<script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
 	<script src="/assets/js/demo/dashboard-v2.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
 @endpush
 
 @section('content')
@@ -127,8 +128,8 @@
 
 <!-- Tombol untuk melihat perhitungan biaya -->
 <div class="text-center mt-3">
-    <button class="btn btn-primary" onclick="hitungBiayaListrik()">
-        Lihat Perhitungan Biaya
+    <button class="btn btn-primary" onclick="hitungBiayaListrikCM1()">
+        Lihat Perhitungan Biaya CM-1
     </button>
 </div>
 <div class="mt-3" id="dropdown-cost-cm1" style="display: none;">
@@ -208,13 +209,51 @@
 </div>
 
 <!-- Load Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        console.log("Script dimuat, inisialisasi Chart.js...");
+        console.log("Script dimuat, inisialisasi Chart.js dan Pusher...");
 
         let chartListrikCM1, chartListrikCM2, chartListrikCM3, chartListrikSportCenter;
+        let dataListrikCM1 = [], dataListrikCM2 = [], dataListrikCM3 = [], dataListrikSportCenter = [];
+
+        // Fungsi untuk memunculkan alert jika tidak ada data
+        function hitungBiayaListrikCM1() {
+            if (dataListrikCM1.length < 2) {
+                alert("Belum bisa memperkirakan hasil, karena belum ada data yang masuk");
+            } else {
+                document.getElementById("dropdown-cost-cm1").style.display = "block";
+            }
+        }
+
+        function hitungBiayaListrikCM2() {
+            if (dataListrikCM2.length < 2) {
+                alert("Belum bisa memperkirakan hasil, karena belum ada data yang masuk");
+            } else {
+                document.getElementById("dropdown-cost-cm2").style.display = "block";
+            }
+        }
+
+        function hitungBiayaListrikCM3() {
+            if (dataListrikCM3.length < 2) {
+                alert("Belum bisa memperkirakan hasil, karena belum ada data yang masuk");
+            } else {
+                document.getElementById("dropdown-cost-cm3").style.display = "block";
+            }
+        }
+
+        function hitungBiayaListrikSportCenter() {
+            if (dataListrikSportCenter.length < 2) {
+                alert("Belum bisa memperkirakan hasil, karena belum ada data yang masuk");
+            } else {
+                document.getElementById("dropdown-cost-sportcenter").style.display = "block";
+            }
+        }
+
+        // Buat fungsi hitungBiayaListrik global agar bisa dipanggil dari luar
+        window.hitungBiayaListrikCM1 = hitungBiayaListrikCM1;
+        window.hitungBiayaListrikCM2 = hitungBiayaListrikCM2;
+        window.hitungBiayaListrikCM3 = hitungBiayaListrikCM3;
+        window.hitungBiayaListrikSportCenter = hitungBiayaListrikSportCenter;
 
         function buatGrafik(id) {
             let ctx = document.getElementById(id);
@@ -284,97 +323,83 @@
             });
         }
 
-        function fetchData(endpoint, chart, dataKey) {
-            fetch(endpoint)
-                .then(response => response.json())
-                .then(data => {
-                    console.log("Data baru diterima:", data);
-                    
-                    chart.data.labels = data.labels;
-                    chart.data.datasets[0].data = data.listrik;
-                    chart.data.datasets[1].data = data.ac;
-                    chart.data.datasets[2].data = data.lampu;
-                    chart.update();
-                    
-                    // Simpan data terbaru untuk perhitungan biaya listrik
-                    window[dataKey] = data.listrik;
-                })
-                .catch(error => console.error("Gagal mengambil data:", error));
+        function updateChart(chart, data, dataArray, biayaTextId) {
+            console.log("Data baru diterima melalui Pusher:", data);
+            
+            chart.data.labels = data.labels;
+            chart.data.datasets[0].data = data.listrik;
+            chart.data.datasets[1].data = data.ac;
+            chart.data.datasets[2].data = data.lampu;
+            chart.update();
+
+            // Simpan data penggunaan listrik untuk perhitungan biaya
+            dataArray.push(...data.listrik);
+            if (dataArray.length > 30) dataArray.splice(0, dataArray.length - 30); // Simpan maksimal 30 hari
+
+            hitungBiayaListrik(dataArray, biayaTextId);
         }
 
-        // Inisialisasi grafik dan ambil data pertama kali
+        function hitungBiayaListrik(dataArray, biayaTextId) {
+            const tarifPerKwh = 1444.70; // Tarif listrik per kWh
+            const dayaKVA = 147; // Kapasitas daya dalam KVA
+            const faktorDaya = 0.85; // Faktor daya standar
+            const dayaKW = dayaKVA * faktorDaya; // Daya dalam KW
+            const jamMinimum = 40; // Jam operasi minimum
+
+            if (dataArray.length < 2) {
+                document.getElementById(biayaTextId).innerText = "Data tidak cukup untuk perhitungan.";
+                return;
+            }
+
+            // Ambil 15 data terakhir atau semua jika kurang dari 15
+            const last15Data = dataArray.slice(-15);
+            const totalKwh15Hari = last15Data.reduce((a, b) => a + b, 0);
+
+            // Estimasi pemakaian bulanan berdasarkan data 15 hari terakhir
+            const totalKwhBulanan = (totalKwh15Hari / last15Data.length) * 30;
+            const biayaNormal = totalKwhBulanan * tarifPerKwh;
+            const biayaMinimum = tarifPerKwh * dayaKW * jamMinimum;
+
+            // Ambil biaya terbesar antara biaya normal dan biaya minimum
+            const biayaAkhir = Math.max(biayaNormal, biayaMinimum);
+
+            // Tampilkan hasil perhitungan
+            document.getElementById(biayaTextId).innerText = `Rp ${biayaAkhir.toLocaleString("id-ID")}`;
+        }
+
+        // Inisialisasi grafik
         chartListrikCM1 = buatGrafik("chart-listrik-cm1");
         chartListrikCM2 = buatGrafik("chart-listrik-cm2");
         chartListrikCM3 = buatGrafik("chart-listrik-cm3");
         chartListrikSportCenter = buatGrafik("chart-listrik-sportcenter");
 
-        fetchData('/api/listrik/cm1', chartListrikCM1, 'dataListrikCM1');
-        fetchData('/api/listrik/cm2', chartListrikCM2, 'dataListrikCM2');
-        fetchData('/api/listrik/cm3', chartListrikCM3, 'dataListrikCM3');
-        fetchData('/api/listrik/sportcenter', chartListrikSportCenter, 'dataListrikSportCenter');
+        // Inisialisasi Pusher
+        const pusher = new Pusher('YOUR_PUSHER_APP_KEY', {
+            cluster: 'YOUR_PUSHER_CLUSTER',
+            encrypted: true
+        });
 
-        // Perbarui data setiap 10 detik
-        setInterval(() => {
-            fetchData('/api/listrik/cm1', chartListrikCM1, 'dataListrikCM1');
-            fetchData('/api/listrik/cm2', chartListrikCM2, 'dataListrikCM2');
-            fetchData('/api/listrik/cm3', chartListrikCM3, 'dataListrikCM3');
-            fetchData('/api/listrik/sportcenter', chartListrikSportCenter, 'dataListrikSportCenter');
-        }, 10000);
+        const channel = pusher.subscribe('penggunaan-listrik');
+
+        channel.bind('update-cm1', function(data) {
+            updateChart(chartListrikCM1, data, dataListrikCM1, "biaya-listrik-cm1");
+        });
+
+        channel.bind('update-cm2', function(data) {
+            updateChart(chartListrikCM2, data, dataListrikCM2, "biaya-listrik-cm2");
+        });
+
+        channel.bind('update-cm3', function(data) {
+            updateChart(chartListrikCM3, data, dataListrikCM3, "biaya-listrik-cm3");
+        });
+
+        channel.bind('update-sportcenter', function(data) {
+            updateChart(chartListrikSportCenter, data, dataListrikSportCenter, "biaya-listrik-sportcenter");
+        });
+
     });
-
-    function hitungBiayaListrikCM2() {
-        hitungBiayaListrik('dataListrikCM2', 'biaya-listrik-cm2', 'dropdown-cost-cm2');
-    }
-
-    function hitungBiayaListrikCM3() {
-        hitungBiayaListrik('dataListrikCM3', 'biaya-listrik-cm3', 'dropdown-cost-cm3');
-    }
-
-    function hitungBiayaListrikSportCenter() {
-        hitungBiayaListrik('dataListrikSportCenter', 'biaya-listrik-sportcenter', 'dropdown-cost-sportcenter');
-    }
-
-    function hitungBiayaListrik(dataKey, biayaTextId, dropdownId) {
-        const tarifPerKwh = 1444.70;
-        const dayaKVA = 147;
-        const faktorDaya = 0.85;
-        const dayaKW = dayaKVA * faktorDaya;
-        const jamMinimum = 40;
-
-        const dataListrik = window[dataKey] || [];
-
-        if (dataListrik.length < 2) {
-            alert("Data belum cukup untuk perhitungan.");
-            return;
-        }
-
-        const lastTwoDataListrik = dataListrik.slice(-2);
-        const totalKwh15Hari = lastTwoDataListrik.reduce((a, b) => a + b, 0);
-        const totalKwhBulanan = (totalKwh15Hari / 15) * 30;
-        const biayaNormal = totalKwhBulanan * tarifPerKwh;
-        const biayaMinimum = (jamMinimum * dayaKW) * tarifPerKwh;
-        const biayaListrik = Math.max(biayaNormal, biayaMinimum);
-        const biayaFormatted = biayaListrik.toLocaleString("id-ID", { style: "currency", currency: "IDR" });
-
-        let biayaText = document.getElementById(biayaTextId);
-        let dropdown = document.getElementById(dropdownId);
-
-        if (biayaText && dropdown) {
-            if (dropdown.style.display === "none" || dropdown.style.display === "") {
-                biayaText.innerHTML = `
-                    <b>Perkiraan biaya listrik bulanan:</b> ${biayaFormatted} <br>
-                    <b>Total Konsumsi (perkiraan bulanan):</b> ${totalKwhBulanan.toFixed(2)} kWh
-                `;
-                dropdown.style.display = "block";
-            } else {
-                dropdown.style.display = "none";
-            }
-        } else {
-            console.error("Elemen perhitungan biaya tidak ditemukan di DOM.");
-        }
-    }
 </script>
         <div class="section text-center my-5">
             <a href="{{ route('dashboard-v1') }}" class="btn btn-primary w-100 py-3">kembali</a>
         </div>
-@endsection 
+@endsection

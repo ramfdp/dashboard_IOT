@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SensorController;
 use App\Http\Controllers\HistoryKwhController;
 use App\Http\Controllers\ListrikController;
-
+use App\Livewire\Counter;
 
 
 Route::get('/', function () {
@@ -99,6 +99,8 @@ Route::post('/register', [RegisterController::class, 'register'])->name('registe
 Route::get('/dashboardDetail', 'MainController@dashboardDetailCm2')->name('dashboardDetail');
 Route::get('/listrik/detail/{id}', [ListrikController::class, 'detail'])->name('listrik.detail');
 
+Route::post('/listrik', [ListrikController::class, 'store']);
+Route::get('/listrik/{lokasi}', [ListrikController::class, 'getData']);
 
 Route::get('/login/v3', 'MainController@loginV3')->name('login-v3');
 Route::get('/register/v3', 'MainController@registerV3')->name('register-v3');
