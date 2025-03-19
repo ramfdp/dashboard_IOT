@@ -1,36 +1,55 @@
 <?php
 
-namespace App\Http\Controllers; // Pastikan namespace sesuai dengan lokasi file
+namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Lokasi; // Pastikan model ini ada
+use App\Models\Listrik;
+use Pusher\Pusher;
 
 class ListrikController extends Controller
 {
-    public function detail($id)
+    public function store(Request $request)
     {
-        $lokasi = Lokasi::find($id);
-
-        if (!$lokasi) {
-            abort(404, "Data lokasi tidak ditemukan.");
-        }
-
-        // Data dari database (contoh, nanti ambil dari model)
-        $penggunaanListrik = [
-            'CM1' => 70.33,
-            'CM2' => 50,
-            'CM3' => 50,
-            'Sport' => 50
-        ];
-
-        return view('pages.dashboard-detail-wisma', [
-            'penggunaanListrik' => $penggunaanListrik,
-            'breadcrumb' => [
-                ['name' => 'Home', 'route' => route('dashboard-v1')],
-                ['name' => 'Penggunaan Listrik', 'route' => route('listrik.detail', ['id' => $id])],
-            ]
+        // Validasi data yang masuk
+        $request->validate([
+            'lokasi' => 'required|string',
+            'listrik' => 'required|numeric',
+            'ac' => 'required|numeric',
+            'lampu' => 'required|numeric',
         ]);
+
+        // Simpan data ke database
+        $listrik = Listrik::create([
+            'lokasi' => $request->lokasi,
+            'listrik' => $request->listrik,
+            'ac' => $request->ac,
+            'lampu' => $request->lampu,
+        ]);
+
+        // Kirim data ke frontend melalui Pusher
+        $pusher = new Pusher(
+            env('PUSHER_APP_KEY'),
+            env('PUSHER_APP_SECRET'),
+            env('PUSHER_APP_ID'),
+            [
+                'cluster' => env('PUSHER_APP_CLUSTER'),
+                'useTLS' => true,
+            ]
+        );
+
+        $pusher->trigger('penggunaan-listrik', 'update-' . strtolower($request->lokasi), [
+            'labels' => now()->toDateTimeString(),
+            'listrik' => [$request->listrik],
+            'ac' => [$request->ac],
+            'lampu' => [$request->lampu],
+        ]);
+
+        return response()->json(['message' => 'Data berhasil disimpan dan dikirim'], 200);
     }
 
-
+    public function getData($lokasi)
+    {
+        $data = Listrik::where('lokasi', $lokasi)->latest()->take(30)->get();
+        return response()->json($data);
+    }
 }

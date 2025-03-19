@@ -2,6 +2,7 @@
 <html lang="{{ app()->getLocale() }}">
 <head>
 	@include('includes.head')
+	@livewireStyles
 </head>
 @php
 	$bodyClass = (!empty($appBoxedLayout)) ? 'boxed-layout ' : '';
@@ -26,6 +27,7 @@
 	$appContentClass = (!empty($appContentClass)) ? $appContentClass : '';
 @endphp
 <body class="{{ $bodyClass }}">
+	@livewireScripts
 	@include('includes.component.page-loader')
 	
 	<div id="app" class="app app-sidebar-fixed {{ $appClass }}">
