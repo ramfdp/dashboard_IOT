@@ -20,20 +20,14 @@
     <script src="/assets/plugins/jszip/dist/jszip.min.js"></script>
     <script src="/assets/plugins/pdfmake/build/pdfmake.min.js"></script>
     <script src="/assets/plugins/pdfmake/build/vfs_fonts.js"></script>
+    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
 
     <script>
         $(document).ready(function () {
-            $('#history-kwh-table').DataTable({
+            let table = $('#history-kwh-table').DataTable({
                 processing: true,
                 serverSide: true,
-                ajax: {
-                    url: '{{ route('history-kwh.index') }}',
-                    type: 'GET',
-                    error: function(xhr, error, thrown) {
-                        console.error("AJAX Error: ", error, thrown, xhr.responseText);
-                        alert("Terjadi kesalahan saat mengambil data. Periksa konsol untuk detail.");
-                    }
-                },
+                ajax: '{{ route('history-kwh.index') }}',
                 columns: [
                     { data: 'id', name: 'id' },
                     { data: 'tegangan', name: 'tegangan' },
@@ -52,6 +46,18 @@
                     { extend: 'pdf', className: 'btn-sm' },
                     { extend: 'print', className: 'btn-sm' }
                 ]
+            });
+
+            // Inisialisasi Pusher
+            Pusher.logToConsole = true;
+            var pusher = new Pusher('YOUR_PUSHER_KEY', {
+                cluster: 'YOUR_PUSHER_CLUSTER',
+                encrypted: true
+            });
+
+            var channel = pusher.subscribe('history-kwh-channel');
+            channel.bind('history-kwh-event', function(data) {
+                table.ajax.reload(null, false); // Reload tabel tanpa refresh halaman
             });
         });
     </script>
