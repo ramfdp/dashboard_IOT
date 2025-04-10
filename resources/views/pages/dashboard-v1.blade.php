@@ -241,9 +241,8 @@
         });
     </script>
 
-    <!-- BEGIN row -->
-    <div class="row">
-        <!-- BEGIN COL-12 -->
+    <!-- SECTION: Perangkat - Dipindahkan dari header ke bawah -->
+    <div class="row mt-4">
         <div class="col-md-12">
             <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
                 <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
@@ -256,35 +255,32 @@
                     </select>
                 </div>
                 <div class="panel-body p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-        @php
-            $devices = [
-                ['id' => 'lampu-switch', 'icon' => 'fa-lightbulb', 'label' => 'Lampu'],
-                ['id' => 'air-switch', 'icon' => 'fa-tint', 'label' => 'Air'],
-                ['id' => 'ac-switch', 'icon' => 'fa-snowflake', 'label' => 'AC']
-            ];
-        @endphp
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        @php
+                            $devices = [
+                                ['id' => 'lampu-switch', 'icon' => 'fa-lightbulb', 'label' => 'Lampu'],
+                                ['id' => 'air-switch', 'icon' => 'fa-tint', 'label' => 'Air'],
+                                ['id' => 'ac-switch', 'icon' => 'fa-snowflake', 'label' => 'AC']
+                            ];
+                        @endphp
 
-        @foreach ($devices as $device)
-            <div class="d-flex align-items-center mx-3">
-                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
-                <span class="ms-2">{{ $device['label'] }}</span>
-                <div class="form-check form-switch ms-3">
-                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
+                        @foreach ($devices as $device)
+                            <div class="d-flex align-items-center mx-3">
+                                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
+                                <span class="ms-2">{{ $device['label'] }}</span>
+                                <div class="form-check form-switch ms-3">
+                                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
+                                </div>
+                                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" 
+                                    style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;">
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
-                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" 
-                     style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;">
-                </div>
-            </div>
-        @endforeach
-    </div>
-</div>
-
             </div>
         </div>
-        <!-- END COL-12 -->
     </div>
-    <!-- END row -->
 
     <!-- JavaScript untuk Mengontrol Indikator -->
     <script>
@@ -336,8 +332,273 @@
             transition: background-color 0.3s ease; /* Animasi perubahan warna */
         }
     </style>
-		</div>
-		<!-- END col-4 -->
-	</div>
-	<!-- END row -->
+
+        <!-- SECTION: Timer Lembur -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="panel panel-inverse shadow-sm rounded-lg">
+                    <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+                        <h4 class="panel-title mb-0">Timer Lembur</h4>
+                    </div>
+                    <div class="panel-body p-4">
+                        <form action="{{ route('overtime.store') }}" method="POST" class="mb-4">
+                            @csrf
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="employee_name" class="form-label">Nama Karyawan</label>
+                                    <input type="text" name="employee_name" id="employee_name" class="form-control" placeholder="Nama Karyawan" required>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="overtime_date" class="form-label">Tanggal Lembur</label>
+                                    <input type="date" name="overtime_date" id="overtime_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label for="department" class="form-label">Departemen</label>
+                                    <select name="department" id="department" class="form-select">
+                                        <option value="">Pilih Departemen</option>
+                                        <option value="IT">IT</option>
+                                        <option value="HRD">HRD</option>
+                                        <option value="Finance">Finance</option>
+                                        <option value="Production">Production</option>
+                                        <option value="Marketing">Marketing</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="start_time" class="form-label">Jam Mulai</label>
+                                    <input type="time" name="start_time" id="start_time" class="form-control" required>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="end_time" class="form-label">Jam Selesai</label>
+                                    <input type="time" name="end_time" id="end_time" class="form-control">
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <label for="notes" class="form-label">Catatan Pekerjaan</label>
+                                    <input type="text" name="notes" id="notes" class="form-control" placeholder="Catatan pekerjaan yang dilakukan">
+                                </div>
+                                
+                                <div class="col-12 mt-3">
+                                    <button type="submit" class="btn btn-primary">Simpan Data Lembur</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Nama Karyawan</th>
+                                        <th>Departemen</th>
+                                        <th>Tanggal</th>
+                                        <th>Jam Mulai</th>
+                                        <th>Jam Selesai</th>
+                                        <th>Durasi</th>
+                                        <th>Status</th>
+                                        <th>Catatan</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="overtime-table">
+                                    @foreach ($overtimes as $overtime)
+                                    <tr>
+                                        <td>{{ $overtime->employee_name }}</td>
+                                        <td>{{ $overtime->department ?? '-' }}</td>
+                                        <td>{{ isset($overtime->overtime_date) ? date('d-m-Y', strtotime($overtime->overtime_date)) : date('d-m-Y', strtotime($overtime->start_time)) }}</td>
+                                        <td>{{ date('H:i', strtotime($overtime->start_time)) }}</td>
+                                        <td>{{ $overtime->end_time ? date('H:i', strtotime($overtime->end_time)) : 'Belum Ditentukan' }}</td>
+                                        <td>
+                                            @if($overtime->duration)
+                                                {{ floor($overtime->duration / 60) }} jam {{ $overtime->duration % 60 }} menit
+                                            @elseif($overtime->end_time)
+                                                @php
+                                                    $start = new DateTime($overtime->start_time);
+                                                    $end = new DateTime($overtime->end_time);
+                                                    $interval = $start->diff($end);
+                                                    echo $interval->format('%h jam %i menit');
+                                                @endphp
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{{ $overtime->status == 2 ? 'success' : ($overtime->status == 1 ? 'warning' : 'info') }}">
+                                                {{ $overtime->status == 2 ? 'Selesai' : ($overtime->status == 1 ? 'Dalam Proses' : 'Belum Dimulai') }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $overtime->notes ?? '-' }}</td>
+                                        <td>
+                                            <form action="{{ route('overtime.destroy', $overtime->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Time calculation for overtime form
+                const startTimeInput = document.getElementById('start_time');
+                const endTimeInput = document.getElementById('end_time');
+                
+                if (startTimeInput && !startTimeInput.value) {
+                    // Set default start time to current time
+                    const now = new Date();
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    startTimeInput.value = `${hours}:${minutes}`;
+                }
+                
+                // Optional: Calculate duration on change
+                if (startTimeInput && endTimeInput) {
+                    endTimeInput.addEventListener('change', function() {
+                        if (startTimeInput.value && endTimeInput.value) {
+                            // You could display duration calculation here if needed
+                            console.log('Duration calculated');
+                        }
+                    });
+                }
+            });
+        </script>
+
+        <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
+        <script>
+            var pusher = new Pusher("{{ env('PUSHER_APP_KEY') }}", { cluster: "{{ env('PUSHER_APP_CLUSTER') }}" });
+
+            var channel = pusher.subscribe('overtime-channel');
+            channel.bind('overtime-updated', function() {
+                location.re load();
+            });
+        </script>
+
+        <!-- SECTION: Manajemen User (Admin Only) -->
+        @role('admin')
+        <div class="row mt-5">
+            <div class="col-md-12">
+                <div class="panel panel-inverse shadow-sm rounded-lg">
+                    <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+                        <h4 class="panel-title mb-0">Manajemen Akun Pengguna</h4>
+                    </div>
+                    <div class="panel-body p-4">
+                        @if (session('success'))
+                            <div class="alert alert-success">{{ session('success') }}</div>
+                        @endif
+
+                        {{-- Form Tambah User --}}
+                        <form action="{{ route('users.store') }}" method="POST" class="mb-4">
+                            @csrf
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">Nama</label>
+                                    <input type="text" name="name" class="form-control" required>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" name="email" class="form-control" required>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Password</label>
+                                    <input type="password" name="password" class="form-control" required>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label class="form-label">Role</label>
+                                    <select name="role" class="form-select" required>
+                                        @foreach($roles as $role)
+                                            <option value="{{ $role->name }}">{{ ucfirst($role->name) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-12 mt-3">
+                                    <button type="submit" class="btn btn-primary">Tambah User</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        {{-- Tabel Daftar User --}}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($users as $user)
+                                    <tr>
+                                        <td>{{ $user->name }}</td>
+                                        <td>{{ $user->email }}</td>
+                                        <td>{{ $user->getRoleNames()->first() ?? '-' }}</td>
+                                        <td>
+                                            <div class="d-flex gap-2">
+                                                <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#editModal{{ $user->id }}">
+                                                    Edit
+                                                </button>
+                                                <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus user ini?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                                </form>
+                                            </div>
+                                            
+                                            <!-- Modal Edit User -->
+                                            <div class="modal fade" id="editModal{{ $user->id }}" tabindex="-1" aria-labelledby="editModalLabel{{ $user->id }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="editModalLabel{{ $user->id }}">Edit User: {{ $user->name }}</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <form action="{{ route('users.update', $user->id) }}" method="POST">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <div class="modal-body">
+                                                                <div class="mb-3">
+                                                                    <label for="role" class="form-label">Role</label>
+                                                                    <select name="role" id="role" class="form-select" required>
+                                                                        @foreach($roles as $role)
+                                                                            <option value="{{ $role->name }}" {{ $user->hasRole($role->name) ? 'selected' : '' }}>
+                                                                                {{ ucfirst($role->name) }}
+                                                                            </option>
+                                                                        @endforeach
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endrole
 @endsection

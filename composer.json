@@ -12,6 +12,7 @@
         "laravel/tinker": "^2.8",
         "livewire/livewire": "^3.6",
         "pusher/pusher-php-server": "^7.2",
+        "spatie/laravel-permission": "^6.16",
         "yajra/laravel-datatables": "^10.1"
     },
     "require-dev": {

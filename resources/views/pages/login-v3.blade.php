@@ -61,9 +61,6 @@
                     <div class="mb-15px">
                         <button type="submit" class="btn btn-theme d-block h-45px w-100 btn-lg fs-14px">Sign me in</button>
                     </div>
-                    <div class="mb-40px pb-40px text-dark">
-                        Not a member yet? Click <a href="{{ route('register-v3') }}" class="text-primary">here</a> to register.
-                    </div>
                     <hr class="bg-gray-600 opacity-2" />
                     <div class="text-gray-600 text-center text-gray-500-darker mb-0">
                         &copy; Krakatau Sarana Properti IOT All Right Reserved 2025
