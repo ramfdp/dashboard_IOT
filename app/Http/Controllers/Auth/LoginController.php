@@ -44,6 +44,15 @@ class LoginController extends Controller
         return back()->withErrors(['email' => 'Invalid credentials. Please try again.'])->withInput($request->only('email'));
     }
 
+    public function authenticated(Request $request, $user)
+    {
+        if ($user->hasRole('admin')) {
+            return redirect()->route('admin.page');
+        }
+
+        return redirect()->route('user.page');
+    }
+
     /**
      * Handle user logout.
      */

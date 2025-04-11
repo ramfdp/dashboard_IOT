@@ -70,7 +70,11 @@
             <a href="#" class="navbar-link dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
                 <img src="/assets/img/user/user-13.jpg" alt="" /> 
                 <span>
+                    @if(auth()->check())
                         <span class="d-none d-md-inline">{{ auth()->user()->name }}</span>
+                    @else
+                        <span class="d-none d-md-inline">Guest</span>
+                    @endif
                         <b class="caret"></b>
                 </span>
 
