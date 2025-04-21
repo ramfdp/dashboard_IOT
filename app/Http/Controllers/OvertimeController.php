@@ -56,10 +56,6 @@ class OvertimeController extends Controller
         }
 
         \Log::info('Now: ' . $now);
-        \Log::info('Start: ' . $startTime);
-        \Log::info('End: ' . $endTime);
-        \Log::info('Status: ' . $newStatus);
-
     }
 
     public function store(Request $request)
