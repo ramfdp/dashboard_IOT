@@ -109,9 +109,9 @@
     Route::get('/listrik/detail/{id}', [ListrikController::class, 'detail'])->name('listrik.detail');
 
     Route::get('/overtime', [OvertimeController::class, 'index'])->name('overtime.index');
+    Route::get('/overtime/create', [OvertimeController::class, 'create'])->name('overtime.create');
     Route::post('/overtime', [OvertimeController::class, 'store'])->name('overtime.store');
-    Route::put('/overtime/{id}', [OvertimeController::class, 'update'])->name('overtime.update');
-    Route::delete('/overtime/{id}', [OvertimeController::class, 'destroy'])->name('overtime.destroy');
+    Route::delete('/overtime/{id}', [OvertimeController::class, 'destroy'])->name('overtime.destroy');    
 
     Route::post('/listrik', [ListrikController::class, 'store']);
     Route::get('/listrik/{lokasi}', [ListrikController::class, 'getData']);

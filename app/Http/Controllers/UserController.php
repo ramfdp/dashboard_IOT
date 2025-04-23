@@ -4,65 +4,178 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use App\Models\Overtime;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    /**
+     * Display a listing of the users.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function index()
     {
-        $users = User::with('roles')->get();
+        // Cek apakah user adalah admin
+        if (!Auth::user()->hasRole('admin')) {
+            return redirect()->route('dashboard')->with('error', 'Anda tidak memiliki akses untuk halaman ini.');
+        }
+        
+        $users = User::all();
         $roles = Role::all();
-        $overtimes = Overtime::with('user')->get();
-        return view('pages.dashboard-v1', compact('users', 'roles', 'overtimes'));
+        return view('users.manage', compact('users', 'roles'));
     }
-    
 
+    /**
+     * Store a newly created user in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|min:6',
-            'role' => 'required|exists:roles,name',
+        // Cek apakah user adalah admin
+        if (!Auth::user()->hasRole('admin')) {
+            return redirect()->route('dashboard')->with('error', 'Anda tidak memiliki akses untuk halaman ini.');
+        }
+        
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8|confirmed',
+            'role' => 'required|exists:roles,id',
         ]);
 
         $user = User::create([
-        'name' => $request->name,
-        'email' => $request->email,
-        'password' => Hash::make($request->password),
-        'role' => $request->role,
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
         ]);
 
-        $user->assignRole($validated['role']);
+        // Dapatkan role berdasarkan ID
+        $role = Role::findById($request->role);
+        
+        // Assign role
+        $user->assignRole($role);
 
-        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
+        return redirect()->route('users.index')
+            ->with('success', 'User berhasil ditambahkan.');
     }
 
-    public function destroy($id)
+    /**
+     * Show the form for editing the specified user.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
     {
-        $user = User::findOrFail($id);
-        
-        if ($user->id === auth()->id()) {
-            return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        // Cek apakah user adalah admin
+        if (!Auth::user()->hasRole('admin')) {
+            return redirect()->route('dashboard')->with('error', 'Anda tidak memiliki akses untuk halaman ini.');
         }
         
-        $user->delete();
+        $user = User::findOrFail($id);
+        $roles = Role::all();
+        $userRole = $user->roles->first();
         
-        return redirect()->back()->with('success', 'User berhasil dihapus.');
+        return view('users.edit', compact('user', 'roles', 'userRole'));
     }
 
+    /**
+     * Update the specified user in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, $id)
     {
+        // Cek apakah user adalah admin
+        if (!Auth::user()->hasRole('admin')) {
+            return redirect()->route('dashboard')->with('error', 'Anda tidak memiliki akses untuk halaman ini.');
+        }
+        
         $user = User::findOrFail($id);
         
-        $request->validate([
-            'role' => 'required|exists:roles,name'
-        ]);
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email,'.$id,
+            'role' => 'required|exists:roles,id',
+        ];
         
-        $user->syncRoles([$request->role]);
+        // Jika password diisi, validasi password
+        if ($request->filled('password')) {
+            $rules['password'] = 'required|string|min:8|confirmed';
+        }
         
-        return redirect()->back()->with('success', 'Role user berhasil diperbarui.');
+        $request->validate($rules);
+        
+        // Update data user
+        $user->name = $request->name;
+        $user->email = $request->email;
+        
+        // Update password jika diisi
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
+        
+        $user->save();
+        
+        // Update role
+        $role = Role::findById($request->role);
+        $user->syncRoles($role);
+        
+        return redirect()->route('users.index')
+            ->with('success', 'Data user berhasil diperbarui.');
+    }
+
+    /**
+     * Remove the specified user from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
+    {
+        // Cek apakah user adalah admin
+        if (!Auth::user()->hasRole('admin')) {
+            return redirect()->route('dashboard')->with('error', 'Anda tidak memiliki akses untuk halaman ini.');
+        }
+        
+        // Pastikan admin tidak menghapus dirinya sendiri
+        if ($id == Auth::id()) {
+            return redirect()->route('users.index')
+                ->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        }
+
+        $user = User::findOrFail($id);
+        $user->delete();
+
+        return redirect()->route('users.index')
+            ->with('success', 'User berhasil dihapus.');
+    }
+    
+    /**
+     * Get the raw password for a user.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function showPassword($id)
+    {
+        // Cek apakah user adalah admin
+        if (!Auth::user()->hasRole('admin')) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
+        $user = User::findOrFail($id);
+        // Catatan: Password sudah di-hash, tidak bisa ditampilkan aslinya
+        // Ini hanya untuk simulasi menampilkan password
+        // Dalam lingkungan nyata, pengembali password tidak direkomendasikan
+        
+        return response()->json(['password' => $user->password]);
     }
 }

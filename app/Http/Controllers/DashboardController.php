@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Overtime;
 use Spatie\Permission\Models\Role;
 use App\Models\User;
+use App\Models\Department; // Tambahkan import ini
 use App\Http\Controllers\OvertimeController;
 
 class DashboardController extends Controller
@@ -17,8 +18,9 @@ class DashboardController extends Controller
 
         $overtimes = Overtime::all();
         $roles = Role::all();
-        $users = User::with('roles')->get(); // ambil semua user beserta role-nya
+        $users = User::with('roles')->get();
+        $departments = Department::all(); // Tambahkan ini
     
-        return view('pages.dashboard-v1', compact('overtimes', 'roles', 'users'));
+        return view('pages.dashboard-v1', compact('overtimes', 'roles', 'users', 'departments'));
     }        
 }

@@ -1,44 +1,48 @@
+# Dashboard View (dashboard-v1.blade.php)
+
+```php
 @extends('layouts.default')
 
 @section('title', 'Dashboard')
 
 @push('css')
-	<link href="/assets/plugins/jvectormap-next/jquery-jvectormap.css" rel="stylesheet" />
-	<link href="/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css" rel="stylesheet" />
-	<link href="/assets/plugins/gritter/css/jquery.gritter.css" rel="stylesheet" />
+    <link href="/assets/plugins/jvectormap-next/jquery-jvectormap.css" rel="stylesheet" />
+    <link href="/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css" rel="stylesheet" />
+    <link href="/assets/plugins/gritter/css/jquery.gritter.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet" />
 @endpush
 
 @push('scripts')
-	<script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.canvaswrapper.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.colorhelpers.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.saturated.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.browser.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.drawSeries.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.uiConstants.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.time.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.resize.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.pie.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.crosshair.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.categories.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.navigate.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.touchNavigate.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.hover.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.touch.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.selection.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.symbol.js"></script>
-	<script src="/assets/plugins/flot/source/jquery.flot.legend.js"></script>
-	<script src="/assets/plugins/jquery-sparkline/jquery.sparkline.min.js"></script>
-	<script src="/assets/plugins/jvectormap-next/jquery-jvectormap.min.js"></script>
-	<script src="/assets/plugins/jvectormap-content/world-mill.js"></script>
-	<script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
-	<script src="/assets/js/demo/dashboard.js"></script>
+    <script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.canvaswrapper.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.colorhelpers.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.saturated.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.browser.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.drawSeries.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.uiConstants.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.time.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.resize.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.pie.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.crosshair.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.categories.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.navigate.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.touchNavigate.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.hover.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.touch.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.selection.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.symbol.js"></script>
+    <script src="/assets/plugins/flot/source/jquery.flot.legend.js"></script>
+    <script src="/assets/plugins/jquery-sparkline/jquery.sparkline.min.js"></script>
+    <script src="/assets/plugins/jvectormap-next/jquery-jvectormap.min.js"></script>
+    <script src="/assets/plugins/jvectormap-content/world-mill.js"></script>
+    <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
+    <script src="/assets/js/demo/dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
 @endpush
 
 @section('content')
-	<!-- BEGIN breadcrumb -->
+    <!-- BEGIN breadcrumb -->
     <ol class="breadcrumb float-xl-end">
         <li class="breadcrumb-item"><a href="javascript:;">Home</a></li>
         <li class="breadcrumb-item active">Dashboard</li>
@@ -70,7 +74,6 @@
                 </div>
             </div>
         </div>
-
 
         <div class="col-xl-4 col-md-6">
             <div class="widget widget-stats bg-info">
@@ -126,6 +129,161 @@
         </div>
     </div>
 
+
+    <!-- kontrol panel -->
+    <!-- BEGIN row -->
+    <div class="row">
+        <!-- BEGIN COL-12 -->
+        <div class="col-md-12">
+            <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
+                <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+                    <h4 class="panel-title mb-0">Perangkat</h4>
+                    <select class="form-select w-auto bg-light border-0" id="building-select">
+                        <option value="all">Semua Gedung</option>
+                        <option value="itms">ITMS</option>
+                        <option value="ksi">KSI</option>
+                        <option value="hc">HC</option>
+                    </select>
+                </div>
+                <div class="panel-body p-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        @php
+                            $devices = [
+                                ['id' => 'lampu-switch', 'icon' => 'fa-lightbulb', 'label' => 'Lampu'],
+                                ['id' => 'air-switch', 'icon' => 'fa-tint', 'label' => 'Air'],
+                                ['id' => 'ac-switch', 'icon' => 'fa-snowflake', 'label' => 'AC']
+                            ];
+                        @endphp
+
+                        @foreach ($devices as $device)
+                            <div class="d-flex align-items-center mx-3">
+                                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
+                                <span class="ms-2">{{ $device['label'] }}</span>
+                                <div class="form-check form-switch ms-3">
+                                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
+                                </div>
+                                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" 
+                                    style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;">
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END COL-12 -->
+    </div>
+    <!-- END row -->
+
+    <!-- BEGIN Form Lembur Section 1 -->
+    <div class="row">
+        <div class="col-md-12">
+            <!-- BEGIN page-header -->
+            <h1 class="page-header">Tambah Data Lembur</h1>
+            <!-- END page-header -->
+
+            <div class="panel panel-inverse">
+                <div class="panel-heading">
+                    <h4 class="panel-title">Form Input Data Lembur</h4>
+                </div>
+                <div class="panel-body">
+                    @if(session('success'))
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    <form action="{{ route('overtime.store') }}" method="POST">
+                        @csrf
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="department_id" class="form-label">Departemen</label>
+                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror" required>
+                                        <option value="">Pilih Departemen</option>
+                                        @foreach($departments as $dept)
+                                            <option value="{{ $dept->id }}">{{ $dept->nama_departemen }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('department_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="employee_id" class="form-label">Karyawan</label>
+                                    <select name="employee_id" id="employee_id" class="form-select @error('employee_id') is-invalid @enderror" required>
+                                        <option value="">Pilih Karyawan</option>
+                                        <!-- Opsi akan diisi via JavaScript -->
+                                    </select>
+                                    @error('employee_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="overtime_date" class="form-label">Tanggal Lembur</label>
+                                    <input type="date" name="overtime_date" id="overtime_date" class="form-control @error('overtime_date') is-invalid @enderror" value="{{ old('overtime_date', date('Y-m-d')) }}" required>
+                                    @error('overtime_date')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="start_time" class="form-label">Waktu Mulai</label>
+                                    <input type="time" name="start_time" id="start_time" class="form-control @error('start_time') is-invalid @enderror" value="{{ old('start_time') }}" required>
+                                    @error('start_time')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group mb-3">
+                                    <label for="end_time" class="form-label">Waktu Selesai (opsional)</label>
+                                    <input type="time" name="end_time" id="end_time" class="form-control @error('end_time') is-invalid @enderror" value="{{ old('end_time') }}">
+                                    @error('end_time')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label for="notes" class="form-label">Catatan</label>
+                            <textarea name="notes" id="notes" class="form-control @error('notes') is-invalid @enderror" rows="3">{{ old('notes') }}</textarea>
+                            @error('notes')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">Simpan</button>
+                            <a href="{{ route('overtime.index') }}" class="btn btn-default">Kembali</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- END Form Lembur Section 1 -->
+
+    <!-- CSS untuk Indikator -->
+    <style>
+        .indicator {
+            transition: background-color 0.3s ease; /* Animasi perubahan warna */
+        }
+    </style>
+
+    <!-- JavaScript untuk Charts dan Real-time Updates -->
     <script>
         // Endpoint API untuk suhu dari Laravel
         const API_URL = "http://192.168.30.249:8000/api/sensor/latest";
@@ -241,99 +399,82 @@
         });
     </script>
 
-    <!-- BEGIN row -->
-    <div class="row">
-        <!-- BEGIN COL-12 -->
-        <div class="col-md-12">
-            <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
-                <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
-                    <h4 class="panel-title mb-0">Perangkat</h4>
-                    <select class="form-select w-auto bg-light border-0" id="building-select">
-                        <option value="all">Semua Gedung</option>
-                        <option value="itms">ITMS</option>
-                        <option value="ksi">KSI</option>
-                        <option value="hc">HC</option>
-                    </select>
-                </div>
-                <div class="panel-body p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-        @php
-            $devices = [
-                ['id' => 'lampu-switch', 'icon' => 'fa-lightbulb', 'label' => 'Lampu'],
-                ['id' => 'air-switch', 'icon' => 'fa-tint', 'label' => 'Air'],
-                ['id' => 'ac-switch', 'icon' => 'fa-snowflake', 'label' => 'AC']
-            ];
-        @endphp
+    <!-- JavaScript untuk Logika Perangkat -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const buildingSelect = document.getElementById("building-select");
+            const deviceGroups = document.querySelectorAll(".device-group");
 
-        @foreach ($devices as $device)
-            <div class="d-flex align-items-center mx-3">
-                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
-                <span class="ms-2">{{ $device['label'] }}</span>
-                <div class="form-check form-switch ms-3">
-                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
-                </div>
-                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" 
-                     style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;">
-                </div>
-            </div>
-        @endforeach
-    </div>
-</div>
+            // Fungsi untuk memperbarui tampilan perangkat berdasarkan ruangan yang dipilih
+            function updateDevices(selectedBuilding) {
+                deviceGroups.forEach(group => {
+                    if (group.getAttribute("data-building") === selectedBuilding) {
+                        group.classList.remove("d-none");
+                    } else {
+                        group.classList.add("d-none");
+                    }
+                });
+            }
 
-            </div>
-        </div>
-        <!-- END COL-12 -->
-    </div>
-    <!-- END row -->
+            // Event listener untuk perubahan dropdown
+            buildingSelect.addEventListener("change", function () {
+                updateDevices(this.value);
+            });
 
-<!-- JavaScript untuk Logika -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const buildingSelect = document.getElementById("building-select");
-    const deviceGroups = document.querySelectorAll(".device-group");
+            // Event listener untuk switch (ubah warna indikator)
+            document.querySelectorAll(".device-switch").forEach(switchElement => {
+                switchElement.addEventListener("change", function () {
+                    // Cari indikator terdekat dalam container yang sama
+                    const indicator = this.closest(".d-flex").querySelector(".indicator");
+                    if (indicator) {
+                        indicator.style.backgroundColor = this.checked ? "green" : "grey";
+                    }
+                });
+            });
 
-    // Fungsi untuk memperbarui tampilan perangkat berdasarkan ruangan yang dipilih
-    function updateDevices(selectedBuilding) {
-        deviceGroups.forEach(group => {
-            if (group.getAttribute("data-building") === selectedBuilding) {
-                group.classList.remove("d-none");
-            } else {
-                group.classList.add("d-none");
+            // Set awal (tampilkan perangkat dari ruangan pertama)
+            updateDevices(buildingSelect.value);
+        });
+    </script>
+
+    <!-- JavaScript untuk Form Lembur -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const departmentSelect = document.getElementById('department_id');
+            const employeeSelect = document.getElementById('employee_id');
+            
+            // Fungsi untuk memuat karyawan berdasarkan departemen
+            function loadEmployees(departmentId) {
+                // Reset dropdown karyawan
+                employeeSelect.innerHTML = '<option value="">Pilih Karyawan</option>';
+                
+                if (!departmentId) return;
+                
+                // Fetch API untuk mendapatkan karyawan berdasarkan departemen
+                fetch(`/api/employees-by-department?department_id=${departmentId}`)
+                    .then(response => response.json())
+                    .then(employees => {
+                        employees.forEach(employee => {
+                            const option = document.createElement('option');
+                            option.value = employee.id;
+                            option.textContent = employee.name;
+                            employeeSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error loading employees:', error);
+                    });
+            }
+            
+            // Event listener untuk perubahan departemen
+            departmentSelect.addEventListener('change', function() {
+                loadEmployees(this.value);
+            });
+            
+            // Muat karyawan jika ada departemen yang dipilih saat halaman dimuat
+            if (departmentSelect.value) {
+                loadEmployees(departmentSelect.value);
             }
         });
-    }
-
-    // Event listener untuk perubahan dropdown
-    buildingSelect.addEventListener("change", function () {
-        updateDevices(this.value);
-    });
-
-    // Event listener untuk switch (ubah warna indikator)
-// Event listener untuk switch (ubah warna indikator)
-        document.querySelectorAll(".device-switch").forEach(switchElement => {
-            switchElement.addEventListener("change", function () {
-                // Cari indikator terdekat dalam container yang sama
-                const indicator = this.closest(".d-flex").querySelector(".indicator");
-                if (indicator) {
-                    indicator.style.backgroundColor = this.checked ? "green" : "grey";
-                }
-            });
-        });
-
-
-    // Set awal (tampilkan perangkat dari ruangan pertama)
-    updateDevices(buildingSelect.value);
-});
-</script>
-
-    <!-- CSS untuk Indikator -->
-    <style>
-        .indicator {
-            transition: background-color 0.3s ease; /* Animasi perubahan warna */
-        }
-    </style>
-		</div>
-		<!-- END col-4 -->
-	</div>
-	<!-- END row -->
+    </script>
 @endsection
