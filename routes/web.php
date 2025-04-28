@@ -19,6 +19,7 @@
     use App\Http\Controllers\OvertimeController;
     use App\Http\Controllers\DashboardController;
     use App\Http\Controllers\UserController;
+    use App\Http\Controllers\UserManagementController;
 
 
     Route::get('/', function () {
@@ -123,3 +124,10 @@
 
     Route::get('/history-kwh', [HistoryKwhController::class, 'index'])->name('history-kwh.index');
     Route::get('/history-kwh/latest', [HistoryKwhController::class, 'latest'])->name('history-kwh.latest');
+
+    Route::prefix('user-management')->middleware(['auth'])->group(function () {
+        Route::get('/', [UserManagementController::class, 'index'])->name('user-management');
+        Route::post('/', [UserManagementController::class, 'store'])->name('user-management.store');
+        Route::put('/{user}', [UserManagementController::class, 'update'])->name('user-management.update');
+        Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
+    });
