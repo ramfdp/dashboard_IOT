@@ -241,50 +241,159 @@
         });
     </script>
 
-    <!-- BEGIN row -->
-    <div class="row">
-        <!-- BEGIN COL-12 -->
-        <div class="col-md-12">
-            <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
-                <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
-                    <h4 class="panel-title mb-0">Perangkat</h4>
-                    <select class="form-select w-auto bg-light border-0" id="building-select">
-                        <option value="all">Semua Gedung</option>
-                        <option value="itms">ITMS</option>
-                        <option value="ksi">KSI</option>
-                        <option value="hc">HC</option>
-                    </select>
-                </div>
-                <div class="panel-body p-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-        @php
-            $devices = [
-                ['id' => 'lampu-switch', 'icon' => 'fa-lightbulb', 'label' => 'Lampu'],
-                ['id' => 'air-switch', 'icon' => 'fa-tint', 'label' => 'Air'],
-                ['id' => 'ac-switch', 'icon' => 'fa-snowflake', 'label' => 'AC']
-            ];
-        @endphp
-
-        @foreach ($devices as $device)
-            <div class="d-flex align-items-center mx-3">
-                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
-                <span class="ms-2">{{ $device['label'] }}</span>
-                <div class="form-check form-switch ms-3">
-                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
-                </div>
-                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" 
-                     style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;">
-                </div>
+<!-- BEGIN row -->
+<div class="row">
+    <!-- BEGIN COL-12 -->
+    <div class="col-md-12">
+        <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
+            <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+                <h4 class="panel-title mb-0">Perangkat</h4>
+                <select class="form-select w-auto bg-light border-0" id="building-select">
+                    <option value="cm1">Gudang CM 1</option>
+                    <option value="cm2">Gudang CM 2</option>
+                    <option value="cm3">Gudang CM 3</option>
+                    <option value="sportcenter">Sport Center</option>
+                </select>
             </div>
-        @endforeach
-    </div>
-</div>
+            <div class="panel-body p-4">
+                <div id="device-container">
+                    <!-- Perangkat ITMS -->
+                    <div class="device-group" data-building="cm1">
+                    <label class="device-title">Lampu</label>
 
+                    <div class="device-row d-flex justify-content-between gap-4">
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">Lampu ITMS 1</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">Lampu ITMS 2</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">Lampu ITMS 3</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+                </div>
+
+                    <label class="device-title">AC</label>
+
+                    <div class="device-row d-flex justify-content-between gap-4">
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">AC ITMS 1</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-snowflake text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">AC ITMS 2</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">AC ITMS 3</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+                </div>
+
+                    <label class="device-title">AIR</label>
+
+                    <div class="device-row d-flex justify-content-between gap-4">
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">AIR</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-tint text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="water-tank">
+                    <div class="water" id="waterLevel" style="height: 70%;"></div>
+                </div>
+                    <div class="device-row d-flex justify-content-between gap-4">
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">Water Level</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-tint text-primary fs-4"></i>
+                            <div class="progress" style="width: 100px; height: 20px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: 70%;" id="waterLevel"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                    <!-- Perangkat KSI -->
+                    <div class="device-group d-none" data-building="cm2">
+                        <h5>KSI</h5>
+                        <div class="d-flex align-items-center">
+                            <i class="fa fa-tint text-primary fs-4"></i>
+                            <span class="ms-2">Air KSI</span>
+                            <div class="form-check form-switch ms-3">
+                                <input class="form-check-input device-switch" type="checkbox" id="ksi-air">
+                            </div>
+                            <div id="ksi-air-indicator" class="indicator ms-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Perangkat HC -->
+                    <div class="device-group d-none" data-building="sportcenter">
+                        <h5>HC</h5>
+                        <div class="d-flex align-items-center">
+                            <i class="fa fa-snowflake text-primary fs-4"></i>
+                            <span class="ms-2">AC HC</span>
+                            <div class="form-check form-switch ms-3">
+                                <input class="form-check-input device-switch" type="checkbox" id="hc-ac">
+                            </div>
+                            <div id="hc-ac-indicator" class="indicator ms-2"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <!-- END COL-12 -->
     </div>
-    <!-- END row -->
+    <!-- END COL-12 -->
+</div>
+<!-- END row -->
 
 <!-- JavaScript untuk Logika -->
 <script>
@@ -326,12 +435,53 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
-    <!-- CSS untuk Indikator -->
-    <style>
-        .indicator {
-            transition: background-color 0.3s ease; /* Animasi perubahan warna */
-        }
-    </style>
+<!-- CSS untuk Indikator -->
+<style>
+.indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: grey;
+    transition: background-color 0.3s ease;
+}
+</style>
+
+<style>
+.device-container {
+    margin-bottom: 20px; /* Kasih jarak antar perangkat */
+}
+</style>
+
+<style>
+.device-title {
+    font-size: 18px;
+    font-weight: bold;
+    background-color: #343a40;
+    color: white;
+    padding: 5px 10px;
+    width: 100%; /* Biar selebar parent-nya */
+    text-align: center; /* Biar teks tetap di tengah */
+    border-radius: 5px;
+    display: inline-block;
+    margin-bottom: 8px; /* Tambahin jarak antara label dan elemen di bawahnya */
+}
+</style>
+
+<style>
+.device-label {
+    font-size: 10px;
+    font-weight: bold;
+    background-color: #343a40; /* Warna gelap selaras dengan dashboard */
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    width: 100%; /* Biar selebar parent-nya */
+    text-align: center; /* Biar teks tetap di tengah */
+    display: inline-block;
+    margin-bottom: 8px; /* Tambahin jarak antara label dan elemen di bawahnya */
+}
+</style>
+
 		</div>
 		<!-- END col-4 -->
 	</div>
