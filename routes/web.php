@@ -20,6 +20,7 @@
     use App\Http\Controllers\DashboardController;
     use App\Http\Controllers\UserController;
     use App\Http\Controllers\UserManagementController;
+    use App\Http\Controllers\KaryawanController;
 
 
     Route::get('/', function () {
@@ -34,6 +35,21 @@
         Route::get('/dashboard', [UserController::class, 'index'])->name('dashboard');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
     });
+
+    Route::get('/get-karyawan-by-division/{divisionId}', [DashboardController::class, 'getKaryawanByDivision']);
+    Route::get('/get-karyawan/{division_id}', [KaryawanController::class, 'getKaryawanByDivisi']);
+    Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
+    Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
+    
+
+
+    // Route untuk tampilan halaman data karyawan
+    Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
+    Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
+    Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
+    Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
+
+
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::resource('users', UserController::class);
