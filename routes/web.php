@@ -11,7 +11,6 @@
     |
     */
 
-    use App\Http\Controllers\Auth\RegisterController;
     use App\Http\Controllers\AuthController;
     use Illuminate\Support\Facades\Route;
     use App\Http\Controllers\SensorController;
@@ -20,6 +19,7 @@
     use App\Http\Controllers\OvertimeController;
     use App\Http\Controllers\DashboardController;
     use App\Http\Controllers\UserController;
+    use App\Http\Controllers\UserManagementController;
 
 
     Route::get('/', function () {
@@ -110,9 +110,9 @@
     Route::get('/listrik/detail/{id}', [ListrikController::class, 'detail'])->name('listrik.detail');
 
     Route::get('/overtime', [OvertimeController::class, 'index'])->name('overtime.index');
+    Route::get('/overtime/create', [OvertimeController::class, 'create'])->name('overtime.create');
     Route::post('/overtime', [OvertimeController::class, 'store'])->name('overtime.store');
-    Route::put('/overtime/{id}', [OvertimeController::class, 'update'])->name('overtime.update');
-    Route::delete('/overtime/{id}', [OvertimeController::class, 'destroy'])->name('overtime.destroy');
+    Route::delete('/overtime/{id}', [OvertimeController::class, 'destroy'])->name('overtime.destroy');    
 
     Route::post('/listrik', [ListrikController::class, 'store']);
     Route::get('/listrik/{lokasi}', [ListrikController::class, 'getData']);
@@ -124,3 +124,10 @@
 
     Route::get('/history-kwh', [HistoryKwhController::class, 'index'])->name('history-kwh.index');
     Route::get('/history-kwh/latest', [HistoryKwhController::class, 'latest'])->name('history-kwh.latest');
+
+    Route::prefix('user-management')->middleware(['auth'])->group(function () {
+        Route::get('/', [UserManagementController::class, 'index'])->name('user-management');
+        Route::post('/', [UserManagementController::class, 'store'])->name('user-management.store');
+        Route::put('/{user}', [UserManagementController::class, 'update'])->name('user-management.update');
+        Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
+    });

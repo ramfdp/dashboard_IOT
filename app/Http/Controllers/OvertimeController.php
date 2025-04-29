@@ -2,6 +2,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Overtime;
+use App\Models\Employee;
+use App\Models\Department;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Pusher\Pusher;
@@ -13,8 +16,18 @@ class OvertimeController extends Controller
         // Update status lembur secara otomatis berdasarkan waktu saat ini
         $this->updateOvertimeStatuses();
         
-        $overtimes = Overtime::orderBy('created_at', 'desc')->get();
+        $overtimes = Overtime::with(['employee.user', 'department'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+            
         return view('overtime.index', compact('overtimes'));
+    }
+
+    public function create()
+    {
+        $departments = Department::all();
+        $employees = Employee::with('user')->get();
+        return view('overtime.create', compact('departments', 'employees'));
     }
 
     // Fungsi untuk memeriksa dan memperbarui status lembur
@@ -56,17 +69,13 @@ class OvertimeController extends Controller
         }
 
         \Log::info('Now: ' . $now);
-        \Log::info('Start: ' . $startTime);
-        \Log::info('End: ' . $endTime);
-        \Log::info('Status: ' . $newStatus);
-
     }
 
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'employee_name' => 'required|string',
-            'department' => 'required|string',
+            'employee_id' => 'required|exists:employees,id',
+            'department_id' => 'required|exists:departments,id',
             'overtime_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'notes' => 'nullable|string', 
@@ -78,7 +87,6 @@ class OvertimeController extends Controller
         
         // Periksa waktu sekarang
         $now = Carbon::now('Asia/Jakarta');
-
         
         // Siapkan data untuk end_time jika ada
         $endTime = null;
@@ -102,8 +110,8 @@ class OvertimeController extends Controller
         }
 
         $overtime = Overtime::create([
-            'employee_name' => $validatedData['employee_name'],
-            'department' => $validatedData['department'],
+            'employee_id' => $validatedData['employee_id'],
+            'department_id' => $validatedData['department_id'],
             'overtime_date' => $validatedData['overtime_date'],
             'start_time' => $startTime,
             'notes' => $validatedData['notes'] ?? null,
@@ -123,6 +131,23 @@ class OvertimeController extends Controller
 
         $this->triggerPusher();
         return back()->with('success', 'Data lembur berhasil dihapus');
+    }
+
+    // API endpoint untuk mendapatkan karyawan berdasarkan departemen
+    public function getEmployeesByDepartment(Request $request)
+    {
+        $departmentId = $request->department_id;
+        $employees = Employee::with('user')
+            ->where('dept_id', $departmentId)
+            ->get()
+            ->map(function($employee) {
+                return [
+                    'id' => $employee->id,
+                    'name' => $employee->user->name ?? 'Nama tidak tersedia'
+                ];
+            });
+            
+        return response()->json($employees);
     }
 
     private function triggerPusher()
