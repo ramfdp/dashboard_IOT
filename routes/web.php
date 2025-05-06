@@ -30,6 +30,8 @@
         ->middleware('role:admin|user')
         ->name('dashboard-v1');
 
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     Route::get('/sensor/data', [SensorController::class, 'index']);
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/dashboard', [UserController::class, 'index'])->name('dashboard');
@@ -48,8 +50,15 @@
     Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
     Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
     Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
+    Route::post('/karyawan/store', [KaryawanController::class, 'store'])->name('karyawan.store');
+    Route::delete('/karyawan/{id}', [KaryawanController::class, 'destroy'])->name('karyawan.destroy');
 
 
+
+    Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
+    Route::get('/karyawan/data', [KaryawanController::class, 'getData']);
+    Route::get('/get-karyawan/{divisiId}', [KaryawanController::class, 'getKaryawanByDivisi']);
+    Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::resource('users', UserController::class);

@@ -9,21 +9,20 @@ class Karyawan extends Model
 {
     use HasFactory;
 
-    // Tentukan nama tabel yang digunakan
+    // Nama tabel
     protected $table = 'karyawan';
 
-    // Tentukan kolom-kolom yang bisa diisi
+    // Kolom yang dapat diisi
     protected $fillable = [
-        'id',
         'nama_karyawan',
-        'divisi_id',  // pastikan ada kolom 'divisi_id' di tabel karyawan
+        'divisi_id',
     ];
 
     /**
-     * Definisikan relasi ke model Divisi
+     * Relasi: Karyawan milik satu Divisi
      */
     public function divisi()
     {
-        return $this->belongsTo(Divisi::class);
+        return $this->belongsTo(Divisi::class, 'divisi_id', 'id');
     }
 }

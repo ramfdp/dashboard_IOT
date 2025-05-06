@@ -40,6 +40,18 @@
                 columns: [
                     { data: 'id', name: 'id', className: 'text-center', width: '5%' },
                     { data: 'nama_karyawan', name: 'nama_karyawan' },
+                    {data: 'action', name: 'action', orderable: false, searchable: false, 
+                        className: 'text-center', width: '15%',
+                        render: function (data, type, row) {
+                            return `
+                                <form action="/karyawan/${row.id}" method="POST" onsubmit="return confirm('Yakin ingin menghapus karyawan ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                                </form>
+                            `;
+                        }
+                    }
                 ],
                 dom: '<"row"<"col-md-6"B><"col-md-6"fr>>t<"row"<"col-md-5"i><"col-md-7"p>>',
                 buttons: [
@@ -67,6 +79,7 @@
                     <h4 class="panel-title">Data Karyawan</h4>
                 </div>
                 <div class="panel-body">
+                
                     <!-- Dropdown untuk memilih Divisi -->
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <label for="divisi-select" class="form-label">Pilih Divisi:</label>
@@ -80,6 +93,45 @@
                             @endforeach
                         </select>
                     </div>
+
+<!-- Tombol Create -->
+<div class="text-end mb-3">
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#karyawanModal">+ Tambah Karyawan</button>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="karyawanModal" tabindex="-1" aria-labelledby="karyawanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="backdrop-filter: blur(5px); background-color: rgba(255, 255, 255, 0.9);">
+            <div class="modal-header">
+                <h5 class="modal-title" id="karyawanModalLabel">Tambah Karyawan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <form action="{{ route('karyawan.store') }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nama_karyawan" class="form-label">Nama Karyawan</label>
+                        <input type="text" class="form-control" id="nama_karyawan" name="nama_karyawan" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="divisi_id" class="form-label">Divisi</label>
+                        <select name="divisi_id" id="divisi_id" class="form-select" required>
+                            <option value="">Pilih Divisi</option>
+                            @foreach($divisions as $division)
+                                <option value="{{ $division->id }}">{{ $division->nama_divisi }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
                     
                     <!-- Tabel Karyawan -->
                     <table id="karyawan-table" class="table table-striped table-bordered align-middle w-100 text-nowrap">
@@ -87,6 +139,7 @@
                             <tr>
                                 <th style="text-align: center;">No</th>
                                 <th style="text-align: center;">Nama Karyawan</th>
+                                <th style="text-align: center;">Aksi</th>
                             </tr>
                         </thead>
                     </table>

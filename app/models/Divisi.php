@@ -4,18 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Karyawan;
 
 class Divisi extends Model
 {
     use HasFactory;
 
+    // Nama tabel
     protected $table = 'divisions';
-    protected $fillable = ['nama_divisi'];
 
-    // Relasi: satu divisi memiliki banyak karyawan
+    // Kolom yang dapat diisi
+    protected $fillable = [
+        'nama_divisi',
+    ];
+
+    /**
+     * Relasi: Divisi memiliki banyak Karyawan
+     */
     public function karyawans()
     {
-        return $this->hasMany(Karyawan::class, 'division_id');
+        return $this->hasMany(Karyawan::class, 'divisi_id', 'id');
     }
 }

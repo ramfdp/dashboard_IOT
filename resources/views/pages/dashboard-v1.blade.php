@@ -97,37 +97,87 @@
     </div>
     <!-- END SECTION: Parameter Penggunaan -->
 
-    <!-- Monitoring Gauge Chart -->
-    <div class="col-md-12">
-        <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
-            <h6 class="panel-title mb-0">Penggunaan Listrik</h6>
-        </div>
-        <div class="row mt-4">
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-2</h4>
-                <canvas id="chartCM2"></canvas>
-                <p id="usageCM2" class="mt-2 fs-5 font-weight-bold">N/A</p>
+
+<!-- BEGIN SECTION: Grafik Kwh -->
+<div class="col-md-12 my-4">
+    <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+        <h6 class="panel-title mb-0" style="font-size: 20px">Grafik Daya Listrik (Watt)</h6>
+    </div>
+
+    <div class="card-body bg-dark rounded-bottom">
+        <div style="display: flex; align-items: flex-start;">
+
+            <!-- Manual Y Axis -->
+            <div style="color: white; margin-right: 8px; font-size: 12px;">
+                <div style="height: 300px; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div style="min-width: 40px; text-align: right; padding-right: 10px;">200</div>
+                    <div style="min-width: 40px; text-align: right; padding-right: 10px;">160</div>
+                    <div style="min-width: 40px; text-align: right; padding-right: 10px;">120</div>
+                    <div style="min-width: 40px; text-align: right; padding-right: 10px;">80</div>
+                    <div style="min-width: 40px; text-align: right; padding-right: 10px;">40</div>
+                    <div style="min-width: 40px; text-align: right; padding-right: 10px;">0</div>
+                </div>
             </div>
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-3</h4>
-                <canvas id="chartCM3"></canvas>
-                <p id="usageCM3" class="mt-2 fs-5 font-weight-bold">N/A</p>
-            </div>
-            <div class="col-md-3 text-center">
-                <h4>Sport Center</h4>
-                <canvas id="chartSport"></canvas>
-                <p id="usageSport" class="mt-2 fs-5 font-weight-bold">N/A</p>
-            </div>
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-1</h4>
-                <canvas id="chartCM1"></canvas>
-                <p id="usageCM1" class="mt-2 fs-5 font-weight-bold">N/A</p>
-            </div>
-            <div class="section text-center my-5">
-                <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
+
+            <!-- Scrollable Chart -->
+            <div style="overflow-x: auto;">
+                <canvas id="wattChart" width="1200" height="300"></canvas>
             </div>
         </div>
     </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('wattChart').getContext('2d');
+
+    const gradWatt = ctx.createLinearGradient(0, 0, 0, 300);
+    gradWatt.addColorStop(0, 'rgba(255,255,255,0.2)');
+    gradWatt.addColorStop(1, 'rgba(255,255,255,0)');
+
+    // Ambil data dari Blade
+    const labels = @json($dataKwh->pluck('waktu')->toArray()); // Ambil waktu dari data Kwh
+    const dataValues = @json($dataKwh->pluck('daya')->toArray()); // Ambil daya dari data Kwh
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daya (Watt)',
+                data: dataValues,
+                fill: true,
+                backgroundColor: gradWatt,
+                borderColor: '#ffffff',
+                pointBackgroundColor: '#ffffff',
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#fff' },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                },
+                y: {
+                    display: false // Hide built-in Y axis
+                }
+            }
+        }
+    });
+});
+</script>
+<div class="section text-center my-5">
+                <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
+</div>
 
 
  <!-- BEGIN row -->
