@@ -131,3 +131,7 @@
         Route::put('/{user}', [UserManagementController::class, 'update'])->name('user-management.update');
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
     });
+    
+    Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
+        Route::resource('user-management', 'UserManagementController');
+    });

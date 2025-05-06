@@ -19,12 +19,14 @@ class UserManagementController extends Controller
 
     public function index()
     {
-        $users = User::with('roles')->get();
+        $users = User::with('roles')->get()->fresh();
         $roles = Role::all();
         $departments = Department::all();
         $overtimes = Overtime::all();
-    
-        return view('pages.dashboard-v1', compact('users', 'roles', 'departments', 'overtimes'));
+
+        $cacheBuster = time();
+
+        return view('pages.dashboard-v1', compact('users', 'roles', 'departments', 'overtimes', 'cacheBuster'));
     }
 
     public function store(Request $request)
@@ -49,7 +51,7 @@ class UserManagementController extends Controller
         // Assign role ke user
         $roleName = Role::find($validated['role_id'])->name;
         $user->assignRole($roleName);
-        return redirect()->route('user-management')->with('success', 'User berhasil ditambahkan');
+        return redirect()->route('dashboard-v1')->with('success', 'User berhasil ditambahkan');
     }    
 
     public function update(Request $request, User $user)
@@ -65,29 +67,45 @@ class UserManagementController extends Controller
             ],
             'role_id' => 'required|exists:roles,id',
         ]);
-    
+
         if ($request->filled('password')) {
             $validated['password'] = Hash::make($request->password);
         }
-    
-        // Update role name juga supaya sinkron
-        $validated['role'] = Role::find($validated['role_id'])->name;
-    
+
+        // Dapatkan role name dari role_id
+        $role = Role::find($validated['role_id']);
+        $roleName = $role->name;
+        
+        // Tambahkan role ke data yang akan diupdate
+        $validated['role'] = $roleName;
+        
+        // Update user data
         $user->update($validated);
-    
-        return redirect()->route('user-management')->with('success', 'User berhasil diperbarui');
-    }    
+        
+        // Sync role di Spatie permission dengan cara yang benar
+        // Hapus semua role yang ada terlebih dahulu
+        $user->syncRoles([]); 
+        
+        // Assign role baru
+        $user->assignRole($roleName);
+
+        // Refresh user instance untuk memastikan data terbaru
+        $user->refresh();
+
+        // Redirect dengan pesan sukses
+        return redirect()->route('dashboard-v1')->with('success', 'User berhasil diperbarui');
+    }
     
 
     public function destroy(User $user)
     {
         // Prevent deleting yourself
         if ($user->id === auth()->id()) {
-            return redirect()->route('user-management')->with('error', 'Anda tidak dapat menghapus akun yang sedang digunakan');
+            return redirect()->route('dashboard-v1')->with('error', 'Anda tidak dapat menghapus akun yang sedang digunakan');
         }
 
         $user->delete();
 
-        return redirect()->route('user-management')->with('success', 'User berhasil dihapus');
+        return redirect()->route('dashboard-v1')->with('success', 'User berhasil dihapus');
     }
 }

@@ -139,7 +139,12 @@ class UserController extends Controller
      */
     public function destroy($id)
     {
-        // Cek apakah user adalah admin
+        // Cek apakah user memiliki role 'user'
+        if (Auth::user()->hasRole('user')) {
+            return redirect()->route('dashboard')->with('error', 'Anda tidak memiliki akses untuk menghapus user.');
+        }
+        
+        // Cek apakah user adalah admin (jika tidak termasuk dalam kondisi di atas)
         if (!Auth::user()->hasRole('admin')) {
             return redirect()->route('dashboard')->with('error', 'Anda tidak memiliki akses untuk halaman ini.');
         }
@@ -172,10 +177,6 @@ class UserController extends Controller
         }
         
         $user = User::findOrFail($id);
-        // Catatan: Password sudah di-hash, tidak bisa ditampilkan aslinya
-        // Ini hanya untuk simulasi menampilkan password
-        // Dalam lingkungan nyata, pengembali password tidak direkomendasikan
-        
         return response()->json(['password' => $user->password]);
     }
 }

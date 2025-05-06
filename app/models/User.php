@@ -17,6 +17,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role_id',
+        'role', // Tambahkan kolom ini ke fillable
     ];
 
     protected $hidden = [
@@ -37,5 +38,16 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->hasRole('admin');
+    }
+    
+    // Tambahkan method untuk sinkronisasi role
+    public function syncRoleWithPermission()
+    {
+        if ($this->role_id) {
+            $roleName = Role::find($this->role_id)->name;
+            $this->syncRoles([$roleName]);
+            $this->role = $roleName;
+            $this->save();
+        }
     }
 }
