@@ -104,7 +104,7 @@
         </div>
         <div class="row mt-4">
             <div class="col-md-3 text-center">
-                <h4>Arkom</h4>
+                <h4>Gudang CM-2</h4>
                 <canvas id="chartCM2"></canvas>
                 <p id="usageCM2" class="mt-2 fs-5 font-weight-bold">N/A</p>
             </div>
@@ -113,168 +113,455 @@
                 <canvas id="chartCM3"></canvas>
                 <p id="usageCM3" class="mt-2 fs-5 font-weight-bold">N/A</p>
             </div>
-            <div class="col-md-3 text-center">
-                <h4>Sport Center</h4>
-                <canvas id="chartSport"></canvas>
-                <p id="usageSport" class="mt-2 fs-5 font-weight-bold">N/A</p>
-            </div>
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-1</h4>
-                <canvas id="chartCM1"></canvas>
-                <p id="usageCM1" class="mt-2 fs-5 font-weight-bold">N/A</p>
-            </div>
-            <div class="section text-center my-5">
-                <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
+
+            <!-- Scrollable Chart -->
+            <div style="overflow-x: auto;">
+                <canvas id="wattChart" width="1200" height="300"></canvas>
             </div>
         </div>
     </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const ctx = document.getElementById('wattChart').getContext('2d');
+
+    const gradWatt = ctx.createLinearGradient(0, 0, 0, 300);
+    gradWatt.addColorStop(0, 'rgba(255,255,255,0.2)');
+    gradWatt.addColorStop(1, 'rgba(255,255,255,0)');
+
+    // Ambil data dari Blade
+    const labels = @json($dataKwh->pluck('waktu')->toArray()); // Ambil waktu dari data Kwh
+    const dataValues = @json($dataKwh->pluck('daya')->toArray()); // Ambil daya dari data Kwh
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daya (Watt)',
+                data: dataValues,
+                fill: true,
+                backgroundColor: gradWatt,
+                borderColor: '#ffffff',
+                pointBackgroundColor: '#ffffff',
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: false }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#fff' },
+                    grid: { color: 'rgba(255,255,255,0.1)' }
+                },
+                y: {
+                    display: false // Hide built-in Y axis
+                }
+            }
+        }
+    });
+});
+</script>
+<div class="section text-center my-5">
+                <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
+</div>
 
 
-    <!-- kontrol panel -->
-    <!-- BEGIN row -->
-    <div class="row">
-        <!-- BEGIN COL-12 -->
-        <div class="col-md-12">
-            <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
-                <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
-                    <h4 class="panel-title mb-0">Perangkat</h4>
-                    <select class="form-select w-auto bg-light border-0" id="building-select">
-                        <option value="all">Semua Gedung</option>
-                        <option value="itms">ITMS</option>
-                        <option value="ksi">KSI</option>
-                        <option value="hc">HC</option>
-                    </select>
-                </div>
-                <div class="panel-body p-4">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap">
-                        @php
-                            $devices = [
-                                ['id' => 'lampu-switch', 'icon' => 'fa-lightbulb', 'label' => 'Lampu'],
-                                ['id' => 'air-switch', 'icon' => 'fa-tint', 'label' => 'Air'],
-                                ['id' => 'ac-switch', 'icon' => 'fa-snowflake', 'label' => 'AC']
-                            ];
-                        @endphp
+ <!-- BEGIN row -->
+<div class="row">
+    <!-- BEGIN COL-12 -->
+    <div class="col-md-12">
+        <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
+            <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+                <h4 class="panel-title mb-0">Perangkat</h4>
+                <select class="form-select w-auto bg-light border-0" id="building-select">
+                    <option value="cm1">ITMS</option>
+                    <option value="cm2">HR</option>
+                    <option value="cm3">---</option>
+                    <option value="sportcenter">---</option>
+                </select>
+            </div>
+            <div class="panel-body p-4">
+                <div id="device-container">
+                    <!-- Perangkat ITMS -->
+                    <div class="device-group" data-building="cm1">
+                    <label class="device-title">Lampu</label>
 
-                        @foreach ($devices as $device)
-                            <div class="d-flex align-items-center mx-3">
-                                <i class="fa {{ $device['icon'] }} text-primary fs-4"></i>
-                                <span class="ms-2">{{ $device['label'] }}</span>
-                                <div class="form-check form-switch ms-3">
-                                    <input class="form-check-input device-switch" type="checkbox" id="{{ $device['id'] }}">
-                                </div>
-                                <div id="{{ $device['id'] }}-indicator" class="indicator ms-2" 
-                                    style="width: 20px; height: 20px; border-radius: 50%; background-color: grey;">
-                                </div>
+                    <div class="device-row d-flex justify-content-between gap-4">
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">Lampu ITMS 1</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
                             </div>
-                        @endforeach
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">Lampu ITMS 2</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">Lampu ITMS 3</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+                </div>
+
+                    <label class="device-title">AC</label>
+
+                    <div class="device-row d-flex justify-content-between gap-4">
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">AC ITMS 1</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-snowflake text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">AC ITMS 2</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+
+                    <div class="device-container d-flex flex-column align-items-start">
+                        <label class="device-label">AC ITMS 3</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input device-switch" type="checkbox">
+                            </div>
+                            <div class="indicator"></div>
+                        </div>
+                    </div>
+                </div>
+
+                    <!-- Perangkat HC -->
+                    <div class="device-group d-none" data-building="sportcenter">
+                        <h5>HC</h5>
+                        <div class="d-flex align-items-center">
+                            <i class="fa fa-snowflake text-primary fs-4"></i>
+                            <span class="ms-2">AC HC</span>
+                            <div class="form-check form-switch ms-3">
+                                <input class="form-check-input device-switch" type="checkbox" id="hc-ac">
+                            </div>
+                            <div id="hc-ac-indicator" class="indicator ms-2"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <!-- END COL-12 -->
     </div>
-    <!-- END row -->
+    <!-- END COL-12 -->
+</div>
+<!-- END row -->
 
-    <!-- BEGIN Form Lembur Section 1 -->
-    <div class="row">
-        <div class="col-md-12">
-            <!-- BEGIN page-header -->
-            <h1 class="page-header">Tambah Data Lembur</h1>
-            <!-- END page-header -->
+<!-- JavaScript untuk Logika -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const buildingSelect = document.getElementById("building-select");
+    const deviceGroups = document.querySelectorAll(".device-group");
 
-            <div class="panel panel-inverse">
-                <div class="panel-heading">
-                    <h4 class="panel-title">Form Input Data Lembur</h4>
-                </div>
-                <div class="panel-body">
-                    @if(session('success'))
-                        <div class="alert alert-success">
-                            {{ session('success') }}
-                        </div>
-                    @endif
+    // Fungsi untuk memperbarui tampilan perangkat berdasarkan ruangan yang dipilih
+    function updateDevices(selectedBuilding) {
+        deviceGroups.forEach(group => {
+            if (group.getAttribute("data-building") === selectedBuilding) {
+                group.classList.remove("d-none");
+            } else {
+                group.classList.add("d-none");
+            }
+        });
+    }
 
-                    <form action="{{ route('overtime.store') }}" method="POST">
-                        @csrf
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label for="department_id" class="form-label">Departemen</label>
-                                    <select name="department_id" id="department_id" class="form-select @error('department_id') is-invalid @enderror" required>
-                                        <option value="">Pilih Departemen</option>
-                                        @foreach($departments as $dept)
-                                            <option value="{{ $dept->id }}">{{ $dept->nama_departemen }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('department_id')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
+    // Event listener untuk perubahan dropdown
+    buildingSelect.addEventListener("change", function () {
+        updateDevices(this.value);
+    });
+
+    // Event listener untuk switch (ubah warna indikator)
+// Event listener untuk switch (ubah warna indikator)
+        document.querySelectorAll(".device-switch").forEach(switchElement => {
+            switchElement.addEventListener("change", function () {
+                // Cari indikator terdekat dalam container yang sama
+                const indicator = this.closest(".d-flex").querySelector(".indicator");
+                if (indicator) {
+                    indicator.style.backgroundColor = this.checked ? "green" : "grey";
+                }
+            });
+        });
+
+
+    // Set awal (tampilkan perangkat dari ruangan pertama)
+    updateDevices(buildingSelect.value);
+});
+</script>
+
+<!-- CSS untuk Indikator -->
+<style>
+.indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: grey;
+    transition: background-color 0.3s ease;
+}
+</style>
+
+<style>
+.device-container {
+    margin-bottom: 20px; /* Kasih jarak antar perangkat */
+}
+</style>
+
+<style>
+.device-title {
+    font-size: 18px;
+    font-weight: bold;
+    background-color: #343a40;
+    color: white;
+    padding: 5px 10px;
+    width: 100%; /* Biar selebar parent-nya */
+    text-align: center; /* Biar teks tetap di tengah */
+    border-radius: 5px;
+    display: inline-block;
+    margin-bottom: 8px; /* Tambahin jarak antara label dan elemen di bawahnya */
+}
+</style>
+
+<style>
+.device-label {
+    font-size: 10px;
+    font-weight: bold;
+    background-color: #343a40; /* Warna gelap selaras dengan dashboard */
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    width: 100%; /* Biar selebar parent-nya */
+    text-align: center; /* Biar teks tetap di tengah */
+    display: inline-block;
+    margin-bottom: 8px; /* Tambahin jarak antara label dan elemen di bawahnya */
+}
+</style>
+
+<!-- BEGIN Form Lembur Section 1 -->
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="page-header">Tambah Data Lembur</h1>
+
+        <div class="panel panel-inverse">
+            <div class="panel-heading">
+                <h4 class="panel-title">Form Input Data Lembur</h4>
+            </div>
+
+            <div class="panel-body">
+                @if(session('success'))
+                    <div class="alert alert-success">
+                        {{ session('success') }}
+                    </div>
+                @endif
+
+                <form action="{{ route('overtime.store') }}" method="POST">
+                    @csrf
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="division_id" class="form-label">Divisi</label>
+                                <select name="division_id" id="division_id" class="form-select @error('division_id') is-invalid @enderror" required>
+                                    <option value="">Pilih Divisi</option>
+                                    @foreach($divisions as $div)
+                                        <option value="{{ $div->id }}">{{ $div->nama_divisi }}</option>
+                                    @endforeach
+                                </select>
+                                @error('division_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
+                        </div>
 
-                            <div class="col-md-6">
-                                <div class="form-group mb-3">
-                                    <label for="employee_id" class="form-label">Karyawan</label>
-                                    <select name="employee_id" id="employee_id" class="form-select @error('employee_id') is-invalid @enderror" required>
-                                        <option value="">Pilih Karyawan</option>
-                                        <!-- Opsi akan diisi via JavaScript -->
-                                    </select>
-                                    @error('employee_id')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="employee_id" class="form-label">Karyawan</label>
+                                <select name="employee_id" id="employee_id" class="form-select @error('employee_id') is-invalid @enderror" required>
+                                    <option value="">Pilih Karyawan</option>
+                                    <!-- Karyawan akan di-load via Ajax -->
+                                </select>
+                                @error('employee_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label for="overtime_date" class="form-label">Tanggal Lembur</label>
+                                <input type="date" name="overtime_date" id="overtime_date" class="form-control @error('overtime_date') is-invalid @enderror" value="{{ old('overtime_date', date('Y-m-d')) }}" required>
+                                @error('overtime_date')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <div class="form-group mb-3">
-                                    <label for="overtime_date" class="form-label">Tanggal Lembur</label>
-                                    <input type="date" name="overtime_date" id="overtime_date" class="form-control @error('overtime_date') is-invalid @enderror" value="{{ old('overtime_date', date('Y-m-d')) }}" required>
-                                    @error('overtime_date')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group mb-3">
-                                    <label for="start_time" class="form-label">Waktu Mulai</label>
-                                    <input type="time" name="start_time" id="start_time" class="form-control @error('start_time') is-invalid @enderror" value="{{ old('start_time') }}" required>
-                                    @error('start_time')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group mb-3">
-                                    <label for="end_time" class="form-label">Waktu Selesai (opsional)</label>
-                                    <input type="time" name="end_time" id="end_time" class="form-control @error('end_time') is-invalid @enderror" value="{{ old('end_time') }}">
-                                    @error('end_time')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label for="start_time" class="form-label">Waktu Mulai</label>
+                                <input type="time" name="start_time" id="start_time" class="form-control @error('start_time') is-invalid @enderror" value="{{ old('start_time') }}" required>
+                                @error('start_time')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
 
-                        <div class="form-group mb-3">
-                            <label for="notes" class="form-label">Catatan</label>
-                            <textarea name="notes" id="notes" class="form-control @error('notes') is-invalid @enderror" rows="3">{{ old('notes') }}</textarea>
-                            @error('notes')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label for="end_time" class="form-label">Waktu Selesai (Opsional)</label>
+                                <input type="time" name="end_time" id="end_time" class="form-control @error('end_time') is-invalid @enderror" value="{{ old('end_time') }}">
+                                @error('end_time')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
+                    </div>
 
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary">Simpan</button>
-                            <a href="{{ route('overtime.index') }}" class="btn btn-default">Kembali</a>
-                        </div>
-                    </form>
-                </div>
+                    <div class="form-group mb-3">
+                        <label for="notes" class="form-label">Catatan</label>
+                        <textarea name="notes" id="notes" class="form-control @error('notes') is-invalid @enderror" rows="3">{{ old('notes') }}</textarea>
+                        @error('notes')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Simpan</button>
+                        <a href="{{ route('overtime.index') }}" class="btn btn-secondary">Kembali</a>
+                    </div>
+
+                </form>
             </div>
         </div>
     </div>
-    <!-- END Form Lembur Section 1 -->
+</div>
+<!-- END Form Lembur Section 1 -->
+
+@push('scripts')
+<script>
+    $(document).ready(function () {
+        $('#division_id').on('change', function () {
+            var divisionId = $(this).val();
+            if (divisionId) {
+                $.ajax({
+                    url: "{{ url('get-karyawan') }}/" + divisionId,
+                    type: "GET",
+                    dataType: "json",
+                    success: function (data) {
+                        $('#employee_id').empty();
+                        $('#employee_id').append('<option value="">Pilih Karyawan</option>');
+                        $.each(data, function (key, value) {
+                            $('#employee_id').append('<option value="'+ value.id +'">'+ value.nama_karyawan +'</option>');
+                        });
+                    },
+                    error: function () {
+                        alert('Gagal mengambil data karyawan.');
+                    }
+                });
+            } else {
+                $('#employee_id').empty();
+                $('#employee_id').append('<option value="">Pilih Karyawan</option>');
+            }
+        });
+    });
+</script>
+@endpush
+
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        $('#division_id').on('change', function() {
+            var divisionId = $(this).val();
+            if (divisionId) {
+                $.ajax({
+                    url: '/get-karyawan-by-division/' + divisionId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        $('#employee_id').empty();
+                        $('#employee_id').append('<option value="">Pilih Karyawan</option>');
+                        $.each(data, function(key, value) {
+                            $('#employee_id').append('<option value="' + value.id + '">' + value.nama_karyawan + '</option>');
+                        });
+                    }
+                });
+            } else {
+                $('#employee_id').empty();
+                $('#employee_id').append('<option value="">Pilih Karyawan</option>');
+            }
+        });
+    });
+</script>
+@endpush
+
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        $('#division_id').on('change', function() {
+            var divisionId = $(this).val();
+            if (divisionId) {
+                $.ajax({
+                    url: '/get-karyawan-by-division/' + divisionId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        $('#employee_id').empty();
+                        $('#employee_id').append('<option value="">Pilih Karyawan</option>');
+                        $.each(data, function(key, value) {
+                            $('#employee_id').append('<option value="' + value.id + '">' + value.nama_karyawan + '</option>');
+                        });
+                    }
+                });
+            } else {
+                $('#employee_id').empty();
+                $('#employee_id').append('<option value="">Pilih Karyawan</option>');
+            }
+        });
+    });
+</script>
+@endpush
+
 
     <!-- CSS untuk Indikator -->
     <style>

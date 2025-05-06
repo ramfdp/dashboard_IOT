@@ -11,9 +11,15 @@ return [
         ],
         [
             'icon' => 'fa fa-table',
-            'title' => 'Tables',
+            'title' => 'History Listrik',
             'url' => '/table/manage/buttons',
             'route-name' => 'table-manage-buttons'
+        ],
+        [
+            'icon' => 'fa fa-table',
+            'title' => 'Karyawan',
+            'url' => '/karyawan',
+            'route-name' => 'karyawan'
         ]
     ]
 
