@@ -5,19 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable;
+    
+    // Alias assignRole dari trait agar bisa dioverride
+    use HasRoles {
+        HasRoles::assignRole as traitAssignRole;
+    }
 
     protected $fillable = [
         'name',
         'email',
         'password',
         'role_id',
-        'role', // Tambahkan kolom ini ke fillable
     ];
 
     protected $hidden = [
@@ -30,24 +34,78 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    /**
+     * Relasi dengan tabel roles
+     */
     public function role()
     {
-        return $this->belongsTo(Role::class, 'role_id');
+        return $this->belongsTo(\Spatie\Permission\Models\Role::class, 'role_id');
+    }
+
+    /**
+     * Boot function untuk sinkronisasi role_id saat role diubah
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::updated(function ($user) {
+            $roleName = $user->getRoleNames()->first();
+            if ($roleName) {
+                $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
+                if ($role && $user->role_id != $role->id) {
+                    $user->role_id = $role->id;
+                    $user->saveQuietly(); // Cegah infinite loop
+                }
+            }
+        });
+    }
+
+    /**
+     * Override method assignRole agar juga mengupdate role_id
+     */
+    public function assignRole(...$roles)
+    {
+        // Panggil method asli dari trait
+        $result = $this->traitAssignRole(...$roles);
+
+        // Update role_id sesuai role yang diassign
+        $roleName = $this->getRoleNames()->first();
+        if ($roleName) {
+            $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
+            if ($role && $this->role_id != $role->id) {
+                $this->role_id = $role->id;
+                $this->saveQuietly();
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Custom method untuk mendapatkan nama role efektif
+     */
+    public function getEffectiveRoleName()
+    {
+        $spatieRole = $this->getRoleNames()->first();
+        if ($spatieRole) {
+            return $spatieRole;
+        }
+
+        if ($this->role) {
+            return $this->role->name;
+        }
+
+        return 'No Role';
     }
 
     public function isAdmin()
     {
         return $this->hasRole('admin');
     }
-    
-    // Tambahkan method untuk sinkronisasi role
-    public function syncRoleWithPermission()
+
+    public function isUser()
     {
-        if ($this->role_id) {
-            $roleName = Role::find($this->role_id)->name;
-            $this->syncRoles([$roleName]);
-            $this->role = $roleName;
-            $this->save();
-        }
+        return $this->hasRole('user');
     }
 }

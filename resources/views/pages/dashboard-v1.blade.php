@@ -98,219 +98,229 @@
     <!-- END SECTION: Parameter Penggunaan -->
 
     <!-- Monitoring Gauge Chart -->
-    <div class="col-md-12">
-        <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
-            <h6 class="panel-title mb-0">Penggunaan Listrik</h6>
-        </div>
-        <div class="row mt-4">
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-2</h4>
-                <canvas id="chartCM2"></canvas>
-                <p id="usageCM2" class="mt-2 fs-5 font-weight-bold">N/A</p>
-            </div>
-            <div class="col-md-3 text-center">
-                <h4>Gudang CM-3</h4>
-                <canvas id="chartCM3"></canvas>
-                <p id="usageCM3" class="mt-2 fs-5 font-weight-bold">N/A</p>
-            </div>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-inverse shadow-sm rounded-lg w-100 mb-4">
+                    <div class="panel-heading d-flex justify-content-between align-items-center bg-black text-white p-3 rounded-top">
+                        <h6 class="panel-title mb-0">Penggunaan Listrik</h6>
+                    </div>
+                    <div class="panel-body p-4 bg-dark text-white rounded-bottom">
+                        <div class="row mt-4">
+                            <div class="col-md-3 text-center">
+                                <h4>Gudang CM-2</h4>
+                                <canvas id="chartCM2"></canvas>
+                                <p id="usageCM2" class="mt-2 fs-5 font-weight-bold">N/A</p>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <h4>Gudang CM-3</h4>
+                                <canvas id="chartCM3"></canvas>
+                                <p id="usageCM3" class="mt-2 fs-5 font-weight-bold">N/A</p>
+                            </div>
+                        </div>
 
-            <!-- Scrollable Chart -->
-            <div style="overflow-x: auto;">
-                <canvas id="wattChart" width="1200" height="300"></canvas>
+                        <!-- Scrollable Chart -->
+                        <div class="mt-4" style="overflow-x: auto; background-color: #1e1e1e; padding: 1rem; border-radius: 8px;">
+                            <canvas id="wattChart" width="1200" height="300" style="background-color: #1e1e1e;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section text-center my-5">
+                    <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const ctx = document.getElementById('wattChart').getContext('2d');
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctx = document.getElementById('wattChart').getContext('2d');
 
-    const gradWatt = ctx.createLinearGradient(0, 0, 0, 300);
-    gradWatt.addColorStop(0, 'rgba(255,255,255,0.2)');
-    gradWatt.addColorStop(1, 'rgba(255,255,255,0)');
+        const gradWatt = ctx.createLinearGradient(0, 0, 0, 300);
+        gradWatt.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+        gradWatt.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
-    // Ambil data dari Blade
-    const labels = @json($dataKwh->pluck('waktu')->toArray()); // Ambil waktu dari data Kwh
-    const dataValues = @json($dataKwh->pluck('daya')->toArray()); // Ambil daya dari data Kwh
+        const labels = @json($dataKwh->pluck('waktu')->toArray());
+        const dataValues = @json($dataKwh->pluck('daya')->toArray());
 
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Daya (Watt)',
-                data: dataValues,
-                fill: true,
-                backgroundColor: gradWatt,
-                borderColor: '#ffffff',
-                pointBackgroundColor: '#ffffff',
-                tension: 0.4,
-                pointRadius: 3,
-                pointHoverRadius: 5
-            }]
-        },
-        options: {
-            responsive: false,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { enabled: false }
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Daya (Watt)',
+                    data: dataValues,
+                    fill: true,
+                    backgroundColor: gradWatt,
+                    borderColor: '#ffffff',
+                    pointBackgroundColor: '#ffffff',
+                    tension: 0.4,
+                    pointRadius: 3,
+                    pointHoverRadius: 5
+                }]
             },
-            scales: {
-                x: {
-                    ticks: { color: '#fff' },
-                    grid: { color: 'rgba(255,255,255,0.1)' }
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true, backgroundColor: '#333', titleColor: '#fff', bodyColor: '#fff' }
                 },
-                y: {
-                    display: false // Hide built-in Y axis
+                scales: {
+                    x: {
+                        ticks: { color: '#fff' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                        ticks: { color: '#fff' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
                 }
             }
-        }
+        });
     });
-});
-</script>
-<div class="section text-center my-5">
-                <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
-</div>
+    </script>
 
 
- <!-- BEGIN row -->
-<div class="row">
-    <!-- BEGIN COL-12 -->
-    <div class="col-md-12">
-        <div class="panel panel-inverse shadow-sm rounded-lg w-100" data-sortable-id="index-9">
-            <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
-                <h4 class="panel-title mb-0">Perangkat</h4>
-                <select class="form-select w-auto bg-light border-0" id="building-select">
-                    <option value="cm1">ITMS</option>
-                    <option value="cm2">HR</option>
-                    <option value="cm3">---</option>
-                    <option value="sportcenter">---</option>
-                </select>
+    <!-- BEGIN row -->
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- BEGIN COL-12 -->
+            <div class="col-md-12">
+                <div class="panel panel-inverse shadow-sm rounded-lg w-100 mb-4" data-sortable-id="index-9">
+                    <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
+                        <h4 class="panel-title mb-0">Perangkat</h4>
+                        <select class="form-select w-auto bg-light border-0" id="building-select">
+                            <option value="cm1">ITMS</option>
+                            <option value="cm2">HR</option>
+                            <option value="cm3">---</option>
+                            <option value="sportcenter">---</option>
+                        </select>
+                    </div>
+                    <div class="panel-body p-4">
+                        <div id="device-container">
+                            <!-- Perangkat ITMS -->
+                            <div class="device-group" data-building="cm1">
+                                <label class="device-title mb-3">Lampu</label>
+
+                                <div class="device-row d-flex justify-content-between gap-4 mb-4">
+                                    <div class="device-container d-flex flex-column align-items-start">
+                                        <label class="device-label">Lampu ITMS 1</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input device-switch" type="checkbox">
+                                            </div>
+                                            <div class="indicator"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="device-container d-flex flex-column align-items-start">
+                                        <label class="device-label">Lampu ITMS 2</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input device-switch" type="checkbox">
+                                            </div>
+                                            <div class="indicator"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="device-container d-flex flex-column align-items-start">
+                                        <label class="device-label">Lampu ITMS 3</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="fa fa-lightbulb text-primary fs-4"></i>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input device-switch" type="checkbox">
+                                            </div>
+                                            <div class="indicator"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <label class="device-title mb-3">AC</label>
+
+                                <div class="device-row d-flex justify-content-between gap-4">
+                                    <div class="device-container d-flex flex-column align-items-start">
+                                        <label class="device-label">AC ITMS 1</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="fa fa-snowflake text-primary fs-4"></i>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input device-switch" type="checkbox">
+                                            </div>
+                                            <div class="indicator"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="device-container d-flex flex-column align-items-start">
+                                        <label class="device-label">AC ITMS 2</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="fa fa-snowflake text-primary fs-4"></i>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input device-switch" type="checkbox">
+                                            </div>
+                                            <div class="indicator"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="device-container d-flex flex-column align-items-start">
+                                        <label class="device-label">AC ITMS 3</label>
+                                        <div class="d-flex align-items-center gap-3">
+                                            <i class="fa fa-snowflake text-primary fs-4"></i>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input device-switch" type="checkbox">
+                                            </div>
+                                            <div class="indicator"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Perangkat HC -->
+                            <div class="device-group d-none" data-building="sportcenter">
+                                <h5 class="mb-3">HC</h5>
+                                <div class="d-flex align-items-center">
+                                    <i class="fa fa-snowflake text-primary fs-4"></i>
+                                    <span class="ms-2">AC HC</span>
+                                    <div class="form-check form-switch ms-3">
+                                        <input class="form-check-input device-switch" type="checkbox" id="hc-ac">
+                                    </div>
+                                    <div id="hc-ac-indicator" class="indicator ms-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="panel-body p-4">
-                <div id="device-container">
-                    <!-- Perangkat ITMS -->
-                    <div class="device-group" data-building="cm1">
-                    <label class="device-title">Lampu</label>
-
-                    <div class="device-row d-flex justify-content-between gap-4">
-                    <div class="device-container d-flex flex-column align-items-start">
-                        <label class="device-label">Lampu ITMS 1</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="fa fa-lightbulb text-primary fs-4"></i>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input device-switch" type="checkbox">
-                            </div>
-                            <div class="indicator"></div>
-                        </div>
-                    </div>
-
-                    <div class="device-container d-flex flex-column align-items-start">
-                        <label class="device-label">Lampu ITMS 2</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="fa fa-lightbulb text-primary fs-4"></i>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input device-switch" type="checkbox">
-                            </div>
-                            <div class="indicator"></div>
-                        </div>
-                    </div>
-
-                    <div class="device-container d-flex flex-column align-items-start">
-                        <label class="device-label">Lampu ITMS 3</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="fa fa-lightbulb text-primary fs-4"></i>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input device-switch" type="checkbox">
-                            </div>
-                            <div class="indicator"></div>
-                        </div>
-                    </div>
-                </div>
-
-                    <label class="device-title">AC</label>
-
-                    <div class="device-row d-flex justify-content-between gap-4">
-                    <div class="device-container d-flex flex-column align-items-start">
-                        <label class="device-label">AC ITMS 1</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="fa fa-snowflake text-primary fs-4"></i>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input device-switch" type="checkbox">
-                            </div>
-                            <div class="indicator"></div>
-                        </div>
-                    </div>
-
-                    <div class="device-container d-flex flex-column align-items-start">
-                        <label class="device-label">AC ITMS 2</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="fa fa-lightbulb text-primary fs-4"></i>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input device-switch" type="checkbox">
-                            </div>
-                            <div class="indicator"></div>
-                        </div>
-                    </div>
-
-                    <div class="device-container d-flex flex-column align-items-start">
-                        <label class="device-label">AC ITMS 3</label>
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="fa fa-lightbulb text-primary fs-4"></i>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input device-switch" type="checkbox">
-                            </div>
-                            <div class="indicator"></div>
-                        </div>
-                    </div>
-                </div>
-
-                    <!-- Perangkat HC -->
-                    <div class="device-group d-none" data-building="sportcenter">
-                        <h5>HC</h5>
-                        <div class="d-flex align-items-center">
-                            <i class="fa fa-snowflake text-primary fs-4"></i>
-                            <span class="ms-2">AC HC</span>
-                            <div class="form-check form-switch ms-3">
-                                <input class="form-check-input device-switch" type="checkbox" id="hc-ac">
-                            </div>
-                            <div id="hc-ac-indicator" class="indicator ms-2"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- END COL-12 -->
         </div>
     </div>
-    <!-- END COL-12 -->
-</div>
-<!-- END row -->
+    <!-- END row -->
 
-<!-- JavaScript untuk Logika -->
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const buildingSelect = document.getElementById("building-select");
-    const deviceGroups = document.querySelectorAll(".device-group");
+    <!-- JavaScript untuk Logika -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const buildingSelect = document.getElementById("building-select");
+        const deviceGroups = document.querySelectorAll(".device-group");
 
-    // Fungsi untuk memperbarui tampilan perangkat berdasarkan ruangan yang dipilih
-    function updateDevices(selectedBuilding) {
-        deviceGroups.forEach(group => {
-            if (group.getAttribute("data-building") === selectedBuilding) {
-                group.classList.remove("d-none");
-            } else {
-                group.classList.add("d-none");
-            }
+        // Fungsi untuk memperbarui tampilan perangkat berdasarkan ruangan yang dipilih
+        function updateDevices(selectedBuilding) {
+            deviceGroups.forEach(group => {
+                if (group.getAttribute("data-building") === selectedBuilding) {
+                    group.classList.remove("d-none");
+                } else {
+                    group.classList.add("d-none");
+                }
+            });
+        }
+
+        // Event listener untuk perubahan dropdown
+        buildingSelect.addEventListener("change", function () {
+            updateDevices(this.value);
         });
-    }
 
-    // Event listener untuk perubahan dropdown
-    buildingSelect.addEventListener("change", function () {
-        updateDevices(this.value);
-    });
-
-    // Event listener untuk switch (ubah warna indikator)
-// Event listener untuk switch (ubah warna indikator)
+        // Event listener untuk switch (ubah warna indikator)
         document.querySelectorAll(".device-switch").forEach(switchElement => {
             switchElement.addEventListener("change", function () {
                 // Cari indikator terdekat dalam container yang sama
@@ -321,58 +331,51 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         });
 
+        // Set awal (tampilkan perangkat dari ruangan pertama)
+        updateDevices(buildingSelect.value);
+    });
+    </script>
 
-    // Set awal (tampilkan perangkat dari ruangan pertama)
-    updateDevices(buildingSelect.value);
-});
-</script>
+    <!-- CSS untuk Indikator -->
+    <style>
+    .indicator {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: grey;
+        transition: background-color 0.3s ease;
+    }
 
-<!-- CSS untuk Indikator -->
-<style>
-.indicator {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: grey;
-    transition: background-color 0.3s ease;
-}
-</style>
+    .device-container {
+        margin-bottom: 20px; /* Kasih jarak antar perangkat */
+    }
 
-<style>
-.device-container {
-    margin-bottom: 20px; /* Kasih jarak antar perangkat */
-}
-</style>
+    .device-title {
+        font-size: 18px;
+        font-weight: bold;
+        background-color: #343a40;
+        color: white;
+        padding: 8px 15px;
+        width: 100%; /* Biar selebar parent-nya */
+        text-align: center; /* Biar teks tetap di tengah */
+        border-radius: 5px;
+        display: block;
+        margin-bottom: 15px; /* Tambahin jarak antara label dan elemen di bawahnya */
+    }
 
-<style>
-.device-title {
-    font-size: 18px;
-    font-weight: bold;
-    background-color: #343a40;
-    color: white;
-    padding: 5px 10px;
-    width: 100%; /* Biar selebar parent-nya */
-    text-align: center; /* Biar teks tetap di tengah */
-    border-radius: 5px;
-    display: inline-block;
-    margin-bottom: 8px; /* Tambahin jarak antara label dan elemen di bawahnya */
-}
-</style>
-
-<style>
-.device-label {
-    font-size: 10px;
-    font-weight: bold;
-    background-color: #343a40; /* Warna gelap selaras dengan dashboard */
-    color: white;
-    padding: 5px 10px;
-    border-radius: 5px;
-    width: 100%; /* Biar selebar parent-nya */
-    text-align: center; /* Biar teks tetap di tengah */
-    display: inline-block;
-    margin-bottom: 8px; /* Tambahin jarak antara label dan elemen di bawahnya */
-}
-</style>
+    .device-label {
+        font-size: 14px;
+        font-weight: bold;
+        background-color: #343a40; /* Warna gelap selaras dengan dashboard */
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        width: 100%; /* Biar selebar parent-nya */
+        text-align: center; /* Biar teks tetap di tengah */
+        display: block;
+        margin-bottom: 8px; /* Tambahin jarak antara label dan elemen di bawahnya */
+    }
+    </style>
 
 <!-- BEGIN Form Lembur Section 1 -->
 <div class="row">
@@ -818,7 +821,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 data-id="{{ $user->id }}"
                                                 data-name="{{ $user->name }}"
                                                 data-email="{{ $user->email }}"
-                                                data-role="{{ $user->role_id ?? '' }}"
+                                                data-role="{{ $user->roles->first()->id ?? '' }}"
                                                 data-role-name="{{ $user->getRoleNames()->first() ?? '' }}">
                                                 Edit
                                             </button>

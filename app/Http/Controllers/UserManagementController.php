@@ -40,17 +40,17 @@ class UserManagementController extends Controller
     
         $validated['password'] = Hash::make($validated['password']);
     
+        // Buat user tanpa role_id dan role
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-            'role_id' => $validated['role_id'],
-            'role' => Role::find($validated['role_id'])->name, // <-- tambahkan ini
         ]);
     
-        // Assign role ke user
+        // Assign role menggunakan Spatie
         $roleName = Role::find($validated['role_id'])->name;
         $user->assignRole($roleName);
+        
         return redirect()->route('dashboard-v1')->with('success', 'User berhasil ditambahkan');
     }    
 
@@ -67,32 +67,28 @@ class UserManagementController extends Controller
             ],
             'role_id' => 'required|exists:roles,id',
         ]);
-
+    
         if ($request->filled('password')) {
             $validated['password'] = Hash::make($request->password);
         }
-
-        // Dapatkan role name dari role_id
-        $role = Role::find($validated['role_id']);
-        $roleName = $role->name;
+    
+        // Hapus role_id dan role dari data yang akan diupdate
+        $updateData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ];
         
-        // Tambahkan role ke data yang akan diupdate
-        $validated['role'] = $roleName;
+        if (isset($validated['password'])) {
+            $updateData['password'] = $validated['password'];
+        }
         
         // Update user data
-        $user->update($validated);
+        $user->update($updateData);
         
-        // Sync role di Spatie permission dengan cara yang benar
-        // Hapus semua role yang ada terlebih dahulu
-        $user->syncRoles([]); 
-        
-        // Assign role baru
-        $user->assignRole($roleName);
-
-        // Refresh user instance untuk memastikan data terbaru
-        $user->refresh();
-
-        // Redirect dengan pesan sukses
+        // Sync role menggunakan Spatie
+        $roleName = Role::find($validated['role_id'])->name;
+        $user->syncRoles([$roleName]);
+    
         return redirect()->route('dashboard-v1')->with('success', 'User berhasil diperbarui');
     }
     

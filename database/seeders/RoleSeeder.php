@@ -9,8 +9,7 @@ class RoleSeeder extends Seeder
 {
     public function run()
     {
-        // Roles yang ingin ditambahkan
-        $roles = ['admin', 'user', 'manager', 'supervisor'];
+        $roles = ['admin', 'user'];
         
         foreach ($roles as $roleName) {
             // Cek apakah role sudah ada, jika belum maka buat

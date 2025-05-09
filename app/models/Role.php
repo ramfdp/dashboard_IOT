@@ -10,10 +10,13 @@ class Role extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'description',
+        'name', 
+        'description'
     ];
 
+    /**
+     * Relasi: Role dimiliki oleh banyak User
+     */
     public function users()
     {
         return $this->hasMany(User::class);
