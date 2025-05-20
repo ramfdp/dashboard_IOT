@@ -42,10 +42,7 @@
     Route::get('/get-karyawan/{division_id}', [KaryawanController::class, 'getKaryawanByDivisi']);
     Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
     Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
-    
-
-
-    // Route untuk tampilan halaman data karyawan
+  
     Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
     Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
     Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
@@ -131,7 +128,6 @@
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-    Route::get('/dashboardDetail', 'MainController@dashboardDetailCm2')->name('dashboardDetail');
     Route::get('/listrik/detail/{id}', [ListrikController::class, 'detail'])->name('listrik.detail');
 
     Route::get('/overtime', [OvertimeController::class, 'index'])->name('overtime.index');

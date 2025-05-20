@@ -106,28 +106,96 @@
                         <h6 class="panel-title mb-0">Penggunaan Listrik</h6>
                     </div>
                     <div class="panel-body p-4 bg-dark text-white rounded-bottom">
-                        <div class="row mt-4">
-                            <div class="col-md-3 text-center">
-                                <h4>Gudang CM-2</h4>
-                                <canvas id="chartCM2"></canvas>
-                                <p id="usageCM2" class="mt-2 fs-5 font-weight-bold">N/A</p>
-                            </div>
-                            <div class="col-md-3 text-center">
-                                <h4>Gudang CM-3</h4>
-                                <canvas id="chartCM3"></canvas>
-                                <p id="usageCM3" class="mt-2 fs-5 font-weight-bold">N/A</p>
-                            </div>
-                        </div>
-
                         <!-- Scrollable Chart -->
-                        <div class="mt-4" style="overflow-x: auto; background-color: #1e1e1e; padding: 1rem; border-radius: 8px;">
-                            <canvas id="wattChart" width="1200" height="300" style="background-color: #1e1e1e;"></canvas>
+                        <div class="row" style="overflow-x: auto; background-color: #1e1e1e; border-radius: 8px;">
+                            <canvas id="wattChart" width="1450" height="300" style="background-color: #1e1e1e;"></canvas>
+                        </div>
+                        <div class="row col-md-12 text-center mt-3 mb-2">
+                            <button class="btn btn-primary" id="btnLihatPerhitungan">Lihat Perhitungan</button>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="section text-center my-5">
-                    <a href="{{ route('dashboardDetail') }}" class="btn btn-primary w-100 py-3">Detail</a>
+    <!-- Modal untuk Perhitungan Listrik -->
+    <div class="modal fade" id="modalPerhitunganListrik" tabindex="-1" aria-labelledby="modalPerhitunganListrikLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalPerhitunganListrikLabel">Perhitungan Penggunaan Listrik</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <h6>Ringkasan Penggunaan</h6>
+                        <div id="perhitunganSummary"></div>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="periodePerhitungan">Pilih Periode Perhitungan:</label>
+                        <select class="form-control" id="periodePerhitungan">
+                            <option value="harian" selected>Harian</option>
+                            <option value="mingguan">Mingguan</option>
+                            <option value="bulanan">Bulanan</option>
+                        </select>
+                    </div>
+                    
+                    <div class="card bg-primary text-white mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Penggunaan Listrik</h5>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <h3 id="totalWatt">0 Watt</h3>
+                                    <p>Daya Rata-rata</p>
+                                </div>
+                                <div class="col-6">
+                                    <h3 id="totalKwh">0 kWh</h3>
+                                    <p id="periodeLabel">per hari</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body">
+                            <h6 class="card-title">Informasi Detail</h6>
+                            <div class="table-responsive">
+                                <table class="table table-dark table-sm">
+                                    <tbody id="detailPenggunaan">
+                                        <tr>
+                                            <td>Daya Tertinggi</td>
+                                            <td id="dayaTertinggi">0 Watt</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Daya Terendah</td>
+                                            <td id="dayaTerendah">0 Watt</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Total Data</td>
+                                            <td id="totalData">0 titik data</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Energi (Harian)</td>
+                                            <td id="kwhHarian">0 kWh</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Energi (Mingguan)</td>
+                                            <td id="kwhMingguan">0 kWh</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Energi (Bulanan)</td>
+                                            <td id="kwhBulanan">0 kWh</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
                 </div>
             </div>
         </div>
@@ -179,9 +247,79 @@
                 }
             }
         });
+
+        // Script untuk perhitungan listrik
+        const btnLihatPerhitungan = document.getElementById('btnLihatPerhitungan');
+        const modalPerhitunganListrik = new bootstrap.Modal(document.getElementById('modalPerhitunganListrik'));
+        const periodePerhitungan = document.getElementById('periodePerhitungan');
+        
+        // Fungsi untuk menghitung penggunaan listrik berdasarkan periode
+        function hitungPenggunaanListrik(periode = 'harian') {
+            // Ambil data dari grafik
+            const dayaValues = dataValues.map(d => parseFloat(d));
+            
+            // Hitung statistik dasar
+            const rataDaya = dayaValues.reduce((a, b) => a + b, 0) / dayaValues.length;
+            const dayaTertinggi = Math.max(...dayaValues);
+            const dayaTerendah = Math.min(...dayaValues);
+            
+            // Konversi ke kWh berdasarkan periode
+            let kwhValue = 0;
+            let periodeText = '';
+            
+            switch(periode) {
+                case 'harian':
+                    kwhValue = (rataDaya * 24) / 1000;
+                    periodeText = 'per hari';
+                    break;
+                case 'mingguan':
+                    kwhValue = (rataDaya * 24 * 7) / 1000;
+                    periodeText = 'per minggu';
+                    break;
+                case 'bulanan':
+                    kwhValue = (rataDaya * 24 * 30) / 1000; // asumsi 30 hari dalam sebulan
+                    periodeText = 'per bulan';
+                    break;
+            }
+            
+            // Tampilkan hasil perhitungan
+            document.getElementById('totalWatt').textContent = `${rataDaya.toFixed(2)} Watt`;
+            document.getElementById('totalKwh').textContent = `${kwhValue.toFixed(2)} kWh`;
+            document.getElementById('periodeLabel').textContent = periodeText;
+            document.getElementById('dayaTertinggi').textContent = `${dayaTertinggi.toFixed(2)} Watt`;
+            document.getElementById('dayaTerendah').textContent = `${dayaTerendah.toFixed(2)} Watt`;
+            document.getElementById('totalData').textContent = `${dayaValues.length} titik data`;
+            
+            // Hitung dan tampilkan energi untuk semua periode
+            const kwhHarian = (rataDaya * 24) / 1000;
+            const kwhMingguan = kwhHarian * 7;
+            const kwhBulanan = kwhHarian * 30;
+            
+            document.getElementById('kwhHarian').textContent = `${kwhHarian.toFixed(2)} kWh`;
+            document.getElementById('kwhMingguan').textContent = `${kwhMingguan.toFixed(2)} kWh`;
+            document.getElementById('kwhBulanan').textContent = `${kwhBulanan.toFixed(2)} kWh`;
+            
+            // Tampilkan ringkasan sesuai periode
+            const perhitunganSummary = document.getElementById('perhitunganSummary');
+            perhitunganSummary.innerHTML = `
+                <p>Berdasarkan data penggunaan listrik pada grafik, rata-rata penggunaan daya adalah 
+                <strong>${rataDaya.toFixed(2)} Watt</strong>. Dengan asumsi penggunaan selama 24 jam, 
+                estimasi konsumsi energi adalah <strong>${kwhValue.toFixed(2)} kWh ${periodeText}</strong>.</p>
+            `;
+        }
+        
+        // Event listener untuk dropdown periode
+        periodePerhitungan.addEventListener('change', function() {
+            hitungPenggunaanListrik(this.value);
+        });
+        
+        // Event listener untuk tombol lihat perhitungan
+        btnLihatPerhitungan.addEventListener('click', function() {
+            hitungPenggunaanListrik(periodePerhitungan.value);
+            modalPerhitunganListrik.show();
+        });
     });
     </script>
-
 
     <!-- BEGIN row -->
     <div class="container-fluid mt-4">
