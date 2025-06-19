@@ -18,13 +18,21 @@ class HistoryKwh extends Model
         'energi',
         'frekuensi',
         'power_factor',
-        'tanggal_input'
+        'tanggal_input',
+        'waktu', // Tambahkan kolom waktu
     ];
 
-    public $timestamps = false; // Pastikan timestamps dinonaktifkan jika tidak ada kolom `created_at` dan `updated_at`
+    // Aktifkan timestamps untuk created_at dan updated_at
+    public $timestamps = true;
     
-    // Jika menggunakan timestamp manual, tambahkan ini:
     protected $casts = [
         'tanggal_input' => 'datetime',
+        'waktu' => 'string',
+        'tegangan' => 'decimal:2',
+        'arus' => 'decimal:2',
+        'daya' => 'decimal:3',
+        'energi' => 'decimal:2',
+        'frekuensi' => 'decimal:2',
+        'power_factor' => 'decimal:3',
     ];
 }

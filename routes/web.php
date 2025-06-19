@@ -50,7 +50,7 @@
     Route::post('/karyawan/store', [KaryawanController::class, 'store'])->name('karyawan.store');
     Route::delete('/karyawan/{id}', [KaryawanController::class, 'destroy'])->name('karyawan.destroy');
 
-
+    Route::get('/sensor/summary', [SensorController::class, 'summary']);
 
     Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
     Route::get('/karyawan/data', [KaryawanController::class, 'getData']);

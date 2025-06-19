@@ -10,7 +10,6 @@ class ListrikController extends Controller
 {
     public function store(Request $request)
     {
-        // Validasi data yang masuk
         $request->validate([
             'lokasi' => 'required|string',
             'listrik' => 'required|numeric',
@@ -18,7 +17,6 @@ class ListrikController extends Controller
             'lampu' => 'required|numeric',
         ]);
 
-        // Simpan data ke database
         $listrik = Listrik::create([
             'lokasi' => $request->lokasi,
             'listrik' => $request->listrik,
@@ -26,7 +24,6 @@ class ListrikController extends Controller
             'lampu' => $request->lampu,
         ]);
 
-        // Kirim data ke frontend melalui Pusher
         $pusher = new Pusher(
             env('PUSHER_APP_KEY'),
             env('PUSHER_APP_SECRET'),

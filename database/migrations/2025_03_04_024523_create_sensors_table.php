@@ -15,6 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('temperature', 100);
             $table->string('humidity', 100);
+            $table->float('lamp_usage')->default(0);
+            $table->float('ac_usage')->default(0);
+            $table->float('electricity_usage')->default(0);
             $table->timestamps();
         });
     }

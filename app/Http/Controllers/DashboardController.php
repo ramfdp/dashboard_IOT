@@ -37,7 +37,7 @@ class DashboardController extends Controller
         // Ambil data divisions
         $divisions = Divisi::all();
 
-        // Ambil data histori Kwh untuk grafik
+
         $dataKwh = HistoryKwh::select('waktu', 'daya')
                              ->orderBy('waktu', 'asc')
                              ->get();
@@ -50,7 +50,7 @@ class DashboardController extends Controller
             'departments', 
             'karyawans',
             'divisions', 
-            'dataKwh'  // Kirim data Kwh ke view
+            'dataKwh'  
         ));
     }
 }

@@ -63,7 +63,7 @@ class SensorController extends Controller
 
     public function latest()
     {
-        $sensor = Sensor::latest()->first(); // Ambil data terbaru
+        $sensor = Sensor::latest()->first();
 
         if (!$sensor) {
             return response()->json([
@@ -80,4 +80,18 @@ class SensorController extends Controller
         ]);
     }
 
+    public function summary()
+    {
+        $totalLamp = Sensor::sum('lamp_usage');
+        $totalAC = Sensor::sum('ac_usage');
+        $totalElectric = Sensor::sum('electricity_usage');
+        $latestTemp = Sensor::latest()->value('temperature');
+
+        return response()->json([
+            'lamp_usage' => $totalLamp,
+            'ac_usage' => $totalAC,
+            'electricity_usage' => $totalElectric,
+            'temperature' => $latestTemp,
+        ]);
+    }
 }

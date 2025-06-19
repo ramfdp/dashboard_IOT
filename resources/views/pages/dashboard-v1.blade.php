@@ -95,6 +95,33 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function getRandomFloat(min, max, decimals = 2) {
+            const str = (Math.random() * (max - min) + min).toFixed(decimals);
+            return parseFloat(str);
+        }
+
+        function updateSimulasiData() {
+            const lampuUsage = getRandomFloat(120, 250); // dalam KWh
+            const acUsage = getRandomFloat(200, 400); // dalam KWh
+            const electricityUsage = lampuUsage + acUsage + getRandomFloat(50, 150); // total
+            const suhu = getRandomFloat(25, 31); // suhu ruangan
+
+            document.getElementById('lampu-value').textContent = lampuUsage + ' KWh';
+            document.getElementById('ac-value').textContent = acUsage + ' KWh';
+            document.getElementById('listrik-value').textContent = electricityUsage.toFixed(2) + ' KWh';
+            document.getElementById('suhu-value').textContent = suhu + ' °C';
+        }
+
+        // Panggil pertama kali
+        updateSimulasiData();
+
+        // Perbarui setiap 1 menit
+        setInterval(updateSimulasiData, 60000);
+    </script>
+
+
     <!-- END SECTION: Parameter Penggunaan -->
 
     <!-- Monitoring Gauge Chart -->
@@ -518,11 +545,11 @@
 <!-- BEGIN Form Lembur Section 1 -->
 <div class="row">
     <div class="col-md-12">
-        <h1 class="page-header">Tambah Data Lembur</h1>
+        <h1 class="page-header">timer lembur</h1>
 
         <div class="panel panel-inverse">
             <div class="panel-heading">
-                <h4 class="panel-title">Form Input Data Lembur</h4>
+                <h4 class="panel-title">Form Input timer Lembur</h4>
             </div>
 
             <div class="panel-body">
@@ -556,7 +583,6 @@
                                 <label for="employee_id" class="form-label">Karyawan</label>
                                 <select name="employee_id" id="employee_id" class="form-select @error('employee_id') is-invalid @enderror" required>
                                     <option value="">Pilih Karyawan</option>
-                                    <!-- Karyawan akan di-load via Ajax -->
                                 </select>
                                 @error('employee_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -908,8 +934,8 @@
     
 <!-- User Management Section -->
 @if(auth()->user()->getRoleNames()->first() != 'user')
-    <div class="row">
-        <div class="row justify-content-center">
+    <div class="row justify-content-center mt-4 mb-4">
+        <div class="row justify-content-center mt-4 mb-4">
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
