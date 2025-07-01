@@ -11,9 +11,17 @@ use App\Models\Divisi; // Tambahkan import Divisi
 use Spatie\Permission\Models\Role;
 use App\Models\HistoryKwh; // Import model HistoriKwh
 use App\Http\Controllers\OvertimeController;
+use App\Services\FirebaseService;
 
 class DashboardController extends Controller
 {
+    protected $firebase;
+
+    public function __construct(FirebaseService $firebase)
+    {
+        $this->firebase = $firebase;
+    }
+
     public function index()
     {
         // Update status overtime
@@ -39,18 +47,37 @@ class DashboardController extends Controller
 
 
         $dataKwh = HistoryKwh::select('waktu', 'daya')
-                             ->orderBy('waktu', 'asc')
-                             ->get();
+            ->orderBy('waktu', 'asc')
+            ->get();
+
+        $relay1 = $this->firebase->getRelayState('relay1');
+        $relay2 = $this->firebase->getRelayState('relay2');
+        
 
         // Kirim semua data ke view
         return view('pages.dashboard-v1', compact(
-            'overtimes', 
-            'roles', 
-            'users', 
-            'departments', 
+            'overtimes',
+            'roles',
+            'users',
+            'departments',
             'karyawans',
-            'divisions', 
-            'dataKwh'  
+            'divisions',
+            'dataKwh',
+            'relay1',
+            'relay2'
         ));
+    }
+
+    public function update(Request $request)
+    {
+        $relay1 = $request->has('relay1') ? 1 : 0;
+        $relay2 = $request->has('relay2') ? 1 : 0;
+        $sos    = $request->has('sos') ? 1 : 0;
+
+        $this->firebase->setRelayState('relay1', $relay1);
+        $this->firebase->setRelayState('relay2', $relay2);
+        $this->firebase->setRelayState('sos', $sos);
+
+        return back()->with('success', 'Perangkat diperbarui.');
     }
 }

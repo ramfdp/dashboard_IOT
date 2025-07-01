@@ -21,6 +21,7 @@
     use App\Http\Controllers\UserController;
     use App\Http\Controllers\UserManagementController;
     use App\Http\Controllers\KaryawanController;
+    use App\Http\Controllers\RelayController;
 
 
     Route::get('/', function () {
@@ -31,6 +32,8 @@
         ->name('dashboard-v1');
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/dashboard/update', [DashboardController::class, 'update'])->name('dashboard.update');
+
 
     Route::get('/sensor/data', [SensorController::class, 'index']);
     Route::middleware(['auth', 'admin'])->group(function () {
@@ -56,6 +59,13 @@
     Route::get('/karyawan/data', [KaryawanController::class, 'getData']);
     Route::get('/get-karyawan/{divisiId}', [KaryawanController::class, 'getKaryawanByDivisi']);
     Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
+
+    //Relay dan Firebase Routes
+    Route::get('/relay', [RelayController::class, 'index']);
+    Route::post('/relay/update', [RelayController::class, 'update'])->name('relay.update');
+    Route::get('/dashboard', [RelayController::class, 'index']);
+    
+
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::resource('users', UserController::class);
