@@ -2,8 +2,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const buildingSelect = document.getElementById("building-select");
     const deviceGroups = document.querySelectorAll(".device-group");
 
-    // Fungsi untuk memperbarui tampilan perangkat berdasarkan ruangan yang dipilih
-    function updateDevices(selectedBuilding) {
+        function updateDevices(selectedBuilding) {
         deviceGroups.forEach(group => {
             if (group.getAttribute("data-building") === selectedBuilding) {
                 group.classList.remove("d-none");
@@ -18,7 +17,6 @@ document.addEventListener("DOMContentLoaded", function () {
         updateDevices(this.value);
     });
 
-    // Event listener untuk switch (ubah warna indikator)
     document.querySelectorAll(".device-switch").forEach(switchElement => {
         switchElement.addEventListener("change", function () {
             // Cari indikator terdekat dalam container yang sama

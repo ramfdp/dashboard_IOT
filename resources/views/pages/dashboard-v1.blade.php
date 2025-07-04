@@ -47,6 +47,7 @@
     <script src="/assets/js/logika-perangkat.js"></script>
     <script src="/assets/js/logika-form-lembur2.js"></script>
     <script src="/assets/js/logika-user-management.js"></script>
+    <script src="/assets/js/fetch-api-monitoring.js"></script>
 @endpush
 
 @section('content')
@@ -61,7 +62,7 @@
     <h1 class="page-header">Dashboard <small>Selamat Datang di IOT Smart Building Controller</small></h1>
     <!-- END page-header -->
     
-    <!-- SECTION: Parameter Penggunaan -->
+    {{-- <!-- SECTION: Parameter Penggunaan -->
     <div class="row">
         <div class="col-xl-4 col-md-6">
             <div class="widget widget-stats bg-blue">
@@ -102,9 +103,53 @@
                 </div>
             </div>
         </div>
+    </div> --}}
+    <!-- PZEM Monitoring (1 Row, 4 Kolom) -->
+    <div class="row">
+        <!-- Voltage -->
+        <div class="col-md-3">
+            <div class="widget widget-stats bg-primary">
+                <div class="stats-icon"><i class="fa fa-bolt"></i></div>
+                <div class="stats-info">
+                    <h4>Tegangan (Voltage)</h4>
+                    <p id="pzem-voltage">Memuat...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current -->
+        <div class="col-md-3">
+            <div class="widget widget-stats bg-success">
+                <div class="stats-icon"><i class="fa fa-plug"></i></div>
+                <div class="stats-info">
+                    <h4>Arus (Current)</h4>
+                    <p id="pzem-current">Memuat...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Power -->
+        <div class="col-md-3">
+            <div class="widget widget-stats bg-warning">
+                <div class="stats-icon"><i class="fa fa-lightbulb"></i></div>
+                <div class="stats-info">
+                    <h4>Daya Sensor PZEM</h4>
+                    <p id="pzem-power">Memuat...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Power -->
+        <div class="col-md-3">
+            <div class="widget widget-stats bg-danger">
+                <div class="stats-icon"><i class="fa fa-tachometer-alt"></i></div>
+                <div class="stats-info">
+                    <h4>Total Penggunaan Listrik</h4>
+                    <p id="total-listrik">Memuat...</p>
+                </div>
+            </div>
+        </div>
     </div>
-
-
 
 
     <!-- Monitoring Gauge Chart -->
@@ -213,162 +258,43 @@
         </div>
     </div>
 
-    <!-- BEGIN row -->
-    {{-- <form action="{{ route('dashboard.update') }}" method="POST">
+    <form action="{{ route('dashboard.update') }}" method="POST">
         @csrf
-        <div class="container-fluid mt-4">
-            <div class="row">
-                <!-- BEGIN COL-12 -->
-                <div class="col-md-12">
-                    <div class="panel panel-inverse shadow-sm rounded-lg w-100 mb-4" data-sortable-id="index-9">
-                        <div class="panel-heading d-flex justify-content-between align-items-center bg-dark text-white p-3 rounded-top">
-                            <h4 class="panel-title mb-0">Perangkat</h4>
-                            <select class="form-select w-auto bg-light border-0" id="building-select">
-                                <option value="cm1">ITMS</option>
-                                <option value="cm2">HR</option>
-                                <option value="cm3">---</option>
-                                <option value="sportcenter">---</option>
-                            </select>
-                        </div>
-                        <div class="panel-body p-4">
-                            <div id="device-container">
-                                <!-- Perangkat ITMS -->
-                                <div class="device-group" data-building="cm1">
-                                    <label class="device-title mb-3">Lampu</label>
 
-                                    <div class="device-row d-flex justify-content-between gap-4 mb-4">
-                                        <div class="device-container d-flex flex-column align-items-start">
-                                            <label class="device-label">Lampu ITMS 1</label>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <i class="fa fa-lightbulb text-primary fs-4"></i>
-                                                <div class="form-check form-switch">
-                                                <input class="form-check-input device-switch" type="checkbox" name="relay1" {{ ($relay1 ?? 0) == 1 ? 'checked' : '' }}>
-                                                </div>
-                                                <div class="indicator"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="device-container d-flex flex-column align-items-start">
-                                            <label class="device-label">Lampu ITMS 2</label>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <i class="fa fa-lightbulb text-primary fs-4"></i>
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ $relay2 == 1 ? 'checked' : '' }}>
-                                                </div>
-                                                <div class="indicator"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="device-container d-flex flex-column align-items-start">
-                                            <label class="device-label">Lampu ITMS 3</label>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <i class="fa fa-lightbulb text-primary fs-4"></i>
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input device-switch" type="checkbox">
-                                                </div>
-                                                <div class="indicator"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <label class="device-title mb-3">AC</label>
-
-                                    <div class="device-row d-flex justify-content-between gap-4">
-                                        <div class="device-container d-flex flex-column align-items-start">
-                                            <label class="device-label">AC ITMS 1</label>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <i class="fa fa-snowflake text-primary fs-4"></i>
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input device-switch" type="checkbox">
-                                                </div>
-                                                <div class="indicator"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="device-container d-flex flex-column align-items-start">
-                                            <label class="device-label">AC ITMS 2</label>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <i class="fa fa-snowflake text-primary fs-4"></i>
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input device-switch" type="checkbox">
-                                                </div>
-                                                <div class="indicator"></div>
-                                            </div>
-                                        </div>
-
-                                        <div class="device-container d-flex flex-column align-items-start">
-                                            <label class="device-label">AC ITMS 3</label>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <i class="fa fa-snowflake text-primary fs-4"></i>
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input device-switch" type="checkbox">
-                                                </div>
-                                                <div class="indicator"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Perangkat HC -->
-                                <div class="device-group d-none" data-building="sportcenter">
-                                    <h5 class="mb-3">HC</h5>
-                                    <div class="d-flex align-items-center">
-                                        <i class="fa fa-snowflake text-primary fs-4"></i>
-                                        <span class="ms-2">AC HC</span>
-                                        <div class="form-check form-switch ms-3">
-                                            <input class="form-check-input device-switch" type="checkbox" id="hc-ac">
-                                        </div>
-                                        <div id="hc-ac-indicator" class="indicator ms-2"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+        <div class="device-row d-flex justify-content-between gap-4 mb-4">
+            <div class="device-container d-flex flex-column align-items-start">
+                <label class="device-label">Lampu ITMS 1</label>
+                <div class="d-flex align-items-center gap-3">
+                    <i class="fa fa-lightbulb text-primary fs-4"></i>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input device-switch" type="checkbox" name="relay1" value="1" {{ $relay1 == 1 ? 'checked' : '' }}>
                     </div>
                 </div>
-                <!-- END COL-12 -->
             </div>
-        </div>
-    </form>     --}}
 
-    <form action="{{ route('dashboard.update') }}" method="POST">
-    @csrf
-
-    <div class="device-row d-flex justify-content-between gap-4 mb-4">
-        <div class="device-container d-flex flex-column align-items-start">
-            <label class="device-label">Lampu ITMS 1</label>
-            <div class="d-flex align-items-center gap-3">
-                <i class="fa fa-lightbulb text-primary fs-4"></i>
-                <div class="form-check form-switch">
-                    <input class="form-check-input device-switch" type="checkbox" name="relay1" value="1" {{ $relay1 == 1 ? 'checked' : '' }}>
+            <div class="device-container d-flex flex-column align-items-start">
+                <label class="device-label">Lampu ITMS 2</label>
+                <div class="d-flex align-items-center gap-3">
+                    <i class="fa fa-lightbulb text-primary fs-4"></i>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ $relay2 == 1 ? 'checked' : '' }}>
+                    </div>
                 </div>
-                <div class="indicator"></div>
             </div>
-        </div>
 
-        <div class="device-container d-flex flex-column align-items-start">
-            <label class="device-label">Lampu ITMS 2</label>
-            <div class="d-flex align-items-center gap-3">
-                <i class="fa fa-lightbulb text-primary fs-4"></i>
-                <div class="form-check form-switch">
-                    <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ $relay2 == 1 ? 'checked' : '' }}>
-                </div>
-                <div class="indicator"></div>
-            </div>
-        </div>
-
-        <div class="device-container d-flex flex-column align-items-start">
-            <label class="device-label">Mode SOS</label>
-            <div class="d-flex align-items-center gap-3">
-                <i class="fa fa-bell text-danger fs-4"></i>
-                <div class="form-check form-switch">
-                    <input class="form-check-input device-switch" type="checkbox" name="sos" value="1" {{ $sos ?? 0 == 1 ? 'checked' : '' }}>
+            <div class="device-container d-flex flex-column align-items-start">
+                <label class="device-label">Mode SOS</label>
+                <div class="d-flex align-items-center gap-3">
+                    <i class="fa fa-bell text-danger fs-4"></i>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input device-switch" type="checkbox" name="sos" value="1" {{ $sos ?? 0 == 1 ? 'checked' : '' }}>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <button class="btn btn-primary mt-3" type="submit">Perbarui Status</button>
-</form>
+        <button class="btn btn-primary mt-3 row col-md-12 text-center mt-3 mb-2" type="submit">Nyalakan/Matikan Lampu</button>
+    </form>
 
 
     <!-- END row -->
