@@ -20,6 +20,12 @@ return [
             'title' => 'Karyawan',
             'url' => '/karyawan',
             'route-name' => 'karyawan'
+        ],
+        [
+            'icon' => 'fa fa-table',
+            'title' => 'CCTV',
+            'url' => '/cctv',
+            'route-name' => 'cctv'
         ]
     ]
 

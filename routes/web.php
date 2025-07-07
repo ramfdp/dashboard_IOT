@@ -22,6 +22,8 @@
     use App\Http\Controllers\UserManagementController;
     use App\Http\Controllers\KaryawanController;
     use App\Http\Controllers\RelayController;
+    use App\Http\Controllers\CCTVController;
+
 
 
     Route::get('/', function () {
@@ -65,7 +67,22 @@
     Route::post('/relay/update', [RelayController::class, 'update'])->name('relay.update');
     Route::get('/dashboard', [RelayController::class, 'index']);
     
+    Route::prefix('cctv')->name('cctv.')->group(function () {
 
+    Route::get('/', [CCTVController::class, 'index'])->name('dashboard');
+    
+    // Camera management
+    Route::get('/camera/{id}', [CCTVController::class, 'show'])->name('camera.show');
+    Route::put('/camera/{id}', [CCTVController::class, 'update'])->name('camera.update');
+    
+    // API endpoints for AJAX calls
+    Route::post('/check-status', [CCTVController::class, 'checkStatus'])->name('check.status');
+    Route::get('/all-status', [CCTVController::class, 'getAllStatus'])->name('all.status');
+    Route::post('/refresh', [CCTVController::class, 'refresh'])->name('refresh');
+    Route::get('/stats', [CCTVController::class, 'getStats'])->name('stats');
+    Route::post('/test-connection', [CCTVController::class, 'testConnection'])->name('test.connection');
+    
+    });
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::resource('users', UserController::class);
