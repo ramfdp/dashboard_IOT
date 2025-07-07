@@ -39,7 +39,7 @@
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     <script src="/assets/js/demo/dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/assets/js/random-gen-moni.js"></script>
+    {{-- <script src="/assets/js/random-gen-moni.js"></script> --}}
     <script src="/assets/js/perhitung-grafik-moni.js"></script>
     <script src="/assets/js/logika-controling.js"></script>
     <script src="/assets/js/logika-form-lembur.js"></script>
@@ -151,7 +151,6 @@
         </div>
     </div>
 
-
     <!-- Monitoring Gauge Chart -->
     <div class="container-fluid">
         <div class="row">
@@ -189,7 +188,7 @@
                         <h6>Ringkasan Penggunaan</h6>
                         <div id="perhitunganSummary"></div>
                     </div>
-                    
+
                     <div class="form-group mb-3">
                         <label for="periodePerhitungan">Pilih Periode Perhitungan:</label>
                         <select class="form-control" id="periodePerhitungan">
@@ -198,7 +197,7 @@
                             <option value="bulanan">Bulanan</option>
                         </select>
                     </div>
-                    
+
                     <div class="card bg-primary text-white mb-3">
                         <div class="card-body">
                             <h5 class="card-title">Total Penggunaan Listrik</h5>
@@ -214,42 +213,45 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="card bg-secondary text-white">
+
+                    <div class="card bg-secondary text-white mb-3">
                         <div class="card-body">
                             <h6 class="card-title">Informasi Detail</h6>
-                            <div class="table-responsive">
-                                <table class="table table-dark table-sm">
-                                    <tbody id="detailPenggunaan">
-                                        <tr>
-                                            <td>Daya Tertinggi</td>
-                                            <td id="dayaTertinggi">0 Watt</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Daya Terendah</td>
-                                            <td id="dayaTerendah">0 Watt</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Total Data</td>
-                                            <td id="totalData">0 titik data</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Energi (Harian)</td>
-                                            <td id="kwhHarian">0 kWh</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Energi (Mingguan)</td>
-                                            <td id="kwhMingguan">0 kWh</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Energi (Bulanan)</td>
-                                            <td id="kwhBulanan">0 kWh</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                            <table class="table table-dark table-sm">
+                                <tbody>
+                                    <tr><td>Daya Tertinggi</td><td id="dayaTertinggi">0 Watt</td></tr>
+                                    <tr><td>Daya Terendah</td><td id="dayaTerendah">0 Watt</td></tr>
+                                    <tr><td>Total Data</td><td id="totalData">0 titik data</td></tr>
+                                    <tr><td>Energi (Harian)</td><td id="kwhHarian">0 kWh</td></tr>
+                                    <tr><td>Energi (Mingguan)</td><td id="kwhMingguan">0 kWh</td></tr>
+                                    <tr><td>Energi (Bulanan)</td><td id="kwhBulanan">0 kWh</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h6 class="card-title mb-2">Prediksi Konsumsi Berikutnya</h6>
+
+                            <!-- Dropdown Pilih Prediksi -->
+                            <div class="form-group mb-2">
+                                <label for="periodePrediksi">Pilih Periode Prediksi:</label>
+                                <select class="form-control" id="periodePrediksi">
+                                    <option value="harian" selected>Harian</option>
+                                    <option value="mingguan">Mingguan</option>
+                                    <option value="bulanan">Bulanan</option>
+                                </select>
+                            </div>
+
+                            <!-- Hasil Prediksi -->
+                            <div class="text-center">
+                                <p>Prediksi daya selanjutnya: <strong id="prediksiWatt">-</strong></p>
+                                <p>Estimasi energi: <strong id="prediksiKwhHarian">-</strong></p>
                             </div>
                         </div>
                     </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -292,7 +294,6 @@
                 </div>
             </div>
         </div>
-
         <button class="btn btn-primary mt-3 row col-md-12 text-center mt-3 mb-2" type="submit">Nyalakan/Matikan Lampu</button>
     </form>
 

@@ -23,39 +23,39 @@ class HistoryKwhSeeder extends Seeder
         // Generate data untuk 24 jam (00:00 - 23:00)
         for ($hour = 0; $hour < 24; $hour++) {
             $currentTime = $baseDate->copy()->addHours($hour);
-            
+
             // Tentukan apakah hari kerja atau weekend
             $isWeekend = $currentTime->isWeekend();
-            
+
             // Dapatkan load factor berdasarkan jam
             $loadFactor = $this->getHourlyLoadFactor($hour, $isWeekend);
-            
+
             // Parameter dasar untuk perusahaan BUMN
             $baseTegangan = 380; // Volt (3-phase)
             $minKW = 15;  // Minimum load
             $maxKW = 100; // Maximum load
             $basePowerFactor = 0.88;
-            
+
             // Hitung nilai-nilai listrik
             $targetDaya = $minKW + (($maxKW - $minKW) * $loadFactor);
-            
+
             // Tambahkan variasi realistis
             $tegangan = $baseTegangan + rand(-8, 12); // 372-392V
             $powerFactor = $basePowerFactor + (rand(-3, 7) / 100); // 0.85-0.95
             $frekuensi = 50 + (rand(-2, 2) / 100); // 49.98-50.02 Hz
-            
+
             // Hitung arus berdasarkan daya (3-phase: P = V × I × √3 × cos φ)
             $arus = ($targetDaya * 1000) / ($tegangan * sqrt(3) * $powerFactor);
             $arus = $arus + (rand(-50, 50) / 100); // Tambah variasi
-            
+
             // Recalculate daya aktual
             $daya = ($tegangan * $arus * sqrt(3) * $powerFactor) / 1000;
             $daya = max($minKW, min($daya, $maxKW)); // Batasi range
-            
+
             // Update energi kumulatif
             $energyConsumption = $daya; // kWh untuk 1 jam
             $cumulativeEnergy += $energyConsumption;
-            
+
             // Buat record
             HistoryKwh::create([
                 'tegangan' => round($tegangan, 2),
@@ -70,11 +70,11 @@ class HistoryKwhSeeder extends Seeder
                 'updated_at' => $currentTime,
             ]);
         }
-        
+
         $this->command->info("✅ Data berhasil di-generate untuk 24 jam dengan " . HistoryKwh::count() . " records");
         $this->command->info("📊 Rentang waktu: " . $baseDate->format('Y-m-d') . " 00:00 - 23:00");
     }
-    
+
     /**
      * Dapatkan load factor berdasarkan jam untuk perusahaan BUMN
      */
@@ -83,7 +83,7 @@ class HistoryKwhSeeder extends Seeder
         if ($isWeekend) {
             return $this->getWeekendLoadFactor($hour);
         }
-        
+
         // Pola beban hari kerja perusahaan (dalam decimal 0-1)
         $workdayPattern = [
             0  => 0.18,  // 00:00 - Malam (sistem security, server) → ~18kW
@@ -111,10 +111,10 @@ class HistoryKwhSeeder extends Seeder
             22 => 0.22,  // 22:00 - Malam → ~22kW
             23 => 0.20,  // 23:00 - Malam → ~20kW
         ];
-        
+
         return $workdayPattern[$hour] ?? 0.5;
     }
-    
+
     /**
      * Load factor untuk weekend
      */
@@ -147,7 +147,7 @@ class HistoryKwhSeeder extends Seeder
             22 => 0.15,  // 22:00 → ~15kW
             23 => 0.15,  // 23:00 → ~15kW
         ];
-        
+
         return $weekendPattern[$hour] ?? 0.2;
     }
 }

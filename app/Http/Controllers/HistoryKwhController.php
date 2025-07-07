@@ -21,18 +21,18 @@ class HistoryKwhController extends Controller
                 Log::error("Tabel histori_kwh tidak ditemukan di database.");
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 500);
             }
-    
+
             if ($request->ajax()) {
                 $data = HistoryKwh::select('id', 'tegangan', 'arus', 'daya', 'energi', 'frekuensi', 'power_factor', 'tanggal_input');
-    
+
                 Log::info("Data berhasil diambil dari database", ['jumlah_data' => $data->count()]);
-    
+
                 return DataTables::of($data)
                     ->toJson();
             }
-            
-    
-            return view('pages.table-manage-buttons'); 
+
+
+            return view('pages.table-manage-buttons');
         } catch (\Exception $e) {
             Log::error("Error dalam pengambilan data: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
@@ -175,6 +175,41 @@ class HistoryKwhController extends Controller
             return response()->json(['success' => true, 'data' => $history]);
         } catch (QueryException $e) {
             return response()->json(['success' => false, 'message' => 'Database error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function fetchFromFirebase()
+    {
+        $firebaseUrl = 'https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/sensor.json';
+
+        try {
+            $response = \Http::get($firebaseUrl);
+
+            if ($response->ok()) {
+                $data = $response->json();
+
+                // Pastikan data valid
+                if (!isset($data['voltage'], $data['current'], $data['power'], $data['energy'], $data['frequency'], $data['powerFactor'])) {
+                    return response()->json(['success' => false, 'message' => 'Data tidak lengkap'], 400);
+                }
+
+                // Simpan ke DB
+                HistoryKwh::create([
+                    'tegangan' => $data['voltage'],
+                    'arus' => $data['current'],
+                    'daya' => $data['power'],
+                    'energi' => $data['energy'],
+                    'frekuensi' => $data['frequency'],
+                    'power_factor' => $data['powerFactor'],
+                    'tanggal_input' => now()
+                ]);
+
+                return response()->json(['success' => true, 'message' => 'Data berhasil disimpan']);
+            }
+
+            return response()->json(['success' => false, 'message' => 'Gagal ambil data dari Firebase'], 500);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 }
