@@ -1,6 +1,3 @@
-# Dashboard View (dashboard-v1.blade.php)
-
-```php
 @extends('layouts.default')
 
 @section('title', 'Dashboard')
@@ -61,49 +58,6 @@
     <!-- BEGIN page-header -->
     <h1 class="page-header">Dashboard <small>Selamat Datang di IOT Smart Building Controller</small></h1>
     <!-- END page-header -->
-    
-    {{-- <!-- SECTION: Parameter Penggunaan -->
-    <div class="row">
-        <div class="col-xl-4 col-md-6">
-            <div class="widget widget-stats bg-blue">
-                <div class="stats-icon"><i class="fa fa-lightbulb"></i></div>
-                <div class="stats-info">
-                    <h4>Total Penggunaan Lampu</h4>
-                    <p id="lampu-value">0 KWh</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-4 col-md-6">
-            <div class="widget widget-stats bg-blue">
-                <div class="stats-icon"><i class="fa fa-thermometer-half"></i></div>
-                <div class="stats-info">
-                    <h4>Suhu Ruangan</h4>
-                    <p id="suhu-value">0 °C</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-4 col-md-6">
-            <div class="widget widget-stats bg-info">
-                <div class="stats-icon"><i class="fa fa-snowflake"></i></div>
-                <div class="stats-info">
-                    <h4>Total Penggunaan Pendingin Ruangan</h4>
-                    <p id="ac-value">0 KWh</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-4 col-md-6">
-            <div class="widget widget-stats bg-orange">
-                <div class="stats-icon"><i class="fa fa-bolt"></i></div>
-                <div class="stats-info">
-                    <h4>Total Penggunaan Listrik</h4>
-                    <p id="listrik-value">0 KWh</p>
-                </div>
-            </div>
-        </div>
-    </div> --}}
     <!-- PZEM Monitoring (1 Row, 4 Kolom) -->
     <div class="row">
         <!-- Voltage -->
@@ -259,9 +213,17 @@
             </div>
         </div>
     </div>
-
+    <!-- END Modal Perhitungan Listrik -->
+    
+    <!-- BEGIN row kontrol perangkat-->
     <form action="{{ route('dashboard.update') }}" method="POST">
         @csrf
+
+        @if(session('success_device'))
+            <div class="alert alert-success">
+                {{ session('success_device') }}
+            </div>
+        @endif
 
         <div class="device-row d-flex justify-content-between gap-4 mb-4">
             <div class="device-container d-flex flex-column align-items-start">
@@ -296,8 +258,6 @@
         </div>
         <button class="btn btn-primary mt-3 row col-md-12 text-center mt-3 mb-2" type="submit">Nyalakan/Matikan Lampu</button>
     </form>
-
-
     <!-- END row -->
 
     <!-- CSS untuk Indikator -->
@@ -335,9 +295,9 @@
         padding: 5px 10px;
         border-radius: 5px;
         width: 100%; /* Biar selebar parent-nya */
-        text-align: center; /* Biar teks tetap di tengah */
+        text-align: center; 
         display: block;
-        margin-bottom: 8px; /* Tambahin jarak antara label dan elemen di bawahnya */
+        margin-bottom: 8px; 
     }
     </style>
 
@@ -352,9 +312,9 @@
                 </div>
 
                 <div class="panel-body">
-                    @if(session('success'))
+                    @if(session('success_overtime'))
                         <div class="alert alert-success">
-                            {{ session('success') }}
+                            {{ session('success_overtime') }}
                         </div>
                     @endif
 
@@ -445,7 +405,7 @@
     <!-- CSS untuk Indikator -->
     <style>
         .indicator {
-            transition: background-color 0.3s ease; /* Animasi perubahan warna */
+            transition: background-color 0.3s ease; 
         }
     </style>
     
@@ -463,15 +423,15 @@
                     </div>
 
                     <div class="card-body">
-                        @if (session('success'))
+                        @if(session('success_user'))
                             <div class="alert alert-success" role="alert">
-                                {{ session('success') }}
+                                {{ session('success_user') }}
                             </div>
                         @endif
 
-                        @if (session('error'))
+                        @if(session('error_user'))
                             <div class="alert alert-danger" role="alert">
-                                {{ session('error') }}
+                                {{ session('error_user') }}
                             </div>
                         @endif
 

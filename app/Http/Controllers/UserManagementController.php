@@ -51,7 +51,7 @@ class UserManagementController extends Controller
         $roleName = Role::find($validated['role_id'])->name;
         $user->assignRole($roleName);
         
-        return redirect()->route('dashboard-v1')->with('success', 'User berhasil ditambahkan');
+        return redirect()->route('dashboard-v1')->with('success_user', 'User berhasil ditambahkan');
     }    
 
     public function update(Request $request, User $user)
@@ -89,7 +89,7 @@ class UserManagementController extends Controller
         $roleName = Role::find($validated['role_id'])->name;
         $user->syncRoles([$roleName]);
     
-        return redirect()->route('dashboard-v1')->with('success', 'User berhasil diperbarui');
+        return redirect()->route('dashboard-v1')->with('success_user', 'User berhasil diperbarui');
     }
     
 
@@ -102,6 +102,6 @@ class UserManagementController extends Controller
 
         $user->delete();
 
-        return redirect()->route('dashboard-v1')->with('success', 'User berhasil dihapus');
+        return redirect()->route('dashboard-v1')->with('error_user', 'User berhasil dihapus');
     }
 }
