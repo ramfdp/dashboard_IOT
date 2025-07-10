@@ -45,6 +45,9 @@
     <script src="/assets/js/logika-form-lembur2.js"></script>
     <script src="/assets/js/logika-user-management.js"></script>
     <script src="/assets/js/fetch-api-monitoring.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script type="module" src="/assets/js/overtime-control-fetch.js"></script>
 @endpush
 
 @section('content')
@@ -215,7 +218,17 @@
     </div>
     <!-- END Modal Perhitungan Listrik -->
     
-    <!-- BEGIN row kontrol perangkat-->
+    <!-- BEGIN row kontrol perangkat -->
+    <div class="row mb-4">
+        <div class="col text-center">
+            <span id="mode-status"
+                class="badge bg-success rounded-pill shadow"
+                style="font-size: 1.25rem; padding: 0.75rem 1.25rem;">
+                    Mode Otomatis Aktif
+            </span>
+        </div>
+    </div>
+
     <form action="{{ route('dashboard.update') }}" method="POST">
         @csrf
 
@@ -225,40 +238,66 @@
             </div>
         @endif
 
-        <div class="device-row d-flex justify-content-between gap-4 mb-4">
-            <div class="device-container d-flex flex-column align-items-start">
-                <label class="device-label">Lampu ITMS 1</label>
-                <div class="d-flex align-items-center gap-3">
-                    <i class="fa fa-lightbulb text-primary fs-4"></i>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input device-switch" type="checkbox" name="relay1" value="1" {{ $relay1 == 1 ? 'checked' : '' }}>
+        <div class="row g-4">
+            <!-- Lampu ITMS 1 -->
+            <div class="col-md-4">
+                <div class="card shadow-sm rounded p-4 text-center">
+                    <label class="fw-bold fs-5 mb-3">Lampu ITMS 1</label>
+                    <div class="d-flex justify-content-center align-items-center gap-3">
+                        <i class="fa fa-lightbulb text-primary fs-3"></i>
+                        <div class="form-check form-switch">
+                            <input type="hidden" name="relay1" value="0">
+                            <input class="form-check-input device-switch" type="checkbox" name="relay1" value="1" {{ $relay1 == 1 ? 'checked' : '' }}>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="device-container d-flex flex-column align-items-start">
-                <label class="device-label">Lampu ITMS 2</label>
-                <div class="d-flex align-items-center gap-3">
-                    <i class="fa fa-lightbulb text-primary fs-4"></i>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ $relay2 == 1 ? 'checked' : '' }}>
+            <!-- Lampu ITMS 2 -->
+            <div class="col-md-4">
+                <div class="card shadow-sm rounded p-4 text-center">
+                    <label class="fw-bold fs-5 mb-3">Lampu ITMS 2</label>
+                    <div class="d-flex justify-content-center align-items-center gap-3">
+                        <i class="fa fa-lightbulb text-primary fs-3"></i>
+                        <div class="form-check form-switch">
+                            <input type="hidden" name="relay2" value="0">
+                            <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ $relay2 == 1 ? 'checked' : '' }}>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="device-container d-flex flex-column align-items-start">
-                <label class="device-label">Mode SOS</label>
-                <div class="d-flex align-items-center gap-3">
-                    <i class="fa fa-bell text-danger fs-4"></i>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input device-switch" type="checkbox" name="sos" value="1" {{ $sos ?? 0 == 1 ? 'checked' : '' }}>
+            <!-- Mode SOS -->
+            <div class="col-md-4">
+                <div class="card shadow-sm rounded p-4 text-center">
+                    <label class="fw-bold fs-5 mb-3">Mode SOS</label>
+                    <div class="d-flex justify-content-center align-items-center gap-3">
+                        <i class="fa fa-bell text-danger fs-3"></i>
+                        <div class="form-check form-switch">
+                            <input type="hidden" name="sos" value="0">
+                            <input class="form-check-input device-switch" type="checkbox" name="sos" value="1" {{ ($sos ?? 0) == 1 ? 'checked' : '' }}>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <button class="btn btn-primary mt-3 row col-md-12 text-center mt-3 mb-2" type="submit">Nyalakan/Matikan Lampu</button>
+
+        <div class="row mt-5">
+            <div class="col-md-12 text-center">
+                <button class="btn btn-primary btn-lg px-5 py-3 shadow fw-bold w-100" type="submit">
+                    Nyalakan Mode SOS
+                </button>
+            </div>
+        </div>
     </form>
+
+
+    {{-- <form action="{{ route('dashboard.auto') }}" method="POST" class="mt-3">
+        @csrf
+        <button class="btn btn-warning w-100">Kembali ke Mode Otomatis</button>
+    </form> --}}
     <!-- END row -->
+
 
     <!-- CSS untuk Indikator -->
     <style>
@@ -304,11 +343,9 @@
     <!-- BEGIN Form Lembur Section 1 -->
     <div class="row">
         <div class="col-md-12">
-            <h1 class="page-header">timer lembur</h1>
-
             <div class="panel panel-inverse">
                 <div class="panel-heading">
-                    <h4 class="panel-title">Form Input timer Lembur</h4>
+                    <h1 class="page-header">Timer Lembur</h1>
                 </div>
 
                 <div class="panel-body">
@@ -317,21 +354,16 @@
                             {{ session('success_overtime') }}
                         </div>
                     @endif
-
+                    
                     <form action="{{ route('overtime.store') }}" method="POST">
                         @csrf
 
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="division_id" class="form-label">Divisi</label>
-                                    <select name="division_id" id="division_id" class="form-select @error('division_id') is-invalid @enderror" required>
-                                        <option value="">Pilih Divisi</option>
-                                        @foreach($divisions as $div)
-                                            <option value="{{ $div->id }}">{{ $div->nama_divisi }}</option>
-                                        @endforeach
-                                    </select>
-                                    @error('division_id')
+                                    <label for="division_name" class="form-label">Divisi</label>
+                                    <input type="text" name="division_name" id="division_name" class="form-control @error('division_name') is-invalid @enderror" required>
+                                    @error('division_name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -339,11 +371,9 @@
 
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
-                                    <label for="employee_id" class="form-label">Karyawan</label>
-                                    <select name="employee_id" id="employee_id" class="form-select @error('employee_id') is-invalid @enderror" required>
-                                        <option value="">Pilih Karyawan</option>
-                                    </select>
-                                    @error('employee_id')
+                                    <label for="employee_name" class="form-label">Nama Karyawan</label>
+                                    <input type="text" name="employee_name" id="employee_name" class="form-control @error('employee_name') is-invalid @enderror" required>
+                                    @error('employee_name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
@@ -373,7 +403,7 @@
 
                             <div class="col-md-4">
                                 <div class="form-group mb-3">
-                                    <label for="end_time" class="form-label">Waktu Selesai (Opsional)</label>
+                                    <label for="end_time" class="form-label">Waktu Selesai</label>
                                     <input type="time" name="end_time" id="end_time" class="form-control @error('end_time') is-invalid @enderror" value="{{ old('end_time') }}">
                                     @error('end_time')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -390,12 +420,58 @@
                             @enderror
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group mb-4">
                             <button type="submit" class="btn btn-primary">Simpan</button>
                             <a href="{{ route('overtime.index') }}" class="btn btn-secondary">Kembali</a>
                         </div>
-
                     </form>
+
+                    <hr>
+
+                    <h4>Daftar Lembur</h4>
+
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Karyawan</th>
+                                <th>Divisi</th>
+                                <th>Tanggal</th>
+                                <th>Mulai</th>
+                                <th>Selesai</th>
+                                <th>Durasi (menit)</th>
+                                <th>Status</th>
+                                <th>Catatan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($overtimes as $index => $ot)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $ot->employee_name }}</td>
+                                    <td>{{ $ot->division_name }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($ot->overtime_date)->format('d-m-Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($ot->start_time)->format('H:i') }}</td>
+                                    <td>{{ $ot->end_time ? \Carbon\Carbon::parse($ot->end_time)->format('H:i') : '-' }}</td>
+                                    <td>{{ $ot->duration ?? '-' }}</td>
+                                    <td>
+                                        @if ($ot->status == 0)
+                                            <span class="badge bg-secondary">Belum Mulai</span>
+                                        @elseif ($ot->status == 1)
+                                            <span class="badge bg-warning text-dark">Berlangsung</span>
+                                        @else
+                                            <span class="badge bg-success">Selesai</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $ot->notes }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="9" class="text-center">Belum ada data lembur.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

@@ -12,15 +12,12 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Event listener untuk perubahan dropdown
     buildingSelect.addEventListener("change", function () {
         updateDevices(this.value);
     });
 
-    // Event listener untuk switch (ubah warna indikator)
     document.querySelectorAll(".device-switch").forEach(switchElement => {
         switchElement.addEventListener("change", function () {
-            // Cari indikator terdekat dalam container yang sama
             const indicator = this.closest(".d-flex").querySelector(".indicator");
             if (indicator) {
                 indicator.style.backgroundColor = this.checked ? "green" : "grey";

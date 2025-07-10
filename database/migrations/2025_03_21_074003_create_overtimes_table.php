@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::create('overtimes', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('employee_id'); // Ganti employee_name dengan employee_id
-            $table->unsignedBigInteger('department_id'); // Ganti department dengan department_id
+            $table->string('employee_name');      
+            $table->string('division_name');       
             $table->date('overtime_date');
             $table->dateTime('start_time');
             $table->dateTime('end_time')->nullable();
@@ -19,10 +19,6 @@ return new class extends Migration
             $table->integer('duration')->nullable();
             $table->integer('status')->default(0);
             $table->timestamps();
-
-            // Foreign key constraints
-            $table->foreign('employee_id')->references('id')->on('employees')->onDelete('cascade');
-            $table->foreign('department_id')->references('id')->on('departments')->onDelete('cascade');
         });
     }
 

@@ -7,9 +7,9 @@ use App\Models\Overtime;
 use App\Models\User;
 use App\Models\Department;
 use App\Models\Karyawan;
-use App\Models\Divisi; // Tambahkan import Divisi
+use App\Models\Divisi; 
 use Spatie\Permission\Models\Role;
-use App\Models\HistoryKwh; // Import model HistoriKwh
+use App\Models\HistoryKwh; 
 use App\Http\Controllers\OvertimeController;
 use App\Services\FirebaseService;
 
@@ -70,14 +70,14 @@ class DashboardController extends Controller
 
     public function update(Request $request)
     {
-        $relay1 = $request->has('relay1') ? 1 : 0;
-        $relay2 = $request->has('relay2') ? 1 : 0;
-        $sos    = $request->has('sos') ? 1 : 0;
+        $relay1 = $request->input('relay1', 0); // always set
+        $relay2 = $request->input('relay2', 0);
+        $sos    = $request->input('sos', 0);
 
         $this->firebase->setRelayState('relay1', $relay1);
         $this->firebase->setRelayState('relay2', $relay2);
         $this->firebase->setRelayState('sos', $sos);
 
-        return back()->with('success', 'Perangkat diperbarui.');
+        return back()->with('success_device', 'Perangkat diperbarui.');
     }
 }

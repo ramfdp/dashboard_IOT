@@ -10,15 +10,16 @@ class Overtime extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_id',
-        'department_id',
+        'employee_name',
+        'division_name',
         'overtime_date',
         'start_time',
         'end_time',
-        'notes',
         'duration',
-        'status'
+        'status',
+        'notes',
     ];
+
 
     // Relasi ke employee
     public function employee()
