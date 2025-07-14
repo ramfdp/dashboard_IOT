@@ -3,7 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Overtime;
+use App\Models\HistoryKwh;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 use Pusher\Pusher;
 
@@ -13,9 +18,22 @@ class OvertimeController extends Controller
     {
         $this->updateOvertimeStatuses();
 
-        $overtimes = Overtime::orderBy('created_at', 'desc')->get();
+        $overtimes = Overtime::orderBy('created_at', 'desc')
+            ->orderBy('overtime_date', 'desc')
+            ->orderBy('start_time', 'desc')
+            ->get();
 
-        return view('overtime.index', compact('overtimes'));
+        $dataKwh = HistoryKwh::latest()->take(10)->get();
+
+        $relayStatus = $this->getRelayStatusFromFirebase();
+        $relay1 = $relayStatus['relay1'] ?? 0;
+        $relay2 = $relayStatus['relay2'] ?? 0;
+        $sos    = $relayStatus['sos'] ?? 0;
+
+        $users = User::with('roles')->get();
+        $roles = Role::all();
+
+        return view('pages.dashboard-v1', compact('overtimes', 'dataKwh', 'relay1', 'relay2', 'sos', 'users', 'roles'));
     }
 
     public function create()
@@ -26,48 +44,119 @@ class OvertimeController extends Controller
 
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
+        $validator = Validator::make($request->all(), [
             'employee_name' => 'required|string|max:100',
             'division_name' => 'required|string|max:100',
             'overtime_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
-            'end_time' => 'nullable|date_format:H:i',
-            'notes' => 'nullable|string',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
+            'notes' => 'nullable|string|max:500',
         ]);
 
-        $startTime = Carbon::createFromFormat('Y-m-d H:i', $validatedData['overtime_date'] . ' ' . $validatedData['start_time']);
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $startTime = Carbon::createFromFormat('Y-m-d H:i', $request->overtime_date . ' ' . $request->start_time);
         $now = Carbon::now('Asia/Jakarta');
 
         $endTime = null;
         $duration = null;
         $status = 0;
 
-        if ($now->gte($startTime)) {
-            $status = 1;
-        }
-
-        if (!empty($validatedData['end_time'])) {
-            $endTime = Carbon::createFromFormat('Y-m-d H:i', $validatedData['overtime_date'] . ' ' . $validatedData['end_time']);
+        if (!empty($request->end_time)) {
+            $endTime = Carbon::createFromFormat('Y-m-d H:i', $request->overtime_date . ' ' . $request->end_time);
             $duration = $startTime->copy()->diffInMinutes($endTime);
 
             if ($now->gte($endTime)) {
                 $status = 2;
+            } elseif ($now->gte($startTime)) {
+                $status = 1;
+            } else {
+                $status = 0;
+            }
+        } else {
+            if ($now->gte($startTime)) {
+                $status = 1;
+            } else {
+                $status = 0;
             }
         }
 
         Overtime::create([
-            'employee_name' => $validatedData['employee_name'],
-            'division_name' => $validatedData['division_name'],
-            'overtime_date' => $validatedData['overtime_date'],
+            'employee_name' => $request->employee_name,
+            'division_name' => $request->division_name,
+            'overtime_date' => $request->overtime_date,
             'start_time' => $startTime,
             'end_time' => $endTime,
             'duration' => $duration,
             'status' => $status,
-            'notes' => $validatedData['notes'] ?? null,
+            'notes' => $request->notes,
         ]);
 
         $this->triggerPusher();
-        return back()->with('success_overtime', 'Lembur berhasil disimpan');
+        return redirect()->route('overtime.index')->with('success_overtime', 'Lembur berhasil disimpan');
+    }
+
+    public function edit($id)
+    {
+        $overtime = Overtime::findOrFail($id);
+        return response()->json(['success' => true, 'overtime' => $overtime]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $overtime = Overtime::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'employee_name' => 'required|string|max:255',
+            'division_name' => 'required|string|max:255',
+            'overtime_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'nullable|date_format:H:i|after:start_time',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'message' => 'Validasi gagal', 'errors' => $validator->errors()], 422);
+        }
+
+        $now = Carbon::now('Asia/Jakarta');
+        $startTime = Carbon::createFromFormat('Y-m-d H:i', $request->overtime_date . ' ' . $request->start_time);
+        $data['start_time'] = $startTime;
+
+        if ($request->end_time) {
+            $endTime = Carbon::createFromFormat('Y-m-d H:i', $request->overtime_date . ' ' . $request->end_time);
+            $data['end_time'] = $endTime;
+            $data['duration'] = $startTime->diffInMinutes($endTime);
+
+            if ($now->gte($endTime)) {
+                $data['status'] = 2;
+            } elseif ($now->gte($startTime)) {
+                $data['status'] = 1;
+            } else {
+                $data['status'] = 0;
+            }
+        } else {
+            $data['end_time'] = null;
+            $data['duration'] = null;
+
+            if ($now->gte($startTime)) {
+                $data['status'] = 1;
+            } else {
+                $data['status'] = 0;
+            }
+        }
+
+        $data['employee_name'] = $request->employee_name;
+        $data['division_name'] = $request->division_name;
+        $data['overtime_date'] = $request->overtime_date;
+        $data['notes'] = $request->notes;
+
+        $overtime->update($data);
+        $this->triggerPusher();
+
+        return response()->json(['success' => true, 'message' => 'Data lembur berhasil diupdate']);
     }
 
     public function destroy($id)
@@ -76,7 +165,7 @@ class OvertimeController extends Controller
         $overtime->delete();
 
         $this->triggerPusher();
-        return back()->with('success', 'Data lembur berhasil dihapus');
+        return response()->json(['success' => true, 'message' => 'Data lembur berhasil dihapus']);
     }
 
     public function updateOvertimeStatuses()
@@ -110,19 +199,59 @@ class OvertimeController extends Controller
         if ($updated) {
             $this->triggerPusher();
         }
-
-        \Log::info('Now: ' . $now);
     }
 
     public function updateOvertimeStatusesAjax()
     {
         $this->updateOvertimeStatuses();
-
         $overtimes = Overtime::orderBy('created_at', 'desc')->get();
+        return response()->json(['overtimes' => $overtimes]);
+    }
 
-        return response()->json([
-            'overtimes' => $overtimes
+    public function cutoff(Request $request, $id)
+    {
+        $overtime = Overtime::findOrFail($id);
+
+        if ($overtime->status !== 1) {
+            return response()->json(['success' => false, 'message' => 'Lembur ini tidak sedang berjalan'], 400);
+        }
+
+        $currentTime = Carbon::now();
+        $startTime = Carbon::parse($overtime->start_time);
+        $duration = $startTime->diffInMinutes($currentTime);
+
+        $overtime->update([
+            'end_time' => $currentTime->toDateTimeString(),
+            'duration' => $duration,
+            'status' => 2
         ]);
+
+        return response()->json(['success' => true, 'message' => 'Lembur berhasil dihentikan', 'duration' => $duration]);
+    }
+
+    public function start(Request $request, $id)
+    {
+        $overtime = Overtime::findOrFail($id);
+
+        if ($overtime->status !== 0) {
+            return response()->json(['success' => false, 'message' => 'Lembur ini sudah dimulai atau selesai'], 400);
+        }
+
+        $overtime->update(['status' => 1]);
+
+        return response()->json(['success' => true, 'message' => 'Lembur berhasil dimulai']);
+    }
+
+    public function statusCheck()
+    {
+        $this->updateOvertimeStatuses();
+
+        $overtimes = Overtime::orderBy('created_at', 'desc')
+            ->orderBy('overtime_date', 'desc')
+            ->orderBy('start_time', 'desc')
+            ->get();
+
+        return response()->json(['success' => true, 'overtimes' => $overtimes]);
     }
 
     private function triggerPusher()
@@ -132,14 +261,39 @@ class OvertimeController extends Controller
                 config('broadcasting.connections.pusher.key'),
                 config('broadcasting.connections.pusher.secret'),
                 config('broadcasting.connections.pusher.app_id'),
-                [
-                    'cluster' => config('broadcasting.connections.pusher.options.cluster')
-                ]
+                ['cluster' => config('broadcasting.connections.pusher.options.cluster')]
             );
 
             $pusher->trigger('overtime-channel', 'overtime-updated', ['message' => 'Timer updated']);
         } catch (\Exception $e) {
             \Log::error('Pusher trigger failed: ' . $e->getMessage());
         }
+    }
+
+    private function getRelayStatusFromFirebase()
+    {
+        $firebaseUrl = 'https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/.json';
+
+        try {
+            $response = Http::get($firebaseUrl);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                return [
+                    'relay1' => $data['relay1'] ?? 0,
+                    'relay2' => $data['relay2'] ?? 0,
+                    'sos'    => $data['sos'] ?? 0,
+                ];
+            }
+        } catch (\Exception $e) {
+            \Log::error('Gagal ambil data Firebase: ' . $e->getMessage());
+        }
+
+        return [
+            'relay1' => 0,
+            'relay2' => 0,
+            'sos'    => 0,
+        ];
     }
 }

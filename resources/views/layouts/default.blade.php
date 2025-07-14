@@ -3,6 +3,7 @@
 <head>
 	@include('includes.head')
 	@livewireStyles
+	<meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 @php
 	$bodyClass = (!empty($appBoxedLayout)) ? 'boxed-layout ' : '';

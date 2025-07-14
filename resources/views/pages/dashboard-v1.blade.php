@@ -42,7 +42,7 @@
     <script src="/assets/js/logika-form-lembur.js"></script>
     <script src="/assets/js/realtime-charts-update.js"></script>
     <script src="/assets/js/logika-perangkat.js"></script>
-    <script src="/assets/js/logika-form-lembur2.js"></script>
+    {{-- <script src="/assets/js/logika-form-lembur2.js"></script> --}}
     <script src="/assets/js/logika-user-management.js"></script>
     <script src="/assets/js/fetch-api-monitoring.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
@@ -291,14 +291,6 @@
         </div>
     </form>
 
-
-    {{-- <form action="{{ route('dashboard.auto') }}" method="POST" class="mt-3">
-        @csrf
-        <button class="btn btn-warning w-100">Kembali ke Mode Otomatis</button>
-    </form> --}}
-    <!-- END row -->
-
-
     <!-- CSS untuk Indikator -->
     <style>
     .indicator {
@@ -340,7 +332,7 @@
     }
     </style>
 
-    <!-- BEGIN Form Lembur Section 1 -->
+    <!-- BEGIN Enhanced Form Lembur Section -->
     <div class="row">
         <div class="col-md-12">
             <div class="panel panel-inverse">
@@ -355,7 +347,7 @@
                         </div>
                     @endif
                     
-                    <form action="{{ route('overtime.store') }}" method="POST">
+                    <form action="{{ route('overtime.store') }}" method="POST" id="overtime-form">
                         @csrf
 
                         <div class="row mb-3">
@@ -408,75 +400,149 @@
                                     @error('end_time')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                    <div class="form-text">Kosongkan jika akan diatur otomatis atau manual cut-off</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-group mb-3">
                             <label for="notes" class="form-label">Catatan</label>
-                            <textarea name="notes" id="notes" class="form-control @error('notes') is-invalid @enderror" rows="3">{{ old('notes') }}</textarea>
+                            <textarea name="notes" id="notes" class="form-control @error('notes') is-invalid @enderror" rows="3" placeholder="Catatan tambahan (opsional)">{{ old('notes') }}</textarea>
                             @error('notes')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
                         <div class="form-group mb-4">
-                            <button type="submit" class="btn btn-primary">Simpan</button>
-                            <a href="{{ route('overtime.index') }}" class="btn btn-secondary">Kembali</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan
+                            </button>
+                            <a href="{{ route('overtime.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Kembali
+                            </a>
                         </div>
                     </form>
 
                     <hr>
 
-                    <h4>Daftar Lembur</h4>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4>Daftar Lembur</h4>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-info btn-sm" onclick="updateLemburStatusDanRelay()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="resetToAutoMode()">
+                                <i class="fas fa-magic"></i> Reset Auto Mode
+                            </button>
+                        </div>
+                    </div>
 
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Nama Karyawan</th>
-                                <th>Divisi</th>
-                                <th>Tanggal</th>
-                                <th>Mulai</th>
-                                <th>Selesai</th>
-                                <th>Durasi (menit)</th>
-                                <th>Status</th>
-                                <th>Catatan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($overtimes as $index => $ot)
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover">
+                            <thead class="table-dark">
                                 <tr>
-                                    <td>{{ $index + 1 }}</td>
-                                    <td>{{ $ot->employee_name }}</td>
-                                    <td>{{ $ot->division_name }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($ot->overtime_date)->format('d-m-Y') }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($ot->start_time)->format('H:i') }}</td>
-                                    <td>{{ $ot->end_time ? \Carbon\Carbon::parse($ot->end_time)->format('H:i') : '-' }}</td>
-                                    <td>{{ $ot->duration ?? '-' }}</td>
-                                    <td>
-                                        @if ($ot->status == 0)
-                                            <span class="badge bg-secondary">Belum Mulai</span>
-                                        @elseif ($ot->status == 1)
-                                            <span class="badge bg-warning text-dark">Berlangsung</span>
-                                        @else
-                                            <span class="badge bg-success">Selesai</span>
-                                        @endif
-                                    </td>
-                                    <td>{{ $ot->notes }}</td>
+                                    <th width="5%">No</th>
+                                    <th width="12%">Divisi</th>
+                                    <th width="12%">Nama Karyawan</th>
+                                    <th width="10%">Tanggal</th>
+                                    <th width="8%">Mulai</th>
+                                    <th width="8%">Selesai</th>
+                                    <th width="8%">Durasi</th>
+                                    <th width="10%">Status</th>
+                                    <th width="12%">Catatan</th>
+                                    <th width="15%">Aksi</th>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="9" class="text-center">Belum ada data lembur.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody id="lembur-tbody">
+                                @forelse($overtimes as $index => $ot)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td>{{ $ot->division_name }}</td>
+                                        <td>{{ $ot->employee_name }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($ot->overtime_date)->format('d-m-Y') }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($ot->start_time)->format('H:i') }}</td>
+                                        <td>{{ $ot->end_time ? \Carbon\Carbon::parse($ot->end_time)->format('H:i') : '-' }}</td>
+                                        <td>{{ $ot->duration ? $ot->duration . ' menit' : '-' }}</td>
+                                        <td>
+                                            @if ($ot->status == 0)
+                                                <span class="badge bg-secondary">Belum Mulai</span>
+                                            @elseif ($ot->status == 1)
+                                                <span class="badge bg-warning text-dark">Sedang Berjalan</span>
+                                            @else
+                                                <span class="badge bg-success">Selesai</span>
+                                            @endif
+                                        </td>
+                                        <td>{{ $ot->notes ?? '-' }}</td>
+                                        <td>
+                                            <div class="btn-group-vertical" role="group">
+                                                <div class="btn-group mb-1">
+                                                    <button type="button" class="btn btn-sm btn-primary" onclick="editOvertime({{ $ot->id }})" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-danger" onclick="deleteOvertime({{ $ot->id }})" title="Delete">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                                <div class="btn-group">
+                                                    @if ($ot->status == 1)
+                                                        <button type="button" class="btn btn-sm btn-warning" onclick="cutOffOvertime({{ $ot->id }})" title="Cut-off">
+                                                            <i class="fas fa-stop"></i>
+                                                        </button>
+                                                    @elseif ($ot->status == 0)
+                                                        <button type="button" class="btn btn-sm btn-success" onclick="startOvertime({{ $ot->id }})" title="Start">
+                                                            <i class="fas fa-play"></i>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="10" class="text-center">Belum ada data lembur.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination jika diperlukan -->
+                    @if(method_exists($overtimes, 'links'))
+                        <div class="mt-3">
+                            {{ $overtimes->links() }}
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
     </div>
-    <!-- END Form Lembur Section 1 -->
+
+    <!-- Modal untuk konfirmasi cut-off -->
+    <div class="modal fade" id="cutOffModal" tabindex="-1" aria-labelledby="cutOffModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cutOffModalLabel">Konfirmasi Cut-off Lembur</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Apakah Anda yakin ingin menghentikan lembur ini sekarang?</p>
+                    <p class="text-muted">Waktu selesai akan diatur ke waktu saat ini dan status akan berubah menjadi "Selesai".</p>
+                    <form id="cutOffForm">
+                        <div class="mb-3">
+                            <label for="cutoff_reason" class="form-label">Alasan Cut-off</label>
+                            <textarea class="form-control" id="cutoff_reason" name="cutoff_reason" rows="3" placeholder="Alasan menghentikan lembur lebih awal..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-warning" onclick="confirmCutOff()">Ya, Hentikan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- END Enhanced Form Lembur Section -->
 
     <!-- CSS untuk Indikator -->
     <style>

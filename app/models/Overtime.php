@@ -9,9 +9,11 @@ class Overtime extends Model
 {
     use HasFactory;
 
+    protected $table = 'overtimes';
+
     protected $fillable = [
-        'employee_name',
         'division_name',
+        'employee_name',
         'overtime_date',
         'start_time',
         'end_time',
@@ -20,14 +22,39 @@ class Overtime extends Model
         'notes',
     ];
 
+    protected $casts = [
+        'overtime_date' => 'date',
+        'start_time' => 'datetime:H:i',
+        'end_time' => 'datetime:H:i',
+        'status' => 'integer',
+        'duration' => 'integer',
+    ];
 
-    // Relasi ke employee
+    public function getStatusLabelAttribute()
+    {
+        return match ($this->status) {
+            0 => 'Belum Mulai',
+            1 => 'Sedang Berjalan',
+            2 => 'Selesai',
+            default => 'Tidak Diketahui',
+        };
+    }
+
+    public function getStatusBadgeClassAttribute()
+    {
+        return match ($this->status) {
+            0 => 'secondary',
+            1 => 'warning',
+            2 => 'success',
+            default => 'dark',
+        };
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class);
     }
 
-    // Relasi ke department
     public function department()
     {
         return $this->belongsTo(Department::class);

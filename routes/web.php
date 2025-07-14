@@ -162,6 +162,11 @@
     Route::post('/overtime', [OvertimeController::class, 'store'])->name('overtime.store');
     Route::delete('/overtime/{id}', [OvertimeController::class, 'destroy'])->name('overtime.destroy');
     Route::get('/overtime/status-check', [OvertimeController::class, 'updateOvertimeStatusesAjax'])->name('overtime.status-check');
+    Route::get('/overtime/{id}/edit', [OvertimeController::class, 'edit'])->name('overtime.edit');
+    Route::put('/overtime/{id}/update', [OvertimeController::class, 'update'])->name('overtime.update');
+    Route::delete('/overtime/{id}/delete', [OvertimeController::class, 'destroy'])->name('overtime.destroy');
+    Route::post('/overtime/{id}/cutoff', [OvertimeController::class, 'cutoff'])->name('overtime.cutoff');
+    Route::post('/overtime/{id}/start', [OvertimeController::class, 'start'])->name('overtime.start');
     Route::post('/dashboard/auto', [DashboardController::class, 'setAuto'])->name('dashboard.auto');    
 
     Route::post('/listrik', [ListrikController::class, 'store']);
