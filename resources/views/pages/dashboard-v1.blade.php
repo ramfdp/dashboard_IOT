@@ -7,6 +7,7 @@
     <link href="/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css" rel="stylesheet" />
     <link href="/assets/plugins/gritter/css/jquery.gritter.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet" />
+    <link href="/assets/css/indikator.css" rel="stylesheet" />
 @endpush
 
 @push('scripts')
@@ -45,8 +46,6 @@
     {{-- <script src="/assets/js/logika-form-lembur2.js"></script> --}}
     <script src="/assets/js/logika-user-management.js"></script>
     <script src="/assets/js/fetch-api-monitoring.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <script type="module" src="/assets/js/overtime-control-fetch.js"></script>
 @endpush
 
@@ -290,47 +289,6 @@
             </div>
         </div>
     </form>
-
-    <!-- CSS untuk Indikator -->
-    <style>
-    .indicator {
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background-color: grey;
-        transition: background-color 0.3s ease;
-    }
-
-    .device-container {
-        margin-bottom: 20px; /* Kasih jarak antar perangkat */
-    }
-
-    .device-title {
-        font-size: 18px;
-        font-weight: bold;
-        background-color: #343a40;
-        color: white;
-        padding: 8px 15px;
-        width: 100%; /* Biar selebar parent-nya */
-        text-align: center; /* Biar teks tetap di tengah */
-        border-radius: 5px;
-        display: block;
-        margin-bottom: 15px; /* Tambahin jarak antara label dan elemen di bawahnya */
-    }
-
-    .device-label {
-        font-size: 14px;
-        font-weight: bold;
-        background-color: #343a40; /* Warna gelap selaras dengan dashboard */
-        color: white;
-        padding: 5px 10px;
-        border-radius: 5px;
-        width: 100%; /* Biar selebar parent-nya */
-        text-align: center; 
-        display: block;
-        margin-bottom: 8px; 
-    }
-    </style>
 
     <!-- BEGIN Enhanced Form Lembur Section -->
     <div class="row">

@@ -1,0 +1,43 @@
+.indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: grey;
+    transition: background-color 0.3s ease;
+}
+
+.device-container {
+    margin-bottom: 20px;
+    /* Kasih jarak antar perangkat */
+}
+
+.device-title {
+    font-size: 18px;
+    font-weight: bold;
+    background-color: #343a40;
+    color: white;
+    padding: 8px 15px;
+    width: 100%;
+    /* Biar selebar parent-nya */
+    text-align: center;
+    /* Biar teks tetap di tengah */
+    border-radius: 5px;
+    display: block;
+    margin-bottom: 15px;
+    /* Tambahin jarak antara label dan elemen di bawahnya */
+}
+
+.device-label {
+    font-size: 14px;
+    font-weight: bold;
+    background-color: #343a40;
+    /* Warna gelap selaras dengan dashboard */
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    width: 100%;
+    /* Biar selebar parent-nya */
+    text-align: center;
+    display: block;
+    margin-bottom: 8px;
+}

@@ -28,7 +28,6 @@
 	$appContentClass = (!empty($appContentClass)) ? $appContentClass : '';
 @endphp
 <body class="{{ $bodyClass }}">
-	@livewireScripts
 	@include('includes.component.page-loader')
 	
 	<div id="app" class="app app-sidebar-fixed {{ $appClass }}">
@@ -54,5 +53,6 @@
 	@yield('outside-content')
 	
 	@include('includes.page-js')
+	@livewireScripts
 </body>
 </html>
