@@ -473,38 +473,95 @@ function forceRefreshRelayState() {
         .catch(err => console.error("Gagal force refresh:", err));
 }
 
-function setupSwitchListeners() {
-    ['relay1', 'relay2'].forEach((relay, index) => {
-        const switchEl = document.querySelector(`input[name="${relay}"][type="checkbox"]`);
-        if (switchEl) {
-            switchEl.addEventListener('change', function (e) {
-                e.preventDefault();
-                manualRelayControl(index + 1, this.checked ? 1 : 0);
-            });
+function listenToFirebaseChanges() {
+    // Listen to relay1 changes
+    onValue(ref(db, `/relayControl/relay1`), (snapshot) => {
+        const value = snapshot.val();
+        const switchEl = document.querySelector(`input[name="relay1"][type="checkbox"].device-switch`);
+        if (switchEl && switchEl.checked !== (value === 1)) {
+            switchEl.checked = (value === 1);
+            // Update visual indicator
+            const indicator = switchEl.closest(".d-flex")?.querySelector(".indicator");
+            if (indicator) {
+                indicator.style.backgroundColor = value === 1 ? "green" : "grey";
+            }
+        }
+    });
+
+    // Listen to relay2 changes
+    onValue(ref(db, `/relayControl/relay2`), (snapshot) => {
+        const value = snapshot.val();
+        const switchEl = document.querySelector(`input[name="relay2"][type="checkbox"].device-switch`);
+        if (switchEl && switchEl.checked !== (value === 1)) {
+            switchEl.checked = (value === 1);
+            // Update visual indicator
+            const indicator = switchEl.closest(".d-flex")?.querySelector(".indicator");
+            if (indicator) {
+                indicator.style.backgroundColor = value === 1 ? "green" : "grey";
+            }
+        }
+    });
+
+    // Listen to SOS changes
+    onValue(ref(db, `/relayControl/sos`), (snapshot) => {
+        const value = snapshot.val();
+        const sosSwitch = document.querySelector('input[name="sos"][type="checkbox"].device-switch');
+        if (sosSwitch && sosSwitch.checked !== (value === 1)) {
+            sosSwitch.checked = (value === 1);
+            // Update visual indicator
+            const indicator = sosSwitch.closest(".d-flex")?.querySelector(".indicator");
+            if (indicator) {
+                indicator.style.backgroundColor = value === 1 ? "red" : "grey";
+            }
         }
     });
 }
 
-function listenToFirebaseChanges() {
-    ['relay1', 'relay2'].forEach(relay => {
-        onValue(ref(db, `/relayControl/${relay}`), (snapshot) => {
-            const value = snapshot.val();
-            const switchEl = document.querySelector(`input[name="${relay}"][type="checkbox"]`);
-            if (switchEl) switchEl.checked = (value === 1);
-        });
-    });
-}
-
 function syncInitialState() {
-    ['relay1', 'relay2'].forEach(relay => {
-        onValue(ref(db, `/relayControl/${relay}`), (snapshot) => {
-            const value = snapshot.val();
-            if (value !== null) {
-                const switchEl = document.querySelector(`input[name="${relay}"][type="checkbox"]`);
-                if (switchEl) switchEl.checked = (value === 1);
+    // Sync relay1 initial state
+    onValue(ref(db, `/relayControl/relay1`), (snapshot) => {
+        const value = snapshot.val();
+        if (value !== null) {
+            const switchEl = document.querySelector(`input[name="relay1"][type="checkbox"].device-switch`);
+            if (switchEl) {
+                switchEl.checked = (value === 1);
+                const indicator = switchEl.closest(".d-flex")?.querySelector(".indicator");
+                if (indicator) {
+                    indicator.style.backgroundColor = value === 1 ? "green" : "grey";
+                }
             }
-        }, { once: true });
-    });
+        }
+    }, { once: true });
+
+    // Sync relay2 initial state
+    onValue(ref(db, `/relayControl/relay2`), (snapshot) => {
+        const value = snapshot.val();
+        if (value !== null) {
+            const switchEl = document.querySelector(`input[name="relay2"][type="checkbox"].device-switch`);
+            if (switchEl) {
+                switchEl.checked = (value === 1);
+                const indicator = switchEl.closest(".d-flex")?.querySelector(".indicator");
+                if (indicator) {
+                    indicator.style.backgroundColor = value === 1 ? "green" : "grey";
+                }
+            }
+        }
+    }, { once: true });
+
+    // Sync SOS initial state
+    onValue(ref(db, `/relayControl/sos`), (snapshot) => {
+        const value = snapshot.val();
+        if (value !== null) {
+            const sosSwitch = document.querySelector('input[name="sos"][type="checkbox"].device-switch');
+            if (sosSwitch) {
+                sosSwitch.checked = (value === 1);
+                const indicator = sosSwitch.closest(".d-flex")?.querySelector(".indicator");
+                if (indicator) {
+                    indicator.style.backgroundColor = value === 1 ? "red" : "grey";
+                }
+            }
+        }
+    }, { once: true });
 }
 
 function resetToAutoMode() {
@@ -516,24 +573,31 @@ function resetToAutoMode() {
 function showModeStatus() {
     const statusEl = document.getElementById('mode-status');
     if (statusEl) {
-        if (manualMode) {
+        // Check if SOS is active
+        const sosSwitch = document.querySelector('input[name="sos"][type="checkbox"].device-switch');
+        const sosActive = sosSwitch && sosSwitch.checked;
+
+        if (sosActive) {
+            statusEl.textContent = 'Mode SOS Aktif - Semua Relay ON';
+            statusEl.className = 'badge bg-danger';
+        } else if (manualMode) {
             const active = [];
-            if (relay1ManualState === 1) active.push('Relay1');
-            if (relay2ManualState === 1) active.push('Relay2');
+            if (relay1ManualState === 1) active.push('ITMS 1');
+            if (relay2ManualState === 1) active.push('ITMS 2');
             statusEl.textContent = `Mode Manual Aktif (${active.join(', ') || 'Semua OFF'})`;
             statusEl.className = 'badge bg-warning';
         } else {
-            statusEl.textContent = 'Mode Otomatis Aktif';
+            statusEl.textContent = 'Mode Otomatis Aktif (Berdasarkan Jadwal Lembur)';
             statusEl.className = 'badge bg-success';
         }
     }
 }
 
-setInterval(showModeStatus, 1000);
-
 document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
-        setupSwitchListeners();
+        // Only setup overtime-specific switch listeners (not device switches)
+        // The device switches are now handled by device-firebase-control.js
+
         const form = document.querySelector('form[action*="overtime"]');
         if (form) {
             form.addEventListener('submit', function (e) {
@@ -543,11 +607,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         }
+
+        // Initialize Firebase listeners for overtime control only
         listenToFirebaseChanges();
         syncInitialState();
         updateLemburStatusDanRelay();
-    }, 500);
+
+        console.log('Overtime control system initialized');
+    }, 1500); // Delay to ensure device-firebase-control.js loads first
+
     setInterval(updateLemburStatusDanRelay, 10000);
+    setInterval(showModeStatus, 2000); // Update status display every 2 seconds
 });
 
 window.updateLemburStatusDanRelay = updateLemburStatusDanRelay;

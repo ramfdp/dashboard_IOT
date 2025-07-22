@@ -111,46 +111,12 @@
     Route::get('/table/manage/select', 'MainController@tableManageSelect')->name('table-manage-select');
     Route::get('/table/manage/combine', 'MainController@tableManageCombine')->name('table-manage-combine');
 
-    Route::get('/pos/customer-order', 'MainController@posCustomerOrder')->name('pos-customer-order');
-    Route::get('/pos/kitchen-order', 'MainController@posKitchenOrder')->name('pos-kitchen-order');
-    Route::get('/pos/counter-checkout', 'MainController@posCounterCheckout')->name('pos-counter-checkout');
-    Route::get('/pos/table-booking', 'MainController@posTableBooking')->name('pos-table-booking');
-    Route::get('/pos/menu-stock', 'MainController@posMenuStock')->name('pos-menu-stock');
-
-    Route::get('/email-template/system', 'MainController@emailTemplateSystem')->name('email-template-system');
-    Route::get('/email-template/newsletter', 'MainController@emailTemplateNewsletter')->name('email-template-newsletter');
-
     Route::get('/chart/flot', 'MainController@chartFlot')->name('chart-flot');
     Route::get('/chart/js', 'MainController@chartJs')->name('chart-js');
     Route::get('/chart/d3', 'MainController@chartD3')->name('chart-d3');
     Route::get('/chart/apex', 'MainController@chartApex')->name('chart-apex');
 
-    Route::get('/calendar', 'MainController@calendar')->name('calendar');
-
-    Route::get('/map/vector', 'MainController@mapVector')->name('map-vector');
-    Route::get('/map/google', 'MainController@mapGoogle')->name('map-google');
-
-    Route::get('/gallery/v1', 'MainController@galleryV1')->name('gallery-v1');
-    Route::get('/gallery/v2', 'MainController@galleryV2')->name('gallery-v2');
-
     Route::get('/page-option/page-blank', 'MainController@pageBlank')->name('page-blank');
-    Route::get('/page-option/page-with-footer', 'MainController@pageWithFooter')->name('page-with-footer');
-    Route::get('/page-option/page-with-fixed-footer', 'MainController@pageWithFixedFooter')->name('page-with-fixed-footer');
-    Route::get('/page-option/page-without-sidebar', 'MainController@pageWithoutSidebar')->name('page-without-sidebar');
-    Route::get('/page-option/page-with-right-sidebar', 'MainController@pageWithRightSidebar')->name('page-with-right-sidebar');
-    Route::get('/page-option/page-with-minified-sidebar', 'MainController@pageWithMinifiedSidebar')->name('page-with-minified-sidebar');
-    Route::get('/page-option/page-with-two-sidebar', 'MainController@pageWithTwoSidebar')->name('page-with-two-sidebar');
-    Route::get('/page-option/page-full-height', 'MainController@pageFullHeight')->name('page-full-height');
-    Route::get('/page-option/page-with-wide-sidebar', 'MainController@pageWithWideSidebar')->name('page-with-wide-sidebar');
-    Route::get('/page-option/page-with-light-sidebar', 'MainController@pageWithLightSidebar')->name('page-with-light-sidebar');
-    Route::get('/page-option/page-with-mega-menu', 'MainController@pageWithMegaMenu')->name('page-with-mega-menu');
-    Route::get('/page-option/page-with-top-menu', 'MainController@pageWithTopMenu')->name('page-with-top-menu');
-    Route::get('/page-option/page-with-boxed-layout', 'MainController@pageWithBoxedLayout')->name('page-with-boxed-layout');
-    Route::get('/page-option/page-with-mixed-menu', 'MainController@pageWithMixedMenu')->name('page-with-mixed-menu');
-    Route::get('/page-option/boxed-layout-with-mixed-menu', 'MainController@boxedLayoutWithMixedMenu')->name('boxed-layout-with-mixed-menu');
-    Route::get('/page-option/page-with-transparent-sidebar', 'MainController@pageWithTransparentSidebar')->name('page-with-transparent-sidebar');
-    Route::get('/page-option/page-with-search-sidebar', 'MainController@pageWithSearchSidebar')->name('page-with-search-sidebar');
-    Route::get('/page-option/page-with-hover-sidebar', 'MainController@pageWithHoverSidebar')->name('page-with-hover-sidebar');
 
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.post');
