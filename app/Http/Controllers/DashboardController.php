@@ -3,14 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Overtime;
 use App\Models\User;
 use App\Models\Department;
 use App\Models\Karyawan;
-use App\Models\Divisi; 
+use App\Models\Divisi;
 use Spatie\Permission\Models\Role;
-use App\Models\HistoryKwh; 
-use App\Http\Controllers\OvertimeController;
+use App\Models\HistoryKwh;
 use App\Services\FirebaseService;
 
 class DashboardController extends Controller
@@ -24,12 +22,6 @@ class DashboardController extends Controller
 
     public function index()
     {
-        // Update status overtime
-        app(OvertimeController::class)->updateOvertimeStatuses();
-
-        // Ambil data overtime
-        $overtimes = Overtime::all();
-
         // Ambil data roles
         $roles = Role::all();
 
@@ -45,18 +37,16 @@ class DashboardController extends Controller
         // Ambil data divisions
         $divisions = Divisi::all();
 
-
         $dataKwh = HistoryKwh::select('waktu', 'daya')
             ->orderBy('waktu', 'asc')
             ->get();
 
         $relay1 = $this->firebase->getRelayState('relay1');
         $relay2 = $this->firebase->getRelayState('relay2');
-        
+
 
         // Kirim semua data ke view
         return view('pages.dashboard-v1', compact(
-            'overtimes',
             'roles',
             'users',
             'departments',
