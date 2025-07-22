@@ -180,12 +180,19 @@ function updateLemburStatusDanRelay() {
                         </button>`;
                     }
 
+                    // Format the date from YYYY-MM-DD to DD-MM-YYYY
+                    const formattedDate = new Date(overtime.overtime_date).toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+
                     const row = document.createElement("tr");
                     row.innerHTML = `
                         <td>${index + 1}</td>
                         <td>${overtime.division_name}</td>
                         <td>${overtime.employee_name}</td>
-                        <td>${overtime.overtime_date}</td>
+                        <td>${formattedDate}</td>
                         <td>${overtime.start_time}</td>
                         <td>${overtime.end_time ?? '-'}</td>
                         <td>${overtime.duration ?? '-'}</td>
