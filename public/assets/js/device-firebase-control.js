@@ -20,6 +20,19 @@ let deviceManualMode = false;
 let relay1State = null;
 let relay2State = null;
 let sosState = null;
+let manualModeTimer = null;
+
+// Function to reset device to auto mode
+function resetDeviceToAutoMode() {
+    console.log('Resetting device to auto mode');
+    deviceManualMode = false;
+
+    // Clear any existing timer
+    if (manualModeTimer) {
+        clearTimeout(manualModeTimer);
+        manualModeTimer = null;
+    }
+}
 
 // Initialize device controls after DOM and Livewire are ready
 function initializeDeviceControls() {
@@ -50,7 +63,14 @@ function setupDeviceSwitchListeners() {
             e.stopPropagation();
 
             const value = this.checked ? 1 : 0;
-            console.log('ITMS 1 (Relay1) switched to:', value);
+            console.log('ITMS 1 (Relay1) manually switched to:', value);
+
+            // Set manual mode and clear any auto-reset timer
+            deviceManualMode = true;
+            if (manualModeTimer) {
+                clearTimeout(manualModeTimer);
+                manualModeTimer = null;
+            }
 
             // Update Firebase
             set(ref(db, "/relayControl/relay1"), value).then(() => {
@@ -61,10 +81,11 @@ function setupDeviceSwitchListeners() {
 
             // Update local state
             relay1State = value;
-            deviceManualMode = true;
 
             // Update visual indicator
             updateDeviceIndicator(this, value === 1 ? 'green' : 'grey');
+
+            console.log('Device now in manual mode due to ITMS 1 switch');
         });
 
         console.log('ITMS 1 switch listener attached');
@@ -84,7 +105,14 @@ function setupDeviceSwitchListeners() {
             e.stopPropagation();
 
             const value = this.checked ? 1 : 0;
-            console.log('ITMS 2 (Relay2) switched to:', value);
+            console.log('ITMS 2 (Relay2) manually switched to:', value);
+
+            // Set manual mode and clear any auto-reset timer
+            deviceManualMode = true;
+            if (manualModeTimer) {
+                clearTimeout(manualModeTimer);
+                manualModeTimer = null;
+            }
 
             // Update Firebase
             set(ref(db, "/relayControl/relay2"), value).then(() => {
@@ -95,10 +123,11 @@ function setupDeviceSwitchListeners() {
 
             // Update local state
             relay2State = value;
-            deviceManualMode = true;
 
             // Update visual indicator
             updateDeviceIndicator(this, value === 1 ? 'green' : 'grey');
+
+            console.log('Device now in manual mode due to ITMS 2 switch');
         });
 
         console.log('ITMS 2 switch listener attached');
@@ -118,7 +147,14 @@ function setupDeviceSwitchListeners() {
             e.stopPropagation();
 
             const value = this.checked ? 1 : 0;
-            console.log('SOS switched to:', value);
+            console.log('SOS manually switched to:', value);
+
+            // Set manual mode and clear any auto-reset timer
+            deviceManualMode = true;
+            if (manualModeTimer) {
+                clearTimeout(manualModeTimer);
+                manualModeTimer = null;
+            }
 
             // Update Firebase SOS state
             set(ref(db, "/relayControl/sos"), value).then(() => {
@@ -143,10 +179,11 @@ function setupDeviceSwitchListeners() {
             sosState = value;
             relay1State = value;
             relay2State = value;
-            deviceManualMode = true;
 
             // Update visual indicator
             updateDeviceIndicator(this, value === 1 ? 'red' : 'grey');
+
+            console.log('Device now in manual mode due to SOS switch');
         });
 
         console.log('SOS switch listener attached');
@@ -166,6 +203,8 @@ function listenToFirebaseDeviceChanges() {
 
         const relay1Switch = document.querySelector('input[name="relay1"][type="checkbox"].device-switch');
         if (relay1Switch && relay1Switch.checked !== (value === 1)) {
+            // Only update UI if this change is not from manual operation
+            // (Firebase changes from other sources like overtime system)
             relay1Switch.checked = (value === 1);
             relay1State = value;
             updateDeviceIndicator(relay1Switch, value === 1 ? 'green' : 'grey');
@@ -179,6 +218,7 @@ function listenToFirebaseDeviceChanges() {
 
         const relay2Switch = document.querySelector('input[name="relay2"][type="checkbox"].device-switch');
         if (relay2Switch && relay2Switch.checked !== (value === 1)) {
+            // Only update UI if this change is not from manual operation
             relay2Switch.checked = (value === 1);
             relay2State = value;
             updateDeviceIndicator(relay2Switch, value === 1 ? 'green' : 'grey');
@@ -325,5 +365,6 @@ document.addEventListener('livewire:load', initializeDeviceControls);
 window.manualDeviceControl = manualDeviceControl;
 window.getDeviceStates = getDeviceStates;
 window.initializeDeviceControls = initializeDeviceControls;
+window.resetDeviceToAutoMode = resetDeviceToAutoMode;
 
 console.log('Device Firebase Control script loaded');
