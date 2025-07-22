@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Department;
 use App\Models\Karyawan;
 use App\Models\Divisi;
+use App\Models\LightSchedule;
 use Spatie\Permission\Models\Role;
 use App\Models\HistoryKwh;
 use App\Services\FirebaseService;
@@ -41,6 +42,11 @@ class DashboardController extends Controller
             ->orderBy('waktu', 'asc')
             ->get();
 
+        // Get light schedules
+        $lightSchedules = LightSchedule::orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
+
         $relay1 = $this->firebase->getRelayState('relay1');
         $relay2 = $this->firebase->getRelayState('relay2');
 
@@ -53,6 +59,7 @@ class DashboardController extends Controller
             'karyawans',
             'divisions',
             'dataKwh',
+            'lightSchedules',
             'relay1',
             'relay2'
         ));
@@ -69,5 +76,51 @@ class DashboardController extends Controller
         $this->firebase->setRelayState('sos', $sos);
 
         return back()->with('success_device', 'Perangkat diperbarui.');
+    }
+
+    // Light schedule methods
+    public function storeSchedule(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'device_type' => 'required|in:relay1,relay2',
+            'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+        ]);
+
+        LightSchedule::create($request->all());
+
+        return back()->with('success_schedule', 'Jadwal lampu berhasil ditambahkan.');
+    }
+
+    public function updateSchedule(Request $request, LightSchedule $schedule)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'device_type' => 'required|in:relay1,relay2',
+            'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'is_active' => 'boolean'
+        ]);
+
+        $schedule->update($request->all());
+
+        return back()->with('success_schedule', 'Jadwal lampu berhasil diperbarui.');
+    }
+
+    public function destroySchedule(LightSchedule $schedule)
+    {
+        $schedule->delete();
+
+        return back()->with('success_schedule', 'Jadwal lampu berhasil dihapus.');
+    }
+
+    public function toggleSchedule(LightSchedule $schedule)
+    {
+        $schedule->update(['is_active' => !$schedule->is_active]);
+
+        return back()->with('success_schedule', 'Status jadwal berhasil diubah.');
     }
 }

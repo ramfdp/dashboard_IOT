@@ -36,7 +36,11 @@
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/update', [DashboardController::class, 'update'])->name('dashboard.update');
 
-
+    // Light schedule routes
+    Route::post('/dashboard/schedule', [DashboardController::class, 'storeSchedule'])->name('dashboard.schedule.store');
+    Route::put('/dashboard/schedule/{schedule}', [DashboardController::class, 'updateSchedule'])->name('dashboard.schedule.update');
+    Route::delete('/dashboard/schedule/{schedule}', [DashboardController::class, 'destroySchedule'])->name('dashboard.schedule.destroy');
+    Route::patch('/dashboard/schedule/{schedule}/toggle', [DashboardController::class, 'toggleSchedule'])->name('dashboard.schedule.toggle');
     Route::get('/sensor/data', [SensorController::class, 'index']);
     Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('/dashboard', [UserController::class, 'index'])->name('dashboard');
@@ -47,7 +51,7 @@
     Route::get('/get-karyawan/{division_id}', [KaryawanController::class, 'getKaryawanByDivisi']);
     Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
     Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
-  
+
     Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
     Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
     Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
@@ -66,22 +70,21 @@
     Route::get('/relay', [RelayController::class, 'index']);
     Route::post('/relay/update', [RelayController::class, 'update'])->name('relay.update');
     Route::get('/dashboard', [RelayController::class, 'index']);
-    
+
     Route::prefix('cctv')->name('cctv.')->group(function () {
 
-    Route::get('/', [CCTVController::class, 'index'])->name('dashboard');
-    
-    // Camera management
-    Route::get('/camera/{id}', [CCTVController::class, 'show'])->name('camera.show');
-    Route::put('/camera/{id}', [CCTVController::class, 'update'])->name('camera.update');
-    
-    // API endpoints for AJAX calls
-    Route::post('/check-status', [CCTVController::class, 'checkStatus'])->name('check.status');
-    Route::get('/all-status', [CCTVController::class, 'getAllStatus'])->name('all.status');
-    Route::post('/refresh', [CCTVController::class, 'refresh'])->name('refresh');
-    Route::get('/stats', [CCTVController::class, 'getStats'])->name('stats');
-    Route::post('/test-connection', [CCTVController::class, 'testConnection'])->name('test.connection');
-    
+        Route::get('/', [CCTVController::class, 'index'])->name('dashboard');
+
+        // Camera management
+        Route::get('/camera/{id}', [CCTVController::class, 'show'])->name('camera.show');
+        Route::put('/camera/{id}', [CCTVController::class, 'update'])->name('camera.update');
+
+        // API endpoints for AJAX calls
+        Route::post('/check-status', [CCTVController::class, 'checkStatus'])->name('check.status');
+        Route::get('/all-status', [CCTVController::class, 'getAllStatus'])->name('all.status');
+        Route::post('/refresh', [CCTVController::class, 'refresh'])->name('refresh');
+        Route::get('/stats', [CCTVController::class, 'getStats'])->name('stats');
+        Route::post('/test-connection', [CCTVController::class, 'testConnection'])->name('test.connection');
     });
 
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -133,7 +136,7 @@
     Route::delete('/overtime/{id}/delete', [OvertimeController::class, 'destroy'])->name('overtime.destroy');
     Route::post('/overtime/{id}/cutoff', [OvertimeController::class, 'cutoff'])->name('overtime.cutoff');
     Route::post('/overtime/{id}/start', [OvertimeController::class, 'start'])->name('overtime.start');
-    Route::post('/dashboard/auto', [DashboardController::class, 'setAuto'])->name('dashboard.auto');    
+    Route::post('/dashboard/auto', [DashboardController::class, 'setAuto'])->name('dashboard.auto');
 
     Route::post('/listrik', [ListrikController::class, 'store']);
     Route::get('/listrik/{lokasi}', [ListrikController::class, 'getData']);
@@ -152,7 +155,7 @@
         Route::put('/{user}', [UserManagementController::class, 'update'])->name('user-management.update');
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
     });
-    
+
     Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
         Route::resource('user-management', 'UserManagementController');
     });

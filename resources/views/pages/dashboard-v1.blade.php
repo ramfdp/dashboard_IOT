@@ -232,6 +232,100 @@
         </div>
     </div>
 
+    <!-- BEGIN Light Alarm/Schedule Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm rounded p-4">
+                <h4 class="mb-3">Jadwal Alarm Lampu Kantor</h4>
+                @if(session('success_schedule'))
+                    <div class="alert alert-success">{{ session('success_schedule') }}</div>
+                @endif
+                <form action="{{ route('dashboard.schedule.store') }}" method="POST" class="mb-4">
+                    @csrf
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-2">
+                            <label class="form-label">Nama Jadwal</label>
+                            <input type="text" name="name" class="form-control" required placeholder="Contoh: Jadwal Pagi">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Lampu</label>
+                            <select name="device_type" class="form-select" required>
+                                <option value="relay1">Lampu ITMS 1</option>
+                                <option value="relay2">Lampu ITMS 2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Hari</label>
+                            <select name="day_of_week" class="form-select" required>
+                                <option value="monday">Senin</option>
+                                <option value="tuesday">Selasa</option>
+                                <option value="wednesday">Rabu</option>
+                                <option value="thursday">Kamis</option>
+                                <option value="friday">Jumat</option>
+                                <option value="saturday">Sabtu</option>
+                                <option value="sunday">Minggu</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Jam Mulai</label>
+                            <input type="time" name="start_time" class="form-control" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Jam Selesai</label>
+                            <input type="time" name="end_time" class="form-control" required>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-success w-100">Tambah Jadwal</button>
+                        </div>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr>
+                                <th>Nama Jadwal</th>
+                                <th>Lampu</th>
+                                <th>Hari</th>
+                                <th>Jam Mulai</th>
+                                <th>Jam Selesai</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($lightSchedules as $schedule)
+                            <tr>
+                                <td>{{ $schedule->name }}</td>
+                                <td>{{ $schedule->device_name }}</td>
+                                <td>{{ $schedule->day_name }}</td>
+                                <td>{{ date('H:i', strtotime($schedule->start_time)) }}</td>
+                                <td>{{ date('H:i', strtotime($schedule->end_time)) }}</td>
+                                <td>
+                                    <form action="{{ route('dashboard.schedule.toggle', $schedule) }}" method="POST" style="display:inline-block;">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-sm {{ $schedule->is_active ? 'btn-success' : 'btn-secondary' }}">
+                                            {{ $schedule->is_active ? 'Aktif' : 'Nonaktif' }}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form action="{{ route('dashboard.schedule.destroy', $schedule) }}" method="POST" style="display:inline-block;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Hapus jadwal ini?')">Hapus</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- END Light Alarm/Schedule Section -->
+
     <form action="{{ route('dashboard.update') }}" method="POST">
         @csrf
 
