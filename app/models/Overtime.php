@@ -40,6 +40,18 @@ class Overtime extends Model
         };
     }
 
+    public function cutOff($id)
+    {
+        $overtime = Overtime::findOrFail($id);
+
+        $overtime->cut_off_time = now();
+        $overtime->status = 'completed';
+        $overtime->save();
+
+        return response()->json(['message' => 'Overtime cut-off successfully']);
+    }
+
+
     public function getStatusBadgeClassAttribute()
     {
         return match ($this->status) {
