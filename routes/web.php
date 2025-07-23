@@ -151,26 +151,19 @@
     Route::get('/history-kwh', [HistoryKwhController::class, 'index'])->name('history-kwh.index');
     Route::get('/history-kwh/latest', [HistoryKwhController::class, 'latest'])->name('history-kwh.latest');
 
-    Route::prefix('user-management')->middleware(['auth'])->group(function () {
-        Route::get('/', [UserManagementController::class, 'index'])->name('user-management');
+    Route::middleware(['auth', 'role:admin|superadmin'])->prefix('user-management')->group(function () {
+        Route::get('/', [UserManagementController::class, 'index'])->name('user-management.index');
         Route::post('/', [UserManagementController::class, 'store'])->name('user-management.store');
         Route::put('/{user}', [UserManagementController::class, 'update'])->name('user-management.update');
         Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('user-management.destroy');
     });
 
-    Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
-        Route::resource('user-management', 'UserManagementController');
-    });
-
-    // Dashboard route (assuming it exists)
-    Route::get('/dashboard-v1', [LightScheduleController::class, 'index'])->name('dashboard-v1');
-
     // Schedule management routes
     Route::prefix('dashboard-v1/schedule')->name('dashboard.schedule.')->group(function () {
-        Route::post('/', [LightScheduleController::class, 'store'])->name('store');
-        Route::patch('/{schedule}/toggle', [LightScheduleController::class, 'toggle'])->name('toggle');
-        Route::delete('/{schedule}', [LightScheduleController::class, 'destroy'])->name('destroy');
+        Route::post('/', [DashboardController::class, 'storeSchedule'])->name('store');
+        Route::patch('/{schedule}/toggle', [DashboardController::class, 'toggleSchedule'])->name('toggle');
+        Route::delete('/{schedule}', [DashboardController::class, 'destroySchedule'])->name('destroy');
     });
 
     // API route for schedule checking (can be called by cron job)
-    Route::post('/api/check-schedules', [LightScheduleController::class, 'checkSchedules'])->name('api.schedules.check');
+    Route::post('/api/check-schedules', [DashboardController::class, 'checkSchedules'])->name('api.schedules.check');

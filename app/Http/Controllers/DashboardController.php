@@ -11,6 +11,8 @@ use App\Models\LightSchedule;
 use Spatie\Permission\Models\Role;
 use App\Models\HistoryKwh;
 use App\Services\FirebaseService;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
@@ -139,5 +141,60 @@ class DashboardController extends Controller
         $schedule->update(['is_active' => !$schedule->is_active]);
 
         return back()->with('success_schedule', 'Status jadwal berhasil diubah.');
+    }
+
+    public function checkSchedules()
+    {
+        try {
+            $now = Carbon::now();
+            $currentDay = strtolower($now->format('l')); // monday, tuesday, etc.
+            $currentTime = $now->format('H:i');
+
+            // Get all active schedules for today
+            $todaySchedules = LightSchedule::where('is_active', true)
+                ->where('day_of_week', $currentDay)
+                ->get();
+
+            $devicesToTurnOn = [];
+            $devicesToTurnOff = ['relay1', 'relay2']; // Start with all devices to turn off
+
+            foreach ($todaySchedules as $schedule) {
+                // Check if current time is within schedule time range
+                if ($currentTime >= $schedule->start_time && $currentTime <= $schedule->end_time) {
+                    $devicesToTurnOn[] = $schedule->device_type;
+                    // Remove from turn off list if it should be on
+                    $devicesToTurnOff = array_diff($devicesToTurnOff, [$schedule->device_type]);
+                }
+            }
+
+            // Turn on devices that should be on
+            foreach ($devicesToTurnOn as $device) {
+                $this->controlDevice($device, 'on');
+            }
+
+            // Turn off devices that should be off
+            foreach ($devicesToTurnOff as $device) {
+                $this->controlDevice($device, 'off');
+            }
+
+            Log::info("Schedule check completed. Devices ON: " . implode(', ', $devicesToTurnOn) .
+                ". Devices OFF: " . implode(', ', $devicesToTurnOff));
+        } catch (\Exception $e) {
+            Log::error('Error checking schedules: ' . $e->getMessage());
+        }
+    }
+
+    private function controlDevice($deviceType, $action)
+    {
+        try {
+            $value = ($action === 'on') ? 1 : 0;
+
+            // Use Firebase service to control the device
+            $this->firebase->setRelayState($deviceType, $value);
+
+            Log::info("Device {$deviceType} turned {$action} by schedule");
+        } catch (\Exception $e) {
+            Log::error('Device control error: ' . $e->getMessage());
+        }
     }
 }
