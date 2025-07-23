@@ -9,6 +9,8 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Carbon\Carbon;
 use Pusher\Pusher;
 
@@ -210,36 +212,88 @@ class OvertimeController extends Controller
 
     public function cutoff(Request $request, $id)
     {
-        $overtime = Overtime::findOrFail($id);
+        try {
+            $overtime = Overtime::findOrFail($id);
 
-        if ($overtime->status !== 1) {
-            return response()->json(['success' => false, 'message' => 'Lembur ini tidak sedang berjalan'], 400);
+            // Debug information
+            Log::info("Cutoff attempt for overtime ID: {$id}, current status: {$overtime->status}");
+            Log::info("Overtime data - Date: {$overtime->overtime_date}, Start time: {$overtime->start_time}, End time: {$overtime->end_time}");
+
+            if ($overtime->status !== 1) {
+                $message = "Lembur ini tidak sedang berjalan. Status saat ini: {$overtime->status} ({$overtime->status_label})";
+                Log::warning($message);
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                    'current_status' => $overtime->status,
+                    'status_label' => $overtime->status_label
+                ], 400);
+            }
+
+            $currentTime = Carbon::now();
+
+            // Create start datetime by combining date and time
+            $startDateTime = Carbon::parse($overtime->overtime_date->format('Y-m-d') . ' ' . $overtime->start_time);
+            Log::info("Parsed start datetime: {$startDateTime}, Current time: {$currentTime}");
+
+            $duration = $startDateTime->diffInMinutes($currentTime);
+
+            // Update the overtime record
+            $overtime->update([
+                'end_time' => $currentTime->format('H:i:s'),
+                'duration' => $duration,
+                'status' => 2 // Set to finished
+            ]);
+
+            Log::info("Overtime {$id} successfully cut off. Duration: {$duration} minutes");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lembur berhasil dihentikan',
+                'duration' => $duration,
+                'end_time' => $currentTime->format('H:i'),
+                'overtime' => $overtime->fresh() // Return updated data
+            ]);
+        } catch (ModelNotFoundException $e) {
+            Log::error("Overtime not found: {$id}");
+            return response()->json([
+                'success' => false,
+                'message' => 'Data lembur tidak ditemukan'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Cutoff error for overtime {$id}: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
         }
-
-        $currentTime = Carbon::now();
-        $startTime = Carbon::parse($overtime->start_time);
-        $duration = $startTime->diffInMinutes($currentTime);
-
-        $overtime->update([
-            'end_time' => $currentTime->toDateTimeString(),
-            'duration' => $duration,
-            'status' => 2
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Lembur berhasil dihentikan', 'duration' => $duration]);
     }
 
     public function start(Request $request, $id)
     {
-        $overtime = Overtime::findOrFail($id);
+        try {
+            $overtime = Overtime::findOrFail($id);
 
-        if ($overtime->status !== 0) {
-            return response()->json(['success' => false, 'message' => 'Lembur ini sudah dimulai atau selesai'], 400);
+            if ($overtime->status !== 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lembur ini sudah dimulai atau selesai. Status saat ini: ' . $overtime->status_label
+                ], 400);
+            }
+
+            $overtime->update(['status' => 1]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lembur berhasil dimulai'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
         }
-
-        $overtime->update(['status' => 1]);
-
-        return response()->json(['success' => true, 'message' => 'Lembur berhasil dimulai']);
     }
 
     public function statusCheck()
@@ -266,7 +320,7 @@ class OvertimeController extends Controller
 
             $pusher->trigger('overtime-channel', 'overtime-updated', ['message' => 'Timer updated']);
         } catch (\Exception $e) {
-            \Log::error('Pusher trigger failed: ' . $e->getMessage());
+            Log::error('Pusher trigger failed: ' . $e->getMessage());
         }
     }
 
@@ -287,7 +341,7 @@ class OvertimeController extends Controller
                 ];
             }
         } catch (\Exception $e) {
-            \Log::error('Gagal ambil data Firebase: ' . $e->getMessage());
+            Log::error('Gagal ambil data Firebase: ' . $e->getMessage());
         }
 
         return [

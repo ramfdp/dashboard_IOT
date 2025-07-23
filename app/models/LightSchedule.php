@@ -15,39 +15,28 @@ class LightSchedule extends Model
         'day_of_week',
         'start_time',
         'end_time',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
+        'is_active' => 'boolean',
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
-        'is_active' => 'boolean'
     ];
 
-    // Get human readable day names
-    public function getDayNameAttribute()
+    public function scopeActive($query)
     {
-        $days = [
-            'monday' => 'Senin',
-            'tuesday' => 'Selasa',
-            'wednesday' => 'Rabu',
-            'thursday' => 'Kamis',
-            'friday' => 'Jumat',
-            'saturday' => 'Sabtu',
-            'sunday' => 'Minggu'
-        ];
-
-        return $days[$this->day_of_week] ?? $this->day_of_week;
+        return $query->where('is_active', true);
     }
 
-    // Get device name
-    public function getDeviceNameAttribute()
+    public function scopeForDay($query, $day)
     {
-        $devices = [
-            'relay1' => 'Lampu ITMS 1',
-            'relay2' => 'Lampu ITMS 2'
-        ];
+        return $query->where('day_of_week', $day);
+    }
 
-        return $devices[$this->device_type] ?? $this->device_type;
+    public function scopeCurrentTime($query, $time)
+    {
+        return $query->where('start_time', '<=', $time)
+                    ->where('end_time', '>=', $time);
     }
 }

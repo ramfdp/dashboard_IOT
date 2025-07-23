@@ -23,6 +23,8 @@
     use App\Http\Controllers\KaryawanController;
     use App\Http\Controllers\RelayController;
     use App\Http\Controllers\CCTVController;
+    use App\Http\Controllers\LightScheduleController;
+
 
 
 
@@ -159,3 +161,16 @@
     Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
         Route::resource('user-management', 'UserManagementController');
     });
+
+    // Dashboard route (assuming it exists)
+    Route::get('/dashboard-v1', [LightScheduleController::class, 'index'])->name('dashboard-v1');
+
+    // Schedule management routes
+    Route::prefix('dashboard-v1/schedule')->name('dashboard.schedule.')->group(function () {
+        Route::post('/', [LightScheduleController::class, 'store'])->name('store');
+        Route::patch('/{schedule}/toggle', [LightScheduleController::class, 'toggle'])->name('toggle');
+        Route::delete('/{schedule}', [LightScheduleController::class, 'destroy'])->name('destroy');
+    });
+
+    // API route for schedule checking (can be called by cron job)
+    Route::post('/api/check-schedules', [LightScheduleController::class, 'checkSchedules'])->name('api.schedules.check');

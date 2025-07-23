@@ -42,13 +42,29 @@ class DashboardController extends Controller
             ->orderBy('waktu', 'asc')
             ->get();
 
+        // If no data exists, create empty collection with default structure
+        if ($dataKwh->isEmpty()) {
+            $dataKwh = collect([
+                (object)['waktu' => date('H:i:s'), 'daya' => 0]
+            ]);
+        }
+
         // Get light schedules
         $lightSchedules = LightSchedule::orderBy('day_of_week')
             ->orderBy('start_time')
             ->get();
 
-        $relay1 = $this->firebase->getRelayState('relay1');
-        $relay2 = $this->firebase->getRelayState('relay2');
+        // Get relay states with default fallback values
+        try {
+            $relay1 = $this->firebase->getRelayState('relay1') ?? 0;
+            $relay2 = $this->firebase->getRelayState('relay2') ?? 0;
+            $sos = $this->firebase->getRelayState('sos') ?? 0;
+        } catch (\Exception $e) {
+            // If Firebase fails, set default values
+            $relay1 = 0;
+            $relay2 = 0;
+            $sos = 0;
+        }
 
 
         // Kirim semua data ke view
@@ -61,7 +77,8 @@ class DashboardController extends Controller
             'dataKwh',
             'lightSchedules',
             'relay1',
-            'relay2'
+            'relay2',
+            'sos'
         ));
     }
 

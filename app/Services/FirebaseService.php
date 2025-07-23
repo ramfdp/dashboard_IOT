@@ -37,4 +37,33 @@ class FirebaseService
             ->getReference('relayControl/sos')
             ->set((int) $value);
     }
+
+    // Schedule management methods
+    public function setSchedule($scheduleId, $scheduleData)
+    {
+        return $this->database
+            ->getReference("schedules/{$scheduleId}")
+            ->set($scheduleData);
+    }
+
+    public function getSchedule($scheduleId)
+    {
+        return $this->database
+            ->getReference("schedules/{$scheduleId}")
+            ->getValue();
+    }
+
+    public function deleteSchedule($scheduleId)
+    {
+        return $this->database
+            ->getReference("schedules/{$scheduleId}")
+            ->remove();
+    }
+
+    public function getAllSchedules()
+    {
+        return $this->database
+            ->getReference("schedules")
+            ->getValue();
+    }
 }

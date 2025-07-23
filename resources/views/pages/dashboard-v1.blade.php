@@ -51,6 +51,7 @@
     {{-- Firebase scripts for device and overtime control --}}
     <script type="module" src="/assets/js/overtime-control-fetch.js"></script>
     <script type="module" src="/assets/js/device-firebase-control.js"></script>
+    <script type="module" src="/assets/js/LightSchedule.js"></script>
 @endpush
 
 @section('content')
@@ -122,8 +123,8 @@
                     <div class="panel-body p-4 bg-dark text-white rounded-bottom">
                         <div class="row" style="overflow-x: auto; background-color: #1e1e1e; border-radius: 8px;">
                             <canvas id="wattChart" 
-                            data-labels='@json($dataKwh->pluck('waktu')->toArray())'
-                            data-values='@json($dataKwh->pluck('daya')->toArray())'
+                            data-labels='@json(isset($dataKwh) ? $dataKwh->pluck('waktu')->toArray() : [])'
+                            data-values='@json(isset($dataKwh) ? $dataKwh->pluck('daya')->toArray() : [])'
                             width="1450" height="300" style="background-color: #1e1e1e;"></canvas>
                         </div>
                         <div class="row col-md-12 text-center mt-3 mb-2">
@@ -237,7 +238,7 @@
         <div class="col-md-12">
             <div class="card shadow-sm rounded p-4">
                 <h4 class="mb-3">Jadwal Alarm Lampu Kantor</h4>
-                @if(session('success_schedule'))
+                @if(session()->has('success_schedule'))
                     <div class="alert alert-success">{{ session('success_schedule') }}</div>
                 @endif
                 <form action="{{ route('dashboard.schedule.store') }}" method="POST" class="mb-4">
@@ -293,43 +294,50 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($lightSchedules as $schedule)
-                            <tr>
-                                <td>{{ $schedule->name }}</td>
-                                <td>{{ $schedule->device_name }}</td>
-                                <td>{{ $schedule->day_name }}</td>
-                                <td>{{ date('H:i', strtotime($schedule->start_time)) }}</td>
-                                <td>{{ date('H:i', strtotime($schedule->end_time)) }}</td>
-                                <td>
-                                    <form action="{{ route('dashboard.schedule.toggle', $schedule) }}" method="POST" style="display:inline-block;">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="btn btn-sm {{ $schedule->is_active ? 'btn-success' : 'btn-secondary' }}">
-                                            {{ $schedule->is_active ? 'Aktif' : 'Nonaktif' }}
-                                        </button>
-                                    </form>
-                                </td>
-                                <td>
-                                    <form action="{{ route('dashboard.schedule.destroy', $schedule) }}" method="POST" style="display:inline-block;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Hapus jadwal ini?')">Hapus</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            @endforeach
+                            @if(isset($lightSchedules) && $lightSchedules->count() > 0)
+                                @foreach($lightSchedules as $schedule)
+                                <tr>
+                                    <td>{{ $schedule->name }}</td>
+                                    <td>{{ $schedule->device_name }}</td>
+                                    <td>{{ $schedule->day_name }}</td>
+                                    <td>{{ date('H:i', strtotime($schedule->start_time)) }}</td>
+                                    <td>{{ date('H:i', strtotime($schedule->end_time)) }}</td>
+                                    <td>
+                                        <form action="{{ route('dashboard.schedule.toggle', $schedule) }}" method="POST" style="display:inline-block;">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn btn-sm {{ $schedule->is_active ? 'btn-success' : 'btn-secondary' }}">
+                                                {{ $schedule->is_active ? 'Aktif' : 'Nonaktif' }}
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <form action="{{ route('dashboard.schedule.destroy', $schedule) }}" method="POST" style="display:inline-block;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Hapus jadwal ini?')">Hapus</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="7" class="text-center">Belum ada jadwal</td>
+                                </tr>
+                            @endif
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
+    
     <!-- END Light Alarm/Schedule Section -->
 
     <form action="{{ route('dashboard.update') }}" method="POST">
         @csrf
 
-        @if(session('success_device'))
+        @if(session()->has('success_device'))
             <div class="alert alert-success">
                 {{ session('success_device') }}
             </div>
@@ -344,7 +352,7 @@
                         <i class="fa fa-lightbulb text-primary fs-3"></i>
                         <div class="form-check form-switch">
                             <input type="hidden" name="relay1" value="0">
-                            <input class="form-check-input device-switch" type="checkbox" name="relay1" value="1" {{ $relay1 == 1 ? 'checked' : '' }}>
+                            <input class="form-check-input device-switch" type="checkbox" name="relay1" value="1" {{ (isset($relay1) && $relay1 == 1) ? 'checked' : '' }}>
                         </div>
                     </div>
                 </div>
@@ -358,7 +366,7 @@
                         <i class="fa fa-lightbulb text-primary fs-3"></i>
                         <div class="form-check form-switch">
                             <input type="hidden" name="relay2" value="0">
-                            <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ $relay2 == 1 ? 'checked' : '' }}>
+                            <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ (isset($relay2) && $relay2 == 1) ? 'checked' : '' }}>
                         </div>
                     </div>
                 </div>
@@ -372,7 +380,7 @@
                         <i class="fa fa-bell text-danger fs-3"></i>
                         <div class="form-check form-switch">
                             <input type="hidden" name="sos" value="0">
-                            <input class="form-check-input device-switch" type="checkbox" name="sos" value="1" {{ ($sos ?? 0) == 1 ? 'checked' : '' }}>
+                            <input class="form-check-input device-switch" type="checkbox" name="sos" value="1" {{ (isset($sos) && $sos == 1) ? 'checked' : '' }}>
                         </div>
                     </div>
                 </div>
@@ -389,7 +397,9 @@
     </form>
 
     <!-- Livewire Overtime Control Component -->
-    @livewire('overtime-control')
+    @if(class_exists('App\Livewire\OvertimeControl'))
+        @livewire('overtime-control')
+    @endif
 
     <!-- CSS untuk Indikator -->
     <style>
@@ -399,7 +409,7 @@
     </style>
     
 <!-- User Management Section -->
-@if(auth()->user()->getRoleNames()->first() != 'user')
+@if(auth()->check() && auth()->user()->getRoleNames()->first() && auth()->user()->getRoleNames()->first() != 'user')
     <div class="row justify-content-center mt-4 mb-4">
         <div class="row justify-content-center mt-4 mb-4">
             <div class="col-md-12">
@@ -412,13 +422,13 @@
                     </div>
 
                     <div class="card-body">
-                        @if(session('success_user'))
+                        @if(session()->has('success_user'))
                             <div class="alert alert-success" role="alert">
                                 {{ session('success_user') }}
                             </div>
                         @endif
 
-                        @if(session('error_user'))
+                        @if(session()->has('error_user'))
                             <div class="alert alert-danger" role="alert">
                                 {{ session('error_user') }}
                             </div>
@@ -437,37 +447,43 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($users as $key => $user)
-                                    <tr>
-                                        <td>{{ $key + 1 }}</td>
-                                        <td>{{ $user->name }}</td>
-                                        <td>{{ $user->email }}</td>
-                                        <td>{{ $user->getRoleNames()->first() ?? 'No Role' }}</td>
-                                        <td>{{ $user->created_at->format('d M Y H:i') }}</td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-info edit-btn" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#editUserModal" 
-                                                data-id="{{ $user->id }}"
-                                                data-name="{{ $user->name }}"
-                                                data-email="{{ $user->email }}"
-                                                data-role="{{ $user->roles->first()->id ?? '' }}"
-                                                data-role-name="{{ $user->getRoleNames()->first() ?? '' }}">
-                                                Edit
-                                            </button>
-                                            
-                                            @if(auth()->id() !== $user->id)
-                                            <button type="button" class="btn btn-sm btn-danger delete-btn"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteUserModal"
-                                                data-id="{{ $user->id }}"
-                                                data-name="{{ $user->name }}">
-                                                Hapus
-                                            </button>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @endforeach
+                                    @if(isset($users) && $users->count() > 0)
+                                        @foreach($users as $key => $user)
+                                        <tr>
+                                            <td>{{ $key + 1 }}</td>
+                                            <td>{{ $user->name }}</td>
+                                            <td>{{ $user->email }}</td>
+                                            <td>{{ $user->getRoleNames()->first() ?? 'No Role' }}</td>
+                                            <td>{{ $user->created_at->format('d M Y H:i') }}</td>
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-info edit-btn" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editUserModal" 
+                                                    data-id="{{ $user->id }}"
+                                                    data-name="{{ $user->name }}"
+                                                    data-email="{{ $user->email }}"
+                                                    data-role="{{ $user->roles->first()->id ?? '' }}"
+                                                    data-role-name="{{ $user->getRoleNames()->first() ?? '' }}">
+                                                    Edit
+                                                </button>
+                                                
+                                                @if(auth()->id() !== $user->id)
+                                                <button type="button" class="btn btn-sm btn-danger delete-btn"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#deleteUserModal"
+                                                    data-id="{{ $user->id }}"
+                                                    data-name="{{ $user->name }}">
+                                                    Hapus
+                                                </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    @else
+                                        <tr>
+                                            <td colspan="6" class="text-center">Belum ada user</td>
+                                        </tr>
+                                    @endif
                                 </tbody>
                             </table>
                         </div>
@@ -503,9 +519,11 @@
                         <div class="mb-3">
                             <label for="role_id" class="form-label">Role</label>
                             <select class="form-select" id="role_id" name="role_id" required>
-                                @foreach($roles as $role)
-                                    <option value="{{ $role->id }}">{{ $role->name }}</option>
-                                @endforeach
+                                @if(isset($roles) && $roles->count() > 0)
+                                    @foreach($roles as $role)
+                                        <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
                     </div>
@@ -545,9 +563,11 @@
                         <div class="mb-3">
                             <label for="edit_role_id" class="form-label">Role</label>
                             <select class="form-select" id="edit_role_id" name="role_id" required>
-                                @foreach($roles as $role)
-                                    <option value="{{ $role->id }}">{{ $role->name }}</option>
-                                @endforeach
+                                @if(isset($roles) && $roles->count() > 0)
+                                    @foreach($roles as $role)
+                                        <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
                     </div>
