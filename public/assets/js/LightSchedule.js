@@ -25,10 +25,17 @@ class ScheduleManager {
     }
 
     init() {
+        console.log('LightSchedule.js - DISABLED to prevent conflicts');
+        console.log('Schedule control now handled by backend LightScheduleManager.js');
+        // Completely disable this frontend schedule system
+        return;
+
         this.loadSchedules();
         this.listenToDeviceChanges();
-        this.startScheduleChecker();
+        // Disable frontend schedule checking - let backend handle it
+        // this.startScheduleChecker();
         this.bindEvents();
+        console.log('Schedule manager initialized (sync mode only)');
     }
 
     async loadSchedules() {

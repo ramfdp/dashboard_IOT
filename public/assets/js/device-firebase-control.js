@@ -38,13 +38,13 @@ function resetDeviceToAutoMode() {
 function initializeDeviceControls() {
     console.log('Initializing device controls...');
 
-    // Wait for DOM and Livewire to be ready
+    // Wait for other systems to initialize first
     setTimeout(() => {
         setupDeviceSwitchListeners();
         listenToFirebaseDeviceChanges();
         syncInitialDeviceState();
         initializeDeviceIndicators();
-    }, 1000);
+    }, 1500); // Reduced to 1.5 seconds
 }
 
 // Set up event listeners for device switches

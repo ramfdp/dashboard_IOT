@@ -52,7 +52,9 @@
     {{-- Firebase scripts for device and overtime control --}}
     <script type="module" src="/assets/js/overtime-control-fetch.js"></script>
     <script type="module" src="/assets/js/device-firebase-control.js"></script>
-    <script type="module" src="/assets/js/LightSchedule.js"></script>
+    {{-- Temporarily disabled to prevent conflicts: <script type="module" src="/assets/js/LightSchedule.js"></script> --}}
+    <script src="/assets/js/LightScheduleManager.js"></script>
+    <script src="/assets/js/ModeManager.js"></script>
 @endpush
 
 @section('content')
@@ -231,6 +233,14 @@
                 style="font-size: 1.25rem; padding: 0.75rem 1.25rem;">
                     Mode Otomatis Aktif
             </span>
+            <div class="mt-2">
+                <form action="{{ route('dashboard.auto-mode') }}" method="POST" style="display: inline;">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="fa fa-robot"></i> Aktifkan Mode Otomatis
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -238,7 +248,12 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card shadow-sm rounded p-4">
-                <h4 class="mb-3">scheduler Lampu Kantor</h4>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4>Scheduler Lampu Kantor (Semua Lampu)</h4>
+                    <button id="manual-schedule-check" class="btn btn-sm btn-info">
+                        <i class="fa fa-refresh"></i> Check Schedules Now
+                    </button>
+                </div>
                 @if(session()->has('success_schedule'))
                     <div class="alert alert-success">{{ session('success_schedule') }}</div>
                 @endif
@@ -248,13 +263,6 @@
                         <div class="col-md-2">
                             <label class="form-label">Nama Jadwal</label>
                             <input type="text" name="name" class="form-control" required placeholder="Contoh: Jadwal Pagi">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label">Lampu</label>
-                            <select name="device_type" class="form-select" required>
-                                <option value="relay1">Lampu ITMS 1</option>
-                                <option value="relay2">Lampu ITMS 2</option>
-                            </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">Hari</label>
@@ -276,7 +284,7 @@
                             <label class="form-label">Jam Selesai</label>
                             <input type="time" name="end_time" class="form-control" required>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4">
                             <button type="submit" class="btn btn-success w-100">Tambah Jadwal</button>
                         </div>
                     </div>
@@ -287,7 +295,6 @@
                         <thead>
                             <tr>
                                 <th>Nama Jadwal</th>
-                                <th>Lampu</th>
                                 <th>Hari</th>
                                 <th>Jam Mulai</th>
                                 <th>Jam Selesai</th>
@@ -300,7 +307,6 @@
                                 @foreach($lightSchedules as $schedule)
                                 <tr>
                                     <td>{{ $schedule->name }}</td>
-                                    <td>{{ $schedule->device_name }}</td>
                                     <td>{{ $schedule->day_name }}</td>
                                     <td>{{ date('H:i', strtotime($schedule->start_time)) }}</td>
                                     <td>{{ date('H:i', strtotime($schedule->end_time)) }}</td>
@@ -324,7 +330,7 @@
                                 @endforeach
                             @else
                                 <tr>
-                                    <td colspan="7" class="text-center">Belum ada jadwal</td>
+                                    <td colspan="6" class="text-center">Belum ada jadwal</td>
                                 </tr>
                             @endif
                         </tbody>

@@ -37,6 +37,7 @@
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/update', [DashboardController::class, 'update'])->name('dashboard.update');
+    Route::post('/dashboard/auto-mode', [DashboardController::class, 'setAutoMode'])->name('dashboard.auto-mode');
 
     // Light schedule routes
     Route::post('/dashboard/schedule', [DashboardController::class, 'storeSchedule'])->name('dashboard.schedule.store');

@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Overtime;
+use App\Models\LightSchedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
@@ -31,6 +32,11 @@ class OvertimeControl extends Component
     public $editMode = false;
     public $editOvertimeId = null;
 
+    // System availability
+    public $overtimeAvailable = true;
+    public $scheduleEndTime = null;
+    public $minutesUntilAvailable = 0;
+
     protected $rules = [
         'division_name' => 'required|string|max:100',
         'employee_name' => 'required|string|max:100',
@@ -52,12 +58,14 @@ class OvertimeControl extends Component
     {
         $this->overtime_date = date('Y-m-d');
         $this->updateOvertimeStatuses();
+        $this->checkOvertimeAvailability();
     }
 
     public function hydrate()
     {
         // This method runs on every request to refresh the component
         $this->updateOvertimeStatuses();
+        $this->checkOvertimeAvailability();
     }
 
     public function render()
@@ -70,8 +78,99 @@ class OvertimeControl extends Component
         return view('livewire.overtime-control', compact('overtimes'));
     }
 
+    /**
+     * Check if overtime system is available based on light scheduler status
+     * Overtime becomes available 1 minute after the last schedule ends
+     */
+    public function checkOvertimeAvailability()
+    {
+        $now = Carbon::now('Asia/Jakarta');
+        $currentDay = strtolower($now->format('l')); // Get current day name
+        $currentTime = $now->format('H:i:s');
+
+        // Get all active schedules for today
+        $todaySchedules = LightSchedule::where('is_active', true)
+            ->where('day_of_week', $currentDay)
+            ->get();
+
+        if ($todaySchedules->isEmpty()) {
+            // No schedules today - overtime is always available
+            $this->overtimeAvailable = true;
+            $this->scheduleEndTime = null;
+            $this->minutesUntilAvailable = 0;
+            return;
+        }
+
+        $latestEndTime = null;
+        $hasActiveSchedule = false;
+
+        foreach ($todaySchedules as $schedule) {
+            // Handle overnight schedules (end_time < start_time)
+            if ($schedule->end_time < $schedule->start_time) {
+                $isActive = ($currentTime >= $schedule->start_time || $currentTime <= $schedule->end_time);
+                if ($isActive) {
+                    $hasActiveSchedule = true;
+                    // For overnight schedules, use end_time as the latest
+                    if (!$latestEndTime || $schedule->end_time > $latestEndTime) {
+                        $latestEndTime = $schedule->end_time;
+                    }
+                }
+            } else {
+                // Normal schedule (same day)
+                $isActive = ($currentTime >= $schedule->start_time && $currentTime <= $schedule->end_time);
+                if ($isActive) {
+                    $hasActiveSchedule = true;
+                }
+                // Track the latest end time for today
+                if (!$latestEndTime || $schedule->end_time > $latestEndTime) {
+                    $latestEndTime = $schedule->end_time;
+                }
+            }
+        }
+
+        if (!$hasActiveSchedule && $latestEndTime) {
+            // Check if 1 minute has passed since the latest schedule ended
+            $endTimeCarbon = Carbon::createFromFormat('H:i:s', $latestEndTime, 'Asia/Jakarta');
+            $endTimeCarbon->setDate($now->year, $now->month, $now->day);
+            $bufferTime = $endTimeCarbon->copy()->addMinute();
+
+            if ($now->gte($bufferTime)) {
+                $this->overtimeAvailable = true;
+                $this->scheduleEndTime = null;
+                $this->minutesUntilAvailable = 0;
+            } else {
+                $this->overtimeAvailable = false;
+                $this->scheduleEndTime = $endTimeCarbon->format('H:i');
+                $this->minutesUntilAvailable = $now->diffInMinutes($bufferTime);
+            }
+        } else if ($hasActiveSchedule) {
+            // Schedule is currently active - overtime not available
+            $this->overtimeAvailable = false;
+            $this->scheduleEndTime = $latestEndTime;
+            $this->minutesUntilAvailable = null; // Will be calculated when schedule ends
+        } else {
+            // No active schedules and past buffer time
+            $this->overtimeAvailable = true;
+            $this->scheduleEndTime = null;
+            $this->minutesUntilAvailable = 0;
+        }
+    }
+
     public function store()
     {
+        // Check if overtime system is available
+        if (!$this->overtimeAvailable) {
+            $message = 'Sistem lembur tidak tersedia. ';
+            if ($this->scheduleEndTime) {
+                $message .= "Scheduler lampu aktif hingga {$this->scheduleEndTime}. ";
+                if ($this->minutesUntilAvailable > 0) {
+                    $message .= "Sistem lembur akan tersedia dalam {$this->minutesUntilAvailable} menit setelah scheduler selesai.";
+                }
+            }
+            session()->flash('error_overtime', $message);
+            return;
+        }
+
         $this->validate();
 
         $startTime = Carbon::createFromFormat('Y-m-d H:i', $this->overtime_date . ' ' . $this->start_time);
@@ -164,6 +263,16 @@ class OvertimeControl extends Component
 
     public function startOvertime($id)
     {
+        // Check if overtime system is available
+        if (!$this->overtimeAvailable) {
+            $message = 'Tidak dapat memulai lembur. Sistem scheduler lampu masih aktif.';
+            if ($this->scheduleEndTime) {
+                $message .= " Tunggu hingga {$this->scheduleEndTime} + 1 menit.";
+            }
+            session()->flash('error_overtime', $message);
+            return;
+        }
+
         $overtime = Overtime::findOrFail($id);
         $overtime->update([
             'status' => 1,
@@ -195,11 +304,23 @@ class OvertimeControl extends Component
             'notes' => $overtime->notes . "\n\nCut-off reason: " . $this->cutoff_reason
         ]);
 
+        // Immediately turn OFF relays when overtime is cut off
+        try {
+            Http::timeout(3)->put('https://iot-firebase-a83a5-default-rtdb.firebaseio.com/relayControl.json', [
+                'relay1' => 0,
+                'relay2' => 0,
+                'manualMode' => false
+            ]);
+
+            session()->flash('success_overtime', 'Lembur berhasil dihentikan! Lampu dimatikan otomatis.');
+        } catch (\Exception $e) {
+            session()->flash('success_overtime', 'Lembur berhasil dihentikan! (Relay mungkin perlu dimatikan manual)');
+        }
+
         $this->showCutOffModal = false;
         $this->cutoff_reason = '';
         $this->selectedOvertimeId = null;
 
-        session()->flash('success_overtime', 'Lembur berhasil dihentikan!');
         $this->triggerPusher();
     }
 
@@ -218,14 +339,14 @@ class OvertimeControl extends Component
 
     public function resetToAutoMode()
     {
-        // Reset relay to auto mode logic
+        // Reset relay to auto mode logic with faster timeout
         try {
-            Http::timeout(10)->put('https://iot-firebase-a83a5-default-rtdb.firebaseio.com/relay.json', [
+            Http::timeout(3)->put('https://iot-firebase-a83a5-default-rtdb.firebaseio.com/relay.json', [
                 'auto_mode' => true,
                 'manual_override' => false
             ]);
 
-            session()->flash('success_overtime', 'Mode otomatis berhasil diaktifkan!');
+            session()->flash('success_overtime', 'Mode otomatis berhasil diaktifkan! Sistem lembur siap digunakan.');
         } catch (\Exception $e) {
             session()->flash('error_overtime', 'Gagal mengaktifkan mode otomatis: ' . $e->getMessage());
         }
@@ -254,8 +375,15 @@ class OvertimeControl extends Component
 
             $newStatus = $overtime->status;
 
+            // Don't change status if overtime was manually cut off (status 2 with end_time set)
+            // We can detect manual cutoff if end_time exists and current time is still before original end_time
+            if ($overtime->status === 2 && $endTime) {
+                // Already cut off or finished - don't change status
+                continue;
+            }
+
             if ($endTime && $now->gte($endTime)) {
-                $newStatus = 2; // Selesai
+                $newStatus = 2; // Selesai (naturally finished)
             } elseif ($now->gte($startTime)) {
                 $newStatus = 1; // Sedang Berjalan
             } else {

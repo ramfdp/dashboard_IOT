@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Overtime;
 use App\Models\HistoryKwh;
 use App\Models\User;
+use App\Models\LightSchedule;
 use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -45,63 +46,76 @@ class OvertimeController extends Controller
     }
 
     public function cutoff(Request $request, $id)
-{
-    try {
-        $overtime = Overtime::findOrFail($id);
+    {
+        try {
+            $overtime = Overtime::findOrFail($id);
 
-        if ($overtime->status !== 1) {
+            if ($overtime->status !== 1) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lembur ini tidak sedang berjalan.',
+                    'current_status' => $overtime->status
+                ], 400);
+            }
+
+            if (empty($overtime->overtime_date) || empty($overtime->start_time)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tanggal atau waktu mulai lembur tidak tersedia.',
+                ], 400);
+            }
+
+            // Deteksi jika start_time sudah berupa datetime
+            $startTimeRaw = $overtime->start_time;
+            if (strlen($startTimeRaw) > 8) {
+                $startDateTime = Carbon::parse($startTimeRaw);
+            } else {
+                $startDateTime = Carbon::parse("{$overtime->overtime_date} {$startTimeRaw}");
+            }
+
+            $currentTime = Carbon::now('Asia/Jakarta');
+            $duration = $startDateTime->diffInMinutes($currentTime);
+
+            $overtime->update([
+                'end_time' => $currentTime,
+                'duration' => $duration,
+                'status' => 2
+            ]);
+
+            // Immediately turn OFF relays when overtime is cut off
+            try {
+                Http::timeout(3)->put('https://iot-firebase-a83a5-default-rtdb.firebaseio.com/relayControl.json', [
+                    'relay1' => 0,
+                    'relay2' => 0,
+                    'manualMode' => false
+                ]);
+
+                Log::info("Overtime {$id} cut off - relays turned OFF automatically");
+            } catch (\Exception $e) {
+                Log::warning("Overtime {$id} cut off but failed to control relays: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lembur berhasil dihentikan',
+                'duration' => $duration,
+                'end_time' => $currentTime->format('H:i'),
+                'overtime' => $overtime->fresh()
+            ]);
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Lembur ini tidak sedang berjalan.',
-                'current_status' => $overtime->status
-            ], 400);
-        }
+                'message' => 'Data lembur tidak ditemukan'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Cutoff error for overtime ID {$id}: " . $e->getMessage());
 
-        if (empty($overtime->overtime_date) || empty($overtime->start_time)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tanggal atau waktu mulai lembur tidak tersedia.',
-            ], 400);
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Deteksi jika start_time sudah berupa datetime
-        $startTimeRaw = $overtime->start_time;
-        if (strlen($startTimeRaw) > 8) {
-            $startDateTime = Carbon::parse($startTimeRaw);
-        } else {
-            $startDateTime = Carbon::parse("{$overtime->overtime_date} {$startTimeRaw}");
-        }
-
-        $currentTime = Carbon::now('Asia/Jakarta');
-        $duration = $startDateTime->diffInMinutes($currentTime);
-
-        $overtime->update([
-            'end_time' => $currentTime,
-            'duration' => $duration,
-            'status' => 2
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Lembur berhasil dihentikan',
-            'duration' => $duration,
-            'end_time' => $currentTime->format('H:i'),
-            'overtime' => $overtime->fresh()
-        ]);
-    } catch (ModelNotFoundException $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Data lembur tidak ditemukan'
-        ], 404);
-    } catch (\Exception $e) {
-        Log::error("Cutoff error for overtime ID {$id}: " . $e->getMessage());
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-        ], 500);
     }
-}
 
 
     public function store(Request $request)
@@ -237,6 +251,12 @@ class OvertimeController extends Controller
 
             $newStatus = $overtime->status;
 
+            // Don't change status if overtime was manually cut off (status 2 with end_time set)
+            if ($overtime->status === 2 && $endTime) {
+                // Already cut off or finished - don't change status
+                continue;
+            }
+
             if ($endTime && $now->gte($endTime)) {
                 $newStatus = 2;
             } elseif ($now->gte($startTime)) {
@@ -261,7 +281,75 @@ class OvertimeController extends Controller
     {
         $this->updateOvertimeStatuses();
         $overtimes = Overtime::orderBy('created_at', 'desc')->get();
-        return response()->json(['overtimes' => $overtimes]);
+        $overtimeAvailable = $this->checkOvertimeAvailability();
+
+        return response()->json([
+            'overtimes' => $overtimes,
+            'overtimeAvailable' => $overtimeAvailable
+        ]);
+    }
+
+    /**
+     * Check if overtime system is available based on light scheduler status
+     * Overtime becomes available 1 minute after the last schedule ends
+     */
+    private function checkOvertimeAvailability()
+    {
+        $now = Carbon::now('Asia/Jakarta');
+        $currentDay = strtolower($now->format('l')); // Get current day name
+        $currentTime = $now->format('H:i:s');
+
+        // Get all active schedules for today
+        $todaySchedules = LightSchedule::where('is_active', true)
+            ->where('day_of_week', $currentDay)
+            ->get();
+
+        if ($todaySchedules->isEmpty()) {
+            // No schedules today - overtime is always available
+            return true;
+        }
+
+        $latestEndTime = null;
+        $hasActiveSchedule = false;
+
+        foreach ($todaySchedules as $schedule) {
+            // Handle overnight schedules (end_time < start_time)
+            if ($schedule->end_time < $schedule->start_time) {
+                $isActive = ($currentTime >= $schedule->start_time || $currentTime <= $schedule->end_time);
+                if ($isActive) {
+                    $hasActiveSchedule = true;
+                    // For overnight schedules, use end_time as the latest
+                    if (!$latestEndTime || $schedule->end_time > $latestEndTime) {
+                        $latestEndTime = $schedule->end_time;
+                    }
+                }
+            } else {
+                // Normal schedule (same day)
+                $isActive = ($currentTime >= $schedule->start_time && $currentTime <= $schedule->end_time);
+                if ($isActive) {
+                    $hasActiveSchedule = true;
+                }
+                // Track the latest end time for today
+                if (!$latestEndTime || $schedule->end_time > $latestEndTime) {
+                    $latestEndTime = $schedule->end_time;
+                }
+            }
+        }
+
+        if (!$hasActiveSchedule && $latestEndTime) {
+            // Check if 1 minute has passed since the latest schedule ended
+            $endTimeCarbon = Carbon::createFromFormat('H:i:s', $latestEndTime, 'Asia/Jakarta');
+            $endTimeCarbon->setDate($now->year, $now->month, $now->day);
+            $bufferTime = $endTimeCarbon->copy()->addMinute();
+
+            return $now->gte($bufferTime);
+        } else if ($hasActiveSchedule) {
+            // Schedule is currently active - overtime not available
+            return false;
+        } else {
+            // No active schedules and past buffer time
+            return true;
+        }
     }
 
     public function start(Request $request, $id)

@@ -13,7 +13,7 @@ class Kernel extends ConsoleKernel
      * @var array
      */
     protected $commands = [
-        //
+        Commands\CheckLightSchedules::class,
     ];
 
     /**
@@ -26,8 +26,10 @@ class Kernel extends ConsoleKernel
     {
         // Check timer status every minute
         $schedule->command('timer:check')->everyMinute();
-    }
 
+        // Check light schedules every 5 minutes to reduce conflicts
+        $schedule->command('schedule:check')->everyFiveMinutes();
+    }
     /**
      * Register the Closure based commands for the application.
      *

@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 const db = getDatabase(initializeApp({
     apiKey: "AIzaSyDi-2L7pOKJH1gOAJnSvhMfLUINRPTX7Yg",
@@ -28,7 +28,7 @@ const checkAutoMode = () => {
     if (autoMode && manualMode) {
         manualMode = false;
         relay1ManualState = relay2ManualState = null;
-        setTimeout(() => updateLemburStatusDanRelay(), 2500);
+        setTimeout(() => updateLemburStatusDanRelay(), 1000);
     } else if (!autoMode && (relay1ManualState !== null || relay2ManualState !== null)) {
         manualMode = true;
     }
@@ -45,12 +45,17 @@ const cleanTime = timeString => timeString?.match(/^(\d{1,2}:\d{2})/)?.[1] + ':0
 
 const isOvertimeActive = overtime => {
     const now = new Date();
+
+    // If overtime is cut off (status = 2), it's never active regardless of time
+    if (overtime.status === 2) return false;
+
+    // If overtime is running (status = 1), it's active
     if (overtime.status === 1) return true;
 
+    // If overtime is not started yet (status = 0), check if it should be active based on time
     const startTime = new Date(`${overtime.overtime_date}T${cleanTime(overtime.start_time)}`);
     const endTime = overtime.end_time ? new Date(`${overtime.overtime_date}T${cleanTime(overtime.end_time)}`) : null;
 
-    if (overtime.status === 2) return endTime && now < endTime;
     return overtime.status === 0 && now >= startTime && (!endTime || now < endTime);
 };
 
@@ -134,13 +139,33 @@ const updateLemburStatusDanRelay = async () => {
         const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
         updateTable(data.overtimes);
 
-        // Only control relays if not in manual mode
-        const hasActive = data.overtimes?.some(isOvertimeActive) || false;
-        const relayState = hasActive ? 1 : 0;
+        // Check if overtime system is available from backend
+        if (data.overtimeAvailable === false) {
+            console.log('Overtime system: Not available - scheduler system active');
+            return;
+        }
 
-        console.log('Auto mode - updating relays to:', relayState);
-        set(ref(db, "/relayControl/relay1"), relayState);
-        set(ref(db, "/relayControl/relay2"), relayState);
+        // Check if system is in manual mode before controlling relays
+        const manualModeRef = ref(db, "/relayControl/manualMode");
+        const manualModeSnapshot = await get(manualModeRef);
+        const isManualMode = manualModeSnapshot.val() === true;
+
+        if (isManualMode) {
+            console.log('Overtime system: Skipping relay control - device in manual mode');
+            return;
+        }
+
+        // Only control relays if overtime is available and not in manual mode
+        const hasActive = data.overtimes?.some(isOvertimeActive) || false;
+
+        if (hasActive) {
+            console.log('Overtime mode - turning ON relays for overtime work');
+            set(ref(db, "/relayControl/relay1"), 1);
+            set(ref(db, "/relayControl/relay2"), 1);
+        } else {
+            // Don't turn off relays here - let schedule system handle it
+            console.log('No active overtime - letting schedule system control relays');
+        }
     } catch (err) {
         console.error("Gagal memuat lembur:", err);
     }
@@ -267,7 +292,20 @@ const cutOffOvertime = async id => {
     try {
         const data = await apiRequest(`/overtime/${id}/cutoff`, { method: 'POST' });
         alert(data.success ? 'Lembur berhasil dihentikan' : data.message || 'Gagal menghentikan lembur');
-        if (data.success) setTimeout(() => updateLemburStatusDanRelay(), 4000);
+
+        if (data.success) {
+            // Immediately turn OFF relays when cutoff is successful
+            try {
+                set(ref(db, "/relayControl/relay1"), 0);
+                set(ref(db, "/relayControl/relay2"), 0);
+                set(ref(db, "/relayControl/manualMode"), false);
+                console.log('Relays turned OFF immediately after cutoff');
+            } catch (firebaseError) {
+                console.warn('Failed to immediately control relays after cutoff:', firebaseError);
+            }
+
+            setTimeout(() => updateLemburStatusDanRelay(), 1500);
+        }
     } catch (err) {
         console.error("Gagal cut-off overtime:", err);
         alert('Terjadi kesalahan saat menghentikan lembur');
@@ -286,8 +324,8 @@ const handleEditSubmit = async () => {
         if (data.success) {
             alert('Data lembur berhasil diupdate');
             cancelEdit();
-            setTimeout(() => updateLemburStatusDanRelay(), 4000);
-            [7000, 10000].forEach(delay => setTimeout(() => forceRefreshRelayState(), delay));
+            setTimeout(() => updateLemburStatusDanRelay(), 1500);
+            [2000, 3000].forEach(delay => setTimeout(() => forceRefreshRelayState(), delay));
         } else {
             alert(data.message || 'Gagal mengupdate data lembur');
         }

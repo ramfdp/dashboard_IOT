@@ -19,8 +19,32 @@
                             {{ session('error_overtime') }}
                         </div>
                     @endif
+
+                    <!-- System Availability Status -->
+                    @if(!$overtimeAvailable)
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-clock"></i> Sistem Lembur Tidak Tersedia</h5>
+                            <p class="mb-1">
+                                @if($scheduleEndTime)
+                                    <strong>Scheduler lampu aktif hingga {{ $scheduleEndTime }}</strong>
+                                @endif
+                            </p>
+                            @if($minutesUntilAvailable > 0)
+                                <p class="mb-0">
+                                    <i class="fas fa-hourglass-half"></i> 
+                                    Sistem lembur akan tersedia dalam <strong>{{ $minutesUntilAvailable }} menit</strong> setelah scheduler selesai.
+                                </p>
+                            @endif
+                        </div>
+                    @else
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-check-circle"></i> Sistem Lembur Tersedia</h5>
+                            <p class="mb-0">Scheduler lampu tidak aktif. Anda dapat menggunakan fitur lembur.</p>
+                        </div>
+                    @endif
                     
                     <form wire:submit="store" id="overtime-form">
+                        <fieldset {{ !$overtimeAvailable ? 'disabled' : '' }}>
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <div class="form-group mb-3">
@@ -92,7 +116,9 @@
                         </div>
 
                         <div class="form-group mb-4">
-                            <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                            <button type="submit" class="btn btn-primary" 
+                                    wire:loading.attr="disabled" 
+                                    {{ !$overtimeAvailable ? 'disabled' : '' }}>
                                 <span wire:loading.remove>
                                     <i class="fas fa-save"></i> {{ $editMode ? 'Update' : 'Simpan' }}
                                 </span>
@@ -106,6 +132,7 @@
                                 </button>
                             @endif
                         </div>
+                        </fieldset>
                     </form>
 
                     <hr>
@@ -190,7 +217,9 @@
                                                         </button>
                                                     @elseif ($ot->status == 0)
                                                         <button type="button" class="btn btn-sm btn-success" 
-                                                                wire:click="startOvertime({{ $ot->id }})" title="Start">
+                                                                wire:click="startOvertime({{ $ot->id }})" 
+                                                                title="{{ $overtimeAvailable ? 'Start' : 'Tidak tersedia - Scheduler lampu aktif' }}"
+                                                                {{ !$overtimeAvailable ? 'disabled' : '' }}>
                                                             <i class="fas fa-play"></i>
                                                         </button>
                                                     @endif

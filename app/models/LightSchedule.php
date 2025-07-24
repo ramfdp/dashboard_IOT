@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use App\Services\FirebaseService;
+use Illuminate\Support\Facades\Log;
 
 class LightSchedule extends Model
 {
@@ -14,7 +16,6 @@ class LightSchedule extends Model
 
     protected $fillable = [
         'name',
-        'device_type',
         'day_of_week',
         'start_time',
         'end_time',
@@ -31,9 +32,59 @@ class LightSchedule extends Model
         'is_active' => true
     ];
 
+    protected static function booted()
+    {
+        // Sync to Firebase whenever a schedule is created or updated
+        static::saved(function ($schedule) {
+            $schedule->syncToFirebase();
+        });
+
+        // Remove from Firebase when deleted
+        static::deleted(function ($schedule) {
+            $schedule->removeFromFirebase();
+        });
+    }
+
     /**
-     * Scope for active schedules
+     * Sync schedule to Firebase
      */
+    public function syncToFirebase()
+    {
+        try {
+            $firebaseService = app(FirebaseService::class);
+
+            $scheduleData = [
+                'id' => $this->id,
+                'name' => $this->name,
+                'device_type' => $this->device_type,
+                'day_of_week' => $this->day_of_week,
+                'start_time' => $this->start_time,
+                'end_time' => $this->end_time,
+                'is_active' => $this->is_active,
+                'created_at' => $this->created_at->toISOString(),
+                'updated_at' => $this->updated_at->toISOString()
+            ];
+
+            $firebaseService->setSchedule($this->id, $scheduleData);
+            Log::info("Schedule {$this->id} synced to Firebase");
+        } catch (\Exception $e) {
+            Log::error("Failed to sync schedule {$this->id} to Firebase: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove schedule from Firebase
+     */
+    public function removeFromFirebase()
+    {
+        try {
+            $firebaseService = app(FirebaseService::class);
+            $firebaseService->deleteSchedule($this->id);
+            Log::info("Schedule {$this->id} removed from Firebase");
+        } catch (\Exception $e) {
+            Log::error("Failed to remove schedule {$this->id} from Firebase: " . $e->getMessage());
+        }
+    }
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -45,14 +96,6 @@ class LightSchedule extends Model
     public function scopeInactive($query)
     {
         return $query->where('is_active', false);
-    }
-
-    /**
-     * Scope by device type
-     */
-    public function scopeByDeviceType($query, $deviceType)
-    {
-        return $query->where('device_type', $deviceType);
     }
 
     /**
@@ -190,10 +233,10 @@ class LightSchedule extends Model
     }
 
     /**
-     * Get device name
+     * Get device name - now controls all lights
      */
     public function getDeviceNameAttribute()
     {
-        return $this->device_type === 'relay1' ? 'Lampu ITMS 1' : 'Lampu ITMS 2';
+        return 'Semua Lampu (ITMS 1 & 2)';
     }
 }

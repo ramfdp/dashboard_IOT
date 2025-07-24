@@ -86,15 +86,31 @@ class DashboardController extends Controller
 
     public function update(Request $request)
     {
-        $relay1 = $request->input('relay1', 0); // always set
+        $relay1 = $request->input('relay1', 0);
         $relay2 = $request->input('relay2', 0);
         $sos    = $request->input('sos', 0);
 
-        $this->firebase->setRelayState('relay1', $relay1);
-        $this->firebase->setRelayState('relay2', $relay2);
-        $this->firebase->setRelayState('sos', $sos);
+        // Use batch update for better performance
+        $this->firebase->setBatchRelayStates([
+            'relay1' => $relay1,
+            'relay2' => $relay2,
+            'sos' => $sos,
+            'manualMode' => true
+        ]);
 
-        return back()->with('success_device', 'Perangkat diperbarui.');
+        // Log manual control action
+        Log::info("Manual device control - relay1: {$relay1}, relay2: {$relay2}, sos: {$sos}");
+
+        return back()->with('success_device', 'Perangkat diperbarui secara manual.');
+    }
+
+    public function setAutoMode()
+    {
+        $this->firebase->setAutoMode();
+
+        Log::info("Device switched to automatic mode");
+
+        return back()->with('success_device', 'Perangkat beralih ke mode otomatis.');
     }
 
     // Light schedule methods
@@ -102,29 +118,27 @@ class DashboardController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'device_type' => 'required|in:relay1,relay2',
             'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
         ]);
 
-        LightSchedule::create($request->all());
+        LightSchedule::create($request->only(['name', 'day_of_week', 'start_time', 'end_time']));
 
-        return back()->with('success_schedule', 'Jadwal lampu berhasil ditambahkan.');
+        return back()->with('success_schedule', 'Jadwal lampu berhasil ditambahkan. Semua lampu akan dikontrol bersamaan.');
     }
 
     public function updateSchedule(Request $request, LightSchedule $schedule)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'device_type' => 'required|in:relay1,relay2',
             'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'is_active' => 'boolean'
         ]);
 
-        $schedule->update($request->all());
+        $schedule->update($request->only(['name', 'day_of_week', 'start_time', 'end_time', 'is_active']));
 
         return back()->with('success_schedule', 'Jadwal lampu berhasil diperbarui.');
     }
@@ -146,41 +160,74 @@ class DashboardController extends Controller
     public function checkSchedules()
     {
         try {
+            // Check if device is in manual mode
+            $isManualMode = $this->firebase->getManualMode();
+
+            if ($isManualMode) {
+                Log::info("Skipping schedule check - device is in manual mode");
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Schedule check skipped - device in manual mode',
+                    'manual_mode' => true
+                ]);
+            }
+
             $now = Carbon::now();
             $currentDay = strtolower($now->format('l')); // monday, tuesday, etc.
-            $currentTime = $now->format('H:i');
+            $currentTime = $now->format('H:i:s');
+
+            Log::info("Checking schedules for {$currentDay} at {$currentTime}");
 
             // Get all active schedules for today
             $todaySchedules = LightSchedule::where('is_active', true)
                 ->where('day_of_week', $currentDay)
                 ->get();
 
-            $devicesToTurnOn = [];
-            $devicesToTurnOff = ['relay1', 'relay2']; // Start with all devices to turn off
+            // Default: all lights off
+            $shouldLightsBeOn = false;
 
             foreach ($todaySchedules as $schedule) {
-                // Check if current time is within schedule time range
-                if ($currentTime >= $schedule->start_time && $currentTime <= $schedule->end_time) {
-                    $devicesToTurnOn[] = $schedule->device_type;
-                    // Remove from turn off list if it should be on
-                    $devicesToTurnOff = array_diff($devicesToTurnOff, [$schedule->device_type]);
+                // Handle overnight schedules (end_time < start_time)
+                if ($schedule->end_time < $schedule->start_time) {
+                    $shouldBeOn = ($currentTime >= $schedule->start_time || $currentTime <= $schedule->end_time);
+                } else {
+                    // Normal schedule (same day)
+                    $shouldBeOn = ($currentTime >= $schedule->start_time && $currentTime <= $schedule->end_time);
+                }
+
+                if ($shouldBeOn) {
+                    $shouldLightsBeOn = true;
+                    Log::info("Schedule '{$schedule->name}' is active - turning ON all lights");
+                    break; // One active schedule is enough to turn on all lights
                 }
             }
 
-            // Turn on devices that should be on
-            foreach ($devicesToTurnOn as $device) {
-                $this->controlDevice($device, 'on');
-            }
+            // Control both relays together using batch update for better performance
+            $relayState = $shouldLightsBeOn ? 1 : 0;
+            $this->firebase->setBatchRelayStates([
+                'relay1' => $relayState,
+                'relay2' => $relayState,
+                'manual_mode' => false
+            ]);
 
-            // Turn off devices that should be off
-            foreach ($devicesToTurnOff as $device) {
-                $this->controlDevice($device, 'off');
-            }
+            $activeDevices = $shouldLightsBeOn ? ['relay1', 'relay2'] : [];
+            $inactiveDevices = $shouldLightsBeOn ? [] : ['relay1', 'relay2'];
 
-            Log::info("Schedule check completed. Devices ON: " . implode(', ', $devicesToTurnOn) .
-                ". Devices OFF: " . implode(', ', $devicesToTurnOff));
+            Log::info("Schedule check completed. All lights: " . ($shouldLightsBeOn ? 'ON' : 'OFF'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Schedules checked successfully',
+                'active_devices' => $activeDevices,
+                'inactive_devices' => $inactiveDevices,
+                'manual_mode' => false
+            ]);
         } catch (\Exception $e) {
             Log::error('Error checking schedules: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking schedules: ' . $e->getMessage()
+            ], 500);
         }
     }
 
