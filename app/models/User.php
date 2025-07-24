@@ -21,13 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'username',
-        'phone',
-        'address',
-        'department_id',
         'role_id',
-        'status',
-        'last_login_at',
         'email_verified_at'
     ];
 
@@ -50,19 +44,9 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'last_login_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
-
-    /**
-     * Default values for attributes
-     *
-     * @var array
-     */
-    protected $attributes = [
-        'status' => 'active',
-    ];
 
     /**
      * Relationship with Department
@@ -89,51 +73,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Scope for active users
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
-
-    /**
-     * Scope for inactive users
-     */
-    public function scopeInactive($query)
-    {
-        return $query->where('status', 'inactive');
-    }
-
-    /**
-     * Get full name attribute
-     */
-    public function getFullNameAttribute()
-    {
-        return $this->name;
-    }
-
-    /**
      * Check if user is admin
      */
     public function isAdmin()
     {
         return $this->hasRole('admin') || $this->role?->name === 'admin';
-    }
-
-    /**
-     * Check if user is active
-     */
-    public function isActive()
-    {
-        return $this->status === 'active';
-    }
-
-    /**
-     * Update last login timestamp
-     */
-    public function updateLastLogin()
-    {
-        $this->update(['last_login_at' => now()]);
     }
 
     /**
@@ -159,8 +103,7 @@ class User extends Authenticatable
     {
         return $query->where(function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('username', 'like', "%{$search}%");
+                ->orWhere('email', 'like', "%{$search}%");
         });
     }
 
@@ -170,13 +113,5 @@ class User extends Authenticatable
     public function scopeByRole($query, $roleId)
     {
         return $query->where('role_id', $roleId);
-    }
-
-    /**
-     * Get users by department
-     */
-    public function scopeByDepartment($query, $departmentId)
-    {
-        return $query->where('department_id', $departmentId);
     }
 }
