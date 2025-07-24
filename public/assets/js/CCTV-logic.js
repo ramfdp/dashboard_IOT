@@ -51,9 +51,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Init
-    setInterval(updateTimestamp, 1000);
-    setInterval(refreshAllCameras, 30000);
+    let timestampInterval = setInterval(updateTimestamp, 1000);
+    let cameraRefreshInterval = setInterval(refreshAllCameras, 60000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(timestampInterval);
+            clearInterval(cameraRefreshInterval);
+        } else {
+            timestampInterval = setInterval(updateTimestamp, 1000);
+            cameraRefreshInterval = setInterval(refreshAllCameras, 60000);
+        }
+    });
+
+    window.addEventListener('beforeunload', () => {
+        clearInterval(timestampInterval);
+        clearInterval(cameraRefreshInterval);
+    });
+
     updateTimestamp();
     checkCameraStatus();
 

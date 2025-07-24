@@ -9,20 +9,70 @@ class Karyawan extends Model
 {
     use HasFactory;
 
-    // Nama tabel
     protected $table = 'karyawan';
 
-    // Kolom yang dapat diisi
     protected $fillable = [
-        'nama_karyawan',
+        'nama',
         'divisi_id',
+        'jabatan',
+        'email',
+        'telepon',
+        'alamat',
+        'status',
+        'tanggal_masuk'
+    ];
+
+    protected $casts = [
+        'tanggal_masuk' => 'date',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
+
+    protected $attributes = [
+        'status' => 'aktif',
     ];
 
     /**
-     * Relasi: Karyawan milik satu Divisi
+     * Relationship with Divisi
      */
     public function divisi()
     {
-        return $this->belongsTo(Divisi::class, 'divisi_id', 'id');
+        return $this->belongsTo(Divisi::class);
+    }
+
+    /**
+     * Scope for active employees
+     */
+    public function scopeAktif($query)
+    {
+        return $query->where('status', 'aktif');
+    }
+
+    /**
+     * Get divisi name
+     */
+    public function getDivisiNameAttribute()
+    {
+        return $this->divisi?->name ?? 'Tidak ada divisi';
+    }
+
+    /**
+     * Search karyawan
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('nama', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('jabatan', 'like', "%{$search}%");
+        });
+    }
+
+    /**
+     * Get karyawan by divisi
+     */
+    public function scopeByDivisi($query, $divisiId)
+    {
+        return $query->where('divisi_id', $divisiId);
     }
 }

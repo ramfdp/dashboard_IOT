@@ -12,27 +12,124 @@ class HistoryKwh extends Model
     protected $table = 'histori_kwh';
 
     protected $fillable = [
-        'tegangan',
-        'arus',
-        'daya',
-        'energi',
-        'frekuensi',
-        'power_factor',
-        'tanggal_input',
-        'waktu', // Tambahkan kolom waktu
+        'voltage',
+        'current',
+        'power',
+        'energy',
+        'frequency',
+        'pf',
+        'location',
+        'sensor_id',
+        'timestamp',
+        'created_at'
     ];
 
-    // Aktifkan timestamps untuk created_at dan updated_at
-    public $timestamps = true;
-    
     protected $casts = [
-        'tanggal_input' => 'datetime',
-        'waktu' => 'string',
-        'tegangan' => 'decimal:2',
-        'arus' => 'decimal:2',
-        'daya' => 'decimal:3',
-        'energi' => 'decimal:2',
-        'frekuensi' => 'decimal:2',
-        'power_factor' => 'decimal:3',
+        'voltage' => 'float',
+        'current' => 'float',
+        'power' => 'float',
+        'energy' => 'float',
+        'frequency' => 'float',
+        'pf' => 'float',
+        'timestamp' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
+
+    /**
+     * Relationship with Sensor
+     */
+    public function sensor()
+    {
+        return $this->belongsTo(Sensor::class);
+    }
+
+    /**
+     * Scope for latest records
+     */
+    public function scopeLatest($query, $limit = 10)
+    {
+        return $query->orderBy('timestamp', 'desc')->limit($limit);
+    }
+
+    /**
+     * Scope by location
+     */
+    public function scopeByLocation($query, $location)
+    {
+        return $query->where('location', $location);
+    }
+
+    /**
+     * Scope by date range
+     */
+    public function scopeDateRange($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('timestamp', [$startDate, $endDate]);
+    }
+
+    /**
+     * Get today's records
+     */
+    public function scopeToday($query)
+    {
+        return $query->whereDate('timestamp', today());
+    }
+
+    /**
+     * Get records for this month
+     */
+    public function scopeThisMonth($query)
+    {
+        return $query->whereMonth('timestamp', now()->month)
+            ->whereYear('timestamp', now()->year);
+    }
+
+    /**
+     * Calculate average power for period
+     */
+    public static function averagePowerForPeriod($startDate, $endDate, $location = null)
+    {
+        $query = self::whereBetween('timestamp', [$startDate, $endDate]);
+
+        if ($location) {
+            $query->where('location', $location);
+        }
+
+        return $query->avg('power');
+    }
+
+    /**
+     * Get total energy consumption
+     */
+    public static function totalEnergyForPeriod($startDate, $endDate, $location = null)
+    {
+        $query = self::whereBetween('timestamp', [$startDate, $endDate]);
+
+        if ($location) {
+            $query->where('location', $location);
+        }
+
+        return $query->sum('energy');
+    }
+
+    /**
+     * Get power usage statistics
+     */
+    public static function getPowerStats($location = null)
+    {
+        $query = self::query();
+
+        if ($location) {
+            $query->where('location', $location);
+        }
+
+        return [
+            'max_power' => $query->max('power'),
+            'min_power' => $query->min('power'),
+            'avg_power' => $query->avg('power'),
+            'total_energy' => $query->sum('energy'),
+            'last_reading' => $query->latest('timestamp')->first()
+        ];
+    }
 }

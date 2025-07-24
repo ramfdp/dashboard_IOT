@@ -17,4 +17,16 @@ function updateSimulasiData() {
 
 updateSimulasiData();
 
-setInterval(updateSimulasiData, 60000);
+let simulationInterval = setInterval(updateSimulasiData, 120000);
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        clearInterval(simulationInterval);
+    } else {
+        simulationInterval = setInterval(updateSimulasiData, 120000);
+    }
+});
+
+window.addEventListener('beforeunload', () => {
+    clearInterval(simulationInterval);
+});

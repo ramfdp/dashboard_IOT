@@ -1,4 +1,6 @@
-// Firebase configuration - Replace with your config
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getDatabase, ref, set, onValue, get, remove } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
 const firebaseConfig = {
     apiKey: "AIzaSyDi-2L7pOKJH1gOAJnSvhMfLUINRPTX7Yg",
     authDomain: "smart-building-3e5c1.firebaseapp.com",
@@ -9,10 +11,6 @@ const firebaseConfig = {
     appId: "1:693247019169:web:xxxxxx"
 };
 
-// Initialize Firebase
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, get, remove, onValue } from 'firebase/database';
-
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
@@ -20,6 +18,9 @@ class ScheduleManager {
     constructor() {
         this.schedules = [];
         this.deviceStates = {};
+        this.scheduleInterval = null;
+        this.lastScheduleCheck = null;
+        this.debounceTimeout = null;
         this.init();
     }
 
@@ -30,88 +31,128 @@ class ScheduleManager {
         this.bindEvents();
     }
 
-    // Load schedules from Firebase
     async loadSchedules() {
         try {
             const schedulesRef = ref(database, 'schedules');
             const snapshot = await get(schedulesRef);
-            
+
             if (snapshot.exists()) {
-                this.schedules = Object.values(snapshot.val());
-                console.log('Schedules loaded:', this.schedules);
+                const newSchedules = Object.values(snapshot.val());
+                if (JSON.stringify(this.schedules) !== JSON.stringify(newSchedules)) {
+                    this.schedules = newSchedules;
+                    console.log('Schedules updated:', this.schedules);
+                }
             }
         } catch (error) {
             console.error('Error loading schedules:', error);
         }
     }
 
-    // Listen to real-time device state changes
     listenToDeviceChanges() {
         const devicesRef = ref(database, 'devices');
-        
+
         onValue(devicesRef, (snapshot) => {
             if (snapshot.exists()) {
-                this.deviceStates = snapshot.val();
-                this.updateDeviceUI();
-                console.log('Device states updated:', this.deviceStates);
-            }
-        });
-    }
+                const newDeviceStates = snapshot.val();
+                const hasChanged = JSON.stringify(this.deviceStates) !== JSON.stringify(newDeviceStates);
 
-    // Update device UI based on current states
-    updateDeviceUI() {
-        Object.keys(this.deviceStates).forEach(deviceType => {
-            const device = this.deviceStates[deviceType];
-            const statusElement = document.querySelector(`[data-device="${deviceType}"] .device-status`);
-            
-            if (statusElement) {
-                statusElement.textContent = device.status === 'on' ? 'Aktif' : 'Nonaktif';
-                statusElement.className = `device-status badge ${device.status === 'on' ? 'bg-success' : 'bg-secondary'}`;
-            }
-        });
-    }
-
-    // Start the schedule checker (runs every minute)
-    startScheduleChecker() {
-        // Check immediately
-        this.checkSchedules();
-        
-        // Then check every minute
-        setInterval(() => {
-            this.checkSchedules();
-        }, 60000); // 60 seconds
-    }
-
-    // Check and execute schedules
-    checkSchedules() {
-        const now = new Date();
-        const currentDay = this.getCurrentDay();
-        const currentTime = this.getCurrentTime();
-
-        console.log(`Checking schedules for ${currentDay} at ${currentTime}`);
-
-        this.schedules.forEach(schedule => {
-            if (schedule.is_active && schedule.day_of_week === currentDay) {
-                const startTime = schedule.start_time;
-                const endTime = schedule.end_time;
-
-                if (this.isTimeInRange(currentTime, startTime, endTime)) {
-                    console.log(`Executing schedule: ${schedule.name} - turning ON ${schedule.device_type}`);
-                    this.controlDevice(schedule.device_type, 'on', 'schedule');
-                } else if (this.wasRecentlyActive(currentTime, endTime)) {
-                    console.log(`Schedule ended: ${schedule.name} - turning OFF ${schedule.device_type}`);
-                    this.controlDevice(schedule.device_type, 'off', 'schedule');
+                if (hasChanged) {
+                    this.deviceStates = newDeviceStates;
+                    this.debounceUpdateUI();
+                    console.log('Device states updated:', this.deviceStates);
                 }
             }
         });
     }
 
-    // Control device through Firebase
+    debounceUpdateUI() {
+        if (this.debounceTimeout) {
+            clearTimeout(this.debounceTimeout);
+        }
+
+        this.debounceTimeout = setTimeout(() => {
+            this.updateDeviceUI();
+        }, 100);
+    }
+
+    updateDeviceUI() {
+        Object.keys(this.deviceStates).forEach(deviceType => {
+            const device = this.deviceStates[deviceType];
+            const statusElement = document.querySelector(`[data-device="${deviceType}"] .device-status`);
+
+            if (statusElement) {
+                const newText = device.status === 1 ? 'Aktif' : 'Nonaktif';
+                const newClass = `device-status badge ${device.status === 1 ? 'bg-success' : 'bg-secondary'}`;
+
+                if (statusElement.textContent !== newText) {
+                    statusElement.textContent = newText;
+                }
+                if (statusElement.className !== newClass) {
+                    statusElement.className = newClass;
+                }
+            }
+        });
+    }
+
+    startScheduleChecker() {
+        this.checkSchedules();
+
+        this.scheduleInterval = setInterval(() => {
+            this.checkSchedules();
+        }, 60000);
+    }
+
+    stopScheduleChecker() {
+        if (this.scheduleInterval) {
+            clearInterval(this.scheduleInterval);
+            this.scheduleInterval = null;
+        }
+    }
+
+    checkSchedules() {
+        const now = new Date();
+        const currentTimeString = now.toISOString();
+
+        if (this.lastScheduleCheck === currentTimeString) {
+            return;
+        }
+        this.lastScheduleCheck = currentTimeString;
+
+        const currentDay = this.getCurrentDay();
+        const currentTime = this.getCurrentTime();
+
+        console.log(`Checking schedules for ${currentDay} at ${currentTime}`);
+
+        const desiredStates = {
+            relay1: 0,
+            relay2: 0
+        };
+
+        this.schedules.forEach(schedule => {
+            if (!schedule.is_active || schedule.day_of_week !== currentDay) return;
+
+            const start = schedule.start_time;
+            const end = schedule.end_time;
+
+            if (this.isTimeInRange(currentTime, start, end)) {
+                desiredStates[schedule.device_type] = 1;
+            }
+        });
+
+        Object.entries(desiredStates).forEach(([deviceType, desiredStatus]) => {
+            const currentStatus = this.deviceStates[deviceType]?.status;
+            if (currentStatus !== desiredStatus) {
+                console.log(`Updating ${deviceType}: ${currentStatus} → ${desiredStatus}`);
+                this.controlDevice(deviceType, desiredStatus, 'schedule');
+            }
+        });
+    }
+
     async controlDevice(deviceType, action, source = 'manual') {
         try {
             const deviceRef = ref(database, `devices/${deviceType}`);
             const deviceData = {
-                status: action,
+                status: parseInt(action),
                 timestamp: new Date().toISOString(),
                 source: source
             };
@@ -119,11 +160,10 @@ class ScheduleManager {
             await set(deviceRef, deviceData);
             console.log(`Device ${deviceType} turned ${action} by ${source}`);
 
-            // Update local state
             if (!this.deviceStates[deviceType]) {
                 this.deviceStates[deviceType] = {};
             }
-            this.deviceStates[deviceType].status = action;
+            this.deviceStates[deviceType].status = parseInt(action);
             this.deviceStates[deviceType].timestamp = deviceData.timestamp;
             this.deviceStates[deviceType].source = source;
 
@@ -132,7 +172,6 @@ class ScheduleManager {
         }
     }
 
-    // Sync schedule to Firebase
     async syncScheduleToFirebase(scheduleData) {
         try {
             const scheduleRef = ref(database, `schedules/${scheduleData.id}`);
@@ -144,7 +183,6 @@ class ScheduleManager {
         }
     }
 
-    // Remove schedule from Firebase
     async removeScheduleFromFirebase(scheduleId) {
         try {
             const scheduleRef = ref(database, `schedules/${scheduleId}`);
@@ -156,7 +194,6 @@ class ScheduleManager {
         }
     }
 
-    // Helper functions
     getCurrentDay() {
         const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
         return days[new Date().getDay()];
@@ -164,7 +201,7 @@ class ScheduleManager {
 
     getCurrentTime() {
         const now = new Date();
-        return now.toTimeString().slice(0, 5); // HH:MM format
+        return now.toTimeString().slice(0, 5);
     }
 
     isTimeInRange(currentTime, startTime, endTime) {
@@ -172,10 +209,9 @@ class ScheduleManager {
     }
 
     wasRecentlyActive(currentTime, endTime) {
-        // Check if the schedule just ended (within the last minute)
         const current = this.timeToMinutes(currentTime);
         const end = this.timeToMinutes(endTime);
-        return current === end + 1 || (end === 1439 && current === 0); // Handle midnight rollover
+        return current === end + 1 || (end === 1439 && current === 0);
     }
 
     timeToMinutes(timeString) {
@@ -183,55 +219,55 @@ class ScheduleManager {
         return hours * 60 + minutes;
     }
 
-    // Bind UI events
     bindEvents() {
-        // Manual device control buttons
+        const handleDeviceControl = async (e) => {
+            const deviceType = e.target.dataset.deviceControl;
+            const action = e.target.dataset.action;
+
+            await this.controlDevice(deviceType, action, 'manual');
+            this.updateControlButtons(deviceType, action);
+        };
+
+        const handleScheduleSubmit = async (e) => {
+            e.preventDefault();
+            await this.handleScheduleSubmit(e.target);
+        };
+
+        const handleScheduleToggle = async (e) => {
+            e.preventDefault();
+            await this.handleScheduleToggle(e.target);
+        };
+
+        const handleScheduleDelete = async (e) => {
+            e.preventDefault();
+            if (confirm('Hapus jadwal ini?')) {
+                await this.handleScheduleDelete(e.target);
+            }
+        };
+
         document.querySelectorAll('[data-device-control]').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const deviceType = e.target.dataset.deviceControl;
-                const action = e.target.dataset.action;
-                
-                await this.controlDevice(deviceType, action, 'manual');
-                
-                // Update button states
-                this.updateControlButtons(deviceType, action);
-            });
+            button.addEventListener('click', handleDeviceControl, { passive: false });
         });
 
-        // Schedule form submission
         const scheduleForm = document.querySelector('form[action*="schedule.store"]');
         if (scheduleForm) {
-            scheduleForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await this.handleScheduleSubmit(e.target);
-            });
+            scheduleForm.addEventListener('submit', handleScheduleSubmit, { passive: false });
         }
 
-        // Schedule toggle buttons
         document.querySelectorAll('form[action*="schedule.toggle"]').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                await this.handleScheduleToggle(e.target);
-            });
+            form.addEventListener('submit', handleScheduleToggle, { passive: false });
         });
 
-        // Schedule delete buttons
         document.querySelectorAll('form[action*="schedule.destroy"]').forEach(form => {
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (confirm('Hapus jadwal ini?')) {
-                    await this.handleScheduleDelete(e.target);
-                }
-            });
+            form.addEventListener('submit', handleScheduleDelete, { passive: false });
         });
     }
 
-    // Handle schedule form submission
     async handleScheduleSubmit(form) {
         try {
             const formData = new FormData(form);
             const scheduleData = {
-                id: Date.now(), // Temporary ID, will be replaced by server
+                id: Date.now(),
                 name: formData.get('name'),
                 device_type: formData.get('device_type'),
                 day_of_week: formData.get('day_of_week'),
@@ -242,13 +278,11 @@ class ScheduleManager {
                 updated_at: new Date().toISOString()
             };
 
-            // Validate times
             if (scheduleData.start_time >= scheduleData.end_time) {
                 alert('Jam selesai harus lebih besar dari jam mulai!');
                 return;
             }
 
-            // Submit to server and sync to Firebase
             const response = await fetch(form.action, {
                 method: 'POST',
                 body: formData,
@@ -258,7 +292,6 @@ class ScheduleManager {
             });
 
             if (response.ok) {
-                // Reload schedules
                 await this.loadSchedules();
                 form.reset();
                 this.showMessage('Jadwal berhasil ditambahkan!', 'success');
@@ -272,7 +305,6 @@ class ScheduleManager {
         }
     }
 
-    // Handle schedule toggle
     async handleScheduleToggle(form) {
         try {
             const response = await fetch(form.action, {
@@ -296,7 +328,6 @@ class ScheduleManager {
         }
     }
 
-    // Handle schedule deletion
     async handleScheduleDelete(form) {
         try {
             const response = await fetch(form.action, {
@@ -320,13 +351,12 @@ class ScheduleManager {
         }
     }
 
-    // Update control button states
     updateControlButtons(deviceType, action) {
-        const onButton = document.querySelector(`[data-device-control="${deviceType}"][data-action="on"]`);
-        const offButton = document.querySelector(`[data-device-control="${deviceType}"][data-action="off"]`);
+        const onButton = document.querySelector(`[data-device-control="${deviceType}"][data-action="1"]`);
+        const offButton = document.querySelector(`[data-device-control="${deviceType}"][data-action="0"]`);
 
         if (onButton && offButton) {
-            if (action === 'on') {
+            if (parseInt(action) === 1) {
                 onButton.classList.add('btn-success');
                 onButton.classList.remove('btn-outline-success');
                 offButton.classList.add('btn-outline-danger');
@@ -340,7 +370,6 @@ class ScheduleManager {
         }
     }
 
-    // Show user messages
     showMessage(message, type) {
         const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
         const alertHtml = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
@@ -351,8 +380,7 @@ class ScheduleManager {
         const container = document.querySelector('.card');
         if (container) {
             container.insertAdjacentHTML('afterbegin', alertHtml);
-            
-            // Auto-hide after 5 seconds
+
             setTimeout(() => {
                 const alert = container.querySelector('.alert');
                 if (alert) {
@@ -361,12 +389,30 @@ class ScheduleManager {
             }, 5000);
         }
     }
+
+    cleanup() {
+        this.stopScheduleChecker();
+        if (this.debounceTimeout) {
+            clearTimeout(this.debounceTimeout);
+            this.debounceTimeout = null;
+        }
+        this.schedules = [];
+        this.deviceStates = {};
+        console.log('ScheduleManager cleaned up');
+    }
 }
 
-// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.scheduleManager) {
+        window.scheduleManager.cleanup();
+    }
     window.scheduleManager = new ScheduleManager();
 });
 
-// Export for use in other modules
+window.addEventListener('beforeunload', () => {
+    if (window.scheduleManager) {
+        window.scheduleManager.cleanup();
+    }
+});
+
 export default ScheduleManager;

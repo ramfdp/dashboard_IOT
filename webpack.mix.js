@@ -24,8 +24,8 @@ mix.copy('node_modules/@fortawesome/fontawesome-free/webfonts/', 'public/assets/
 
 // core css
 var theme = 'default';
-mix.sass('resources/scss/'+ theme +'/styles.scss', 'public/assets/css/app.min.css');
-mix.copy('resources/scss/'+ theme +'/images/', 'public/assets/css/images/');
+mix.sass('resources/scss/' + theme + '/styles.scss', 'public/assets/css/app.min.css');
+mix.copy('resources/scss/' + theme + '/images/', 'public/assets/css/images/');
 
 
 // vendor js
@@ -48,7 +48,7 @@ mix.combine([
 // demo js
 mix.copy(['resources/js/demo/'], 'public/assets/js/demo/');
 
-  	
+
 // plugins
 mix.copy('node_modules/@fortawesome', 'public/assets/plugins/@fortawesome');
 mix.copy('node_modules/@fullcalendar', 'public/assets/plugins/@fullcalendar');
@@ -142,3 +142,34 @@ mix.copy('node_modules/swiper', 'public/assets/plugins/swiper');
 mix.copy('node_modules/switchery', 'public/assets/plugins/switchery');
 mix.copy('node_modules/tag-it', 'public/assets/plugins/tag-it');
 mix.copy('node_modules/x-editable-bs4', 'public/assets/plugins/x-editable-bs4');
+
+// Performance optimization: Minify custom JS files
+mix.scripts([
+	'public/assets/js/LightSchedule.js',
+	'public/assets/js/performance-optimizer.js'
+], 'public/assets/js/app-optimized.min.js');
+
+// Minify monitoring scripts
+mix.scripts([
+	'public/assets/js/fetch-api-monitoring.js',
+	'public/assets/js/overtime-control-fetch.js',
+	'public/assets/js/random-gen-moni.js',
+	'public/assets/js/CCTV-logic.js'
+], 'public/assets/js/monitoring-optimized.min.js');
+
+// Production optimizations
+if (mix.inProduction()) {
+	mix.version();
+}
+
+mix.options({
+	processCssUrls: false,
+	terser: {
+		terserOptions: {
+			compress: {
+				drop_console: true,
+				drop_debugger: true
+			}
+		}
+	}
+});

@@ -233,11 +233,11 @@
         </div>
     </div>
 
-    <!-- BEGIN Light Alarm/Schedule Section -->
+    <!-- Jadwal Lampu -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card shadow-sm rounded p-4">
-                <h4 class="mb-3">Jadwal Alarm Lampu Kantor</h4>
+                <h4 class="mb-3">scheduler Lampu Kantor</h4>
                 @if(session()->has('success_schedule'))
                     <div class="alert alert-success">{{ session('success_schedule') }}</div>
                 @endif
@@ -280,6 +280,7 @@
                         </div>
                     </div>
                 </form>
+
                 <div class="table-responsive">
                     <table class="table table-bordered table-sm">
                         <thead>
@@ -331,8 +332,6 @@
             </div>
         </div>
     </div>
-    
-    <!-- END Light Alarm/Schedule Section -->
 
     <form action="{{ route('dashboard.update') }}" method="POST">
         @csrf

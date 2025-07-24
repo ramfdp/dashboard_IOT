@@ -400,8 +400,23 @@ const resetToAutoMode = () => {
         console.log('Overtime control system initialized');
     }, 1500);
 
-    setInterval(updateLemburStatusDanRelay, 10000);
-    setInterval(showModeStatus, 2000);
+    let overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 15000);
+    let statusInterval = setInterval(showModeStatus, 5000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(overtimeUpdateInterval);
+            clearInterval(statusInterval);
+        } else {
+            overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 15000);
+            statusInterval = setInterval(showModeStatus, 5000);
+        }
+    });
+
+    window.addEventListener('beforeunload', () => {
+        clearInterval(overtimeUpdateInterval);
+        clearInterval(statusInterval);
+    });
 });
 
 // Export functions to global scope

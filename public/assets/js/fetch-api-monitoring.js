@@ -29,5 +29,32 @@ function fetchPZEMAndRelayData() {
 // Jalankan pertama kali
 fetchPZEMAndRelayData();
 
-// Update setiap 1 detik
-setInterval(fetchPZEMAndRelayData, 1000);
+let monitoringInterval = null;
+let isMonitoringActive = false;
+
+function startMonitoring() {
+    if (!isMonitoringActive) {
+        isMonitoringActive = true;
+        monitoringInterval = setInterval(fetchPZEMAndRelayData, 5000);
+    }
+}
+
+function stopMonitoring() {
+    if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+        monitoringInterval = null;
+        isMonitoringActive = false;
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopMonitoring();
+    } else {
+        startMonitoring();
+    }
+});
+
+window.addEventListener('beforeunload', stopMonitoring);
+
+startMonitoring();

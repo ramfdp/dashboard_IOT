@@ -49,29 +49,21 @@
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
     });
 
+    Route::prefix('karyawan')->name('karyawan.')->group(function () {
+        Route::get('/', [KaryawanController::class, 'index'])->name('index');
+        Route::get('/data', [KaryawanController::class, 'getData'])->name('getData');
+        Route::post('/store', [KaryawanController::class, 'store'])->name('store');
+        Route::delete('/{id}', [KaryawanController::class, 'destroy'])->name('destroy');
+    });
+
     Route::get('/get-karyawan-by-division/{divisionId}', [DashboardController::class, 'getKaryawanByDivision']);
     Route::get('/get-karyawan/{division_id}', [KaryawanController::class, 'getKaryawanByDivisi']);
-    Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
-    Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
-
-    Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
-    Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
-    Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
-    Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
-    Route::post('/karyawan/store', [KaryawanController::class, 'store'])->name('karyawan.store');
-    Route::delete('/karyawan/{id}', [KaryawanController::class, 'destroy'])->name('karyawan.destroy');
-
     Route::get('/sensor/summary', [SensorController::class, 'summary']);
 
-    Route::get('/karyawan', [KaryawanController::class, 'index'])->name('karyawan.index');
-    Route::get('/karyawan/data', [KaryawanController::class, 'getData']);
-    Route::get('/get-karyawan/{divisiId}', [KaryawanController::class, 'getKaryawanByDivisi']);
-    Route::get('/karyawan/data', [KaryawanController::class, 'getData'])->name('karyawan.getData');
-
-    //Relay dan Firebase Routes
-    Route::get('/relay', [RelayController::class, 'index']);
-    Route::post('/relay/update', [RelayController::class, 'update'])->name('relay.update');
-    Route::get('/dashboard', [RelayController::class, 'index']);
+    Route::prefix('relay')->name('relay.')->group(function () {
+        Route::get('/', [RelayController::class, 'index'])->name('index');
+        Route::post('/update', [RelayController::class, 'update'])->name('update');
+    });
 
     Route::prefix('cctv')->name('cctv.')->group(function () {
 
@@ -89,9 +81,12 @@
         Route::post('/test-connection', [CCTVController::class, 'testConnection'])->name('test.connection');
     });
 
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::resource('users', UserController::class);
-    Route::put('/users/{id}', [UserController::class, 'update'])->name('users.update');
+    Route::middleware(['auth', 'admin'])->prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::post('/', [UserController::class, 'store'])->name('store');
+        Route::put('/{id}', [UserController::class, 'update'])->name('update');
+        Route::resource('/', UserController::class)->except(['index', 'store', 'update']);
+    });
     Route::get('/form/elements', 'MainController@formElements')->name('form-elements');
     Route::get('/form/plugins', 'MainController@formPlugins')->name('form-plugins');
     Route::get('/form/slider-switcher', 'MainController@formSliderSwitcher')->name('form-slider-switcher');
@@ -128,16 +123,17 @@
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/listrik/detail/{id}', [ListrikController::class, 'detail'])->name('listrik.detail');
 
-    Route::get('/overtime', [OvertimeController::class, 'index'])->name('overtime.index');
-    Route::get('/overtime/create', [OvertimeController::class, 'create'])->name('overtime.create');
-    Route::post('/overtime', [OvertimeController::class, 'store'])->name('overtime.store');
-    Route::delete('/overtime/{id}', [OvertimeController::class, 'destroy'])->name('overtime.destroy');
-    Route::get('/overtime/status-check', [OvertimeController::class, 'updateOvertimeStatusesAjax'])->name('overtime.status-check');
-    Route::get('/overtime/{id}/edit', [OvertimeController::class, 'edit'])->name('overtime.edit');
-    Route::put('/overtime/{id}/update', [OvertimeController::class, 'update'])->name('overtime.update');
-    Route::delete('/overtime/{id}/delete', [OvertimeController::class, 'destroy'])->name('overtime.destroy');
-    Route::post('/overtime/{id}/cutoff', [OvertimeController::class, 'cutoff'])->name('overtime.cutoff');
-    Route::post('/overtime/{id}/start', [OvertimeController::class, 'start'])->name('overtime.start');
+    Route::prefix('overtime')->name('overtime.')->group(function () {
+        Route::get('/', [OvertimeController::class, 'index'])->name('index');
+        Route::get('/create', [OvertimeController::class, 'create'])->name('create');
+        Route::post('/', [OvertimeController::class, 'store'])->name('store');
+        Route::get('/status-check', [OvertimeController::class, 'updateOvertimeStatusesAjax'])->name('status-check');
+        Route::get('/{id}/edit', [OvertimeController::class, 'edit'])->name('edit');
+        Route::put('/{id}/update', [OvertimeController::class, 'update'])->name('update');
+        Route::delete('/{id}', [OvertimeController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/cutoff', [OvertimeController::class, 'cutoff'])->name('cutoff');
+        Route::post('/{id}/start', [OvertimeController::class, 'start'])->name('start');
+    });
     Route::post('/dashboard/auto', [DashboardController::class, 'setAuto'])->name('dashboard.auto');
 
     Route::post('/listrik', [ListrikController::class, 'store']);
@@ -159,7 +155,7 @@
     });
 
     // Schedule management routes
-    Route::prefix('dashboard-v1/schedule')->name('dashboard.schedule.')->group(function () {
+    Route::prefix('dashboard-v1/schedule')->name('dashboard.schedule.v1.')->group(function () {
         Route::post('/', [DashboardController::class, 'storeSchedule'])->name('store');
         Route::patch('/{schedule}/toggle', [DashboardController::class, 'toggleSchedule'])->name('toggle');
         Route::delete('/{schedule}', [DashboardController::class, 'destroySchedule'])->name('destroy');

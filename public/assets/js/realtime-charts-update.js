@@ -8,6 +8,10 @@ let usageValues = {
     CM1: 0
 };
 
+let lastUpdateTime = 0;
+let updateInterval = null;
+let isUpdating = false;
+
 function updateTotalUsage() {
     let totalUsage = usageValues.CM2 + usageValues.CM3 + usageValues.Sport + usageValues.CM1;
     let lampuUsage = totalUsage * 0.5;

@@ -2,23 +2,46 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+use Spatie\Permission\Models\Role as SpatieRole;
 
-class Role extends Model
+class Role extends SpatieRole
 {
-    use HasFactory;
-
+    /**
+     * Additional fillable attributes
+     */
     protected $fillable = [
-        'name', 
-        'description'
+        'name',
+        'guard_name',
+        'description',
+        'status'
+    ];
+
+    protected $attributes = [
+        'status' => 'active',
+        'guard_name' => 'web'
     ];
 
     /**
-     * Relasi: Role dimiliki oleh banyak User
+     * Scope for active roles
      */
-    public function users()
+    public function scopeActive($query)
     {
-        return $this->hasMany(User::class);
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Check if role is active
+     */
+    public function isActive()
+    {
+        return $this->status === 'active';
+    }
+
+    /**
+     * Get users count for this role
+     */
+    public function getUsersCountAttribute()
+    {
+        return $this->getUsers()->count();
     }
 }

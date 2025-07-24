@@ -5,107 +5,178 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
+use Spatie\Permission\Models\Role as SpatieRole;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
-    
-    // Alias assignRole dari trait agar bisa dioverride
-    use HasRoles {
-        HasRoles::assignRole as traitAssignRole;
-    }
+    use HasFactory, Notifiable, HasRoles;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'username',
+        'phone',
+        'address',
+        'department_id',
         'role_id',
+        'status',
+        'last_login_at',
+        'email_verified_at'
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-    ];
-
     /**
-     * Relasi dengan tabel roles
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
      */
-    public function role()
+    protected function casts(): array
     {
-        return $this->belongsTo(\Spatie\Permission\Models\Role::class, 'role_id');
+        return [
+            'email_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
 
     /**
-     * Boot function untuk sinkronisasi role_id saat role diubah
+     * Default values for attributes
+     *
+     * @var array
      */
-    protected static function boot()
-    {
-        parent::boot();
+    protected $attributes = [
+        'status' => 'active',
+    ];
 
-        static::updated(function ($user) {
-            $roleName = $user->getRoleNames()->first();
-            if ($roleName) {
-                $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
-                if ($role && $user->role_id != $role->id) {
-                    $user->role_id = $role->id;
-                    $user->saveQuietly(); // Cegah infinite loop
-                }
-            }
+    /**
+     * Relationship with Department
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Relationship with Role
+     */
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    /**
+     * Relationship with Overtime records
+     */
+    public function overtimes()
+    {
+        return $this->hasMany(Overtime::class, 'employee_id');
+    }
+
+    /**
+     * Scope for active users
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope for inactive users
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('status', 'inactive');
+    }
+
+    /**
+     * Get full name attribute
+     */
+    public function getFullNameAttribute()
+    {
+        return $this->name;
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin()
+    {
+        return $this->hasRole('admin') || $this->role?->name === 'admin';
+    }
+
+    /**
+     * Check if user is active
+     */
+    public function isActive()
+    {
+        return $this->status === 'active';
+    }
+
+    /**
+     * Update last login timestamp
+     */
+    public function updateLastLogin()
+    {
+        $this->update(['last_login_at' => now()]);
+    }
+
+    /**
+     * Get user's department name
+     */
+    public function getDepartmentNameAttribute()
+    {
+        return $this->department?->name ?? 'No Department';
+    }
+
+    /**
+     * Get user's role name
+     */
+    public function getRoleNameAttribute()
+    {
+        return $this->role?->name ?? 'No Role';
+    }
+
+    /**
+     * Search users by name, email, or username
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%");
         });
     }
 
     /**
-     * Override method assignRole agar juga mengupdate role_id
+     * Get users by role
      */
-    public function assignRole(...$roles)
+    public function scopeByRole($query, $roleId)
     {
-        // Panggil method asli dari trait
-        $result = $this->traitAssignRole(...$roles);
-
-        // Update role_id sesuai role yang diassign
-        $roleName = $this->getRoleNames()->first();
-        if ($roleName) {
-            $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
-            if ($role && $this->role_id != $role->id) {
-                $this->role_id = $role->id;
-                $this->saveQuietly();
-            }
-        }
-
-        return $result;
+        return $query->where('role_id', $roleId);
     }
 
     /**
-     * Custom method untuk mendapatkan nama role efektif
+     * Get users by department
      */
-    public function getEffectiveRoleName()
+    public function scopeByDepartment($query, $departmentId)
     {
-        $spatieRole = $this->getRoleNames()->first();
-        if ($spatieRole) {
-            return $spatieRole;
-        }
-
-        if ($this->role) {
-            return $this->role->name;
-        }
-
-        return 'No Role';
-    }
-
-    public function isAdmin()
-    {
-        return $this->hasRole('admin');
-    }
-
-    public function isUser()
-    {
-        return $this->hasRole('user');
+        return $query->where('department_id', $departmentId);
     }
 }
