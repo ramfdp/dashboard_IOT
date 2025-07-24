@@ -14,35 +14,22 @@ class LightSchedule extends Model
 
     protected $fillable = [
         'name',
+        'device_type',
+        'day_of_week',
         'start_time',
         'end_time',
-        'days',
-        'device_id',
-        'is_active',
-        'location',
-        'description',
-        'created_by'
+        'is_active'
     ];
 
     protected $casts = [
-        'days' => 'array',
         'is_active' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
 
     protected $attributes = [
-        'is_active' => true,
-        'days' => '[]'
+        'is_active' => true
     ];
-
-    /**
-     * Relationship with User (created by)
-     */
-    public function creator()
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
 
     /**
      * Scope for active schedules
@@ -61,19 +48,19 @@ class LightSchedule extends Model
     }
 
     /**
-     * Scope by device
+     * Scope by device type
      */
-    public function scopeByDevice($query, $deviceId)
+    public function scopeByDeviceType($query, $deviceType)
     {
-        return $query->where('device_id', $deviceId);
+        return $query->where('device_type', $deviceType);
     }
 
     /**
-     * Scope by location
+     * Scope by day of week
      */
-    public function scopeByLocation($query, $location)
+    public function scopeByDayOfWeek($query, $dayOfWeek)
     {
-        return $query->where('location', $location);
+        return $query->where('day_of_week', $dayOfWeek);
     }
 
     /**
@@ -86,10 +73,10 @@ class LightSchedule extends Model
         }
 
         $now = Carbon::now();
-        $currentDay = $now->dayOfWeek; // 0 = Sunday, 1 = Monday, etc.
+        $currentDayName = strtolower($now->englishDayOfWeek); // monday, tuesday, etc.
 
-        // Check if today is in the scheduled days
-        if (!empty($this->days) && !in_array($currentDay, $this->days)) {
+        // Check if today matches the scheduled day
+        if ($this->day_of_week !== $currentDayName) {
             return false;
         }
 
@@ -114,39 +101,24 @@ class LightSchedule extends Model
         }
 
         $now = Carbon::now();
-        $currentDay = $now->dayOfWeek;
+        $currentDayName = strtolower($now->englishDayOfWeek);
 
-        // If schedule has specific days
-        if (!empty($this->days)) {
-            $nextDay = null;
-
-            // Find next scheduled day
-            for ($i = 0; $i < 7; $i++) {
-                $checkDay = ($currentDay + $i) % 7;
-                if (in_array($checkDay, $this->days)) {
-                    $nextDay = $checkDay;
-                    break;
-                }
-            }
-
-            if ($nextDay !== null) {
-                $daysToAdd = ($nextDay - $currentDay + 7) % 7;
-                if ($daysToAdd === 0 && $now->format('H:i:s') >= $this->start_time) {
-                    $daysToAdd = 7; // Next week
-                }
-
-                return $now->addDays($daysToAdd)->setTimeFromTimeString($this->start_time);
-            }
+        // If this is the scheduled day and time hasn't passed yet
+        if ($this->day_of_week === $currentDayName && $now->format('H:i:s') < $this->start_time) {
+            return $now->copy()->setTimeFromTimeString($this->start_time);
         }
 
-        // Daily schedule
-        $nextActivation = $now->copy()->setTimeFromTimeString($this->start_time);
+        // Find next occurrence of the scheduled day
+        $daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+        $currentDayIndex = array_search($currentDayName, $daysOfWeek);
+        $scheduleDayIndex = array_search($this->day_of_week, $daysOfWeek);
 
-        if ($nextActivation <= $now) {
-            $nextActivation->addDay();
+        $daysToAdd = ($scheduleDayIndex - $currentDayIndex + 7) % 7;
+        if ($daysToAdd === 0) {
+            $daysToAdd = 7; // Next week
         }
 
-        return $nextActivation;
+        return $now->addDays($daysToAdd)->setTimeFromTimeString($this->start_time);
     }
 
     /**
@@ -207,5 +179,21 @@ class LightSchedule extends Model
                         ->where('end_time', '>=', $endTime);
                 });
         });
+    }
+
+    /**
+     * Get human readable day name
+     */
+    public function getDayNameAttribute()
+    {
+        return ucfirst($this->day_of_week);
+    }
+
+    /**
+     * Get device name
+     */
+    public function getDeviceNameAttribute()
+    {
+        return $this->device_type === 'relay1' ? 'Lampu ITMS 1' : 'Lampu ITMS 2';
     }
 }
