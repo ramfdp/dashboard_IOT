@@ -253,7 +253,7 @@ const cancelEdit = () => {
 const deleteOvertime = async id => {
     if (!confirm('Apakah Anda yakin ingin menghapus data lembur ini?')) return;
     try {
-        const data = await apiRequest(`/overtime/${id}/delete`, { method: 'DELETE' });
+        const data = await apiRequest(`/overtime/${id}`, { method: 'DELETE' });
         alert(data.success ? 'Data lembur berhasil dihapus' : 'Gagal menghapus data lembur');
         if (data.success) updateLemburStatusDanRelay();
     } catch (err) {
