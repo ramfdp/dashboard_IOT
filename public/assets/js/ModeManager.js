@@ -29,10 +29,18 @@ class ModeManager {
             // Listen for auto mode activation
             if (e.target.action && e.target.action.includes('dashboard/auto-mode')) {
                 console.log('Auto mode form submitted');
-                // Don't prevent the form submission, just update UI immediately
+                // Immediately switch to auto mode and reset any manual timers
+                this.switchToAutoMode();
+
+                // Reset device manual mode
+                if (window.resetDeviceToAutoMode) {
+                    window.resetDeviceToAutoMode();
+                }
+
+                // Update display after form submission
                 setTimeout(() => {
-                    this.switchToAutoMode();
-                }, 500);
+                    this.checkCurrentMode();
+                }, 1000);
             }
         });
     }
@@ -72,11 +80,33 @@ class ModeManager {
     updateModeDisplay() {
         const modeStatus = document.getElementById('mode-status');
         if (modeStatus) {
+            // Check if device is manually controlled (higher priority)
+            const deviceStates = window.getDeviceStates?.() || {};
+            const sosActive = document.querySelector('input[name="sos"][type="checkbox"].device-switch')?.checked;
+
+            if (sosActive) {
+                modeStatus.innerHTML = '<i class="fa fa-exclamation-triangle"></i> Mode SOS Aktif - Semua Relay ON';
+                modeStatus.className = 'badge bg-danger rounded-pill shadow';
+                return;
+            }
+
+            if (deviceStates.manualMode && deviceStates.lastManualActivity) {
+                const remainingTime = (deviceStates.lastManualActivity + (10 * 60 * 1000)) - Date.now();
+                const remainingMinutes = Math.ceil(remainingTime / (1000 * 60));
+
+                if (remainingMinutes > 0) {
+                    modeStatus.innerHTML = `<i class="fa fa-hand-pointer"></i> Mode Manual Aktif (Auto dalam ${remainingMinutes} menit)`;
+                    modeStatus.className = 'badge bg-warning rounded-pill shadow';
+                    return;
+                }
+            }
+
+            // Default to current mode
             if (this.currentMode === 'manual') {
-                modeStatus.textContent = 'Mode Manual Aktif';
+                modeStatus.innerHTML = '<i class="fa fa-hand-pointer"></i> Mode Manual Aktif';
                 modeStatus.className = 'badge bg-warning rounded-pill shadow';
             } else {
-                modeStatus.textContent = 'Mode Otomatis Aktif';
+                modeStatus.innerHTML = '<i class="fa fa-robot"></i> Mode Otomatis Aktif';
                 modeStatus.className = 'badge bg-success rounded-pill shadow';
             }
         }
@@ -102,6 +132,9 @@ class ModeManager {
             })
             .catch(error => {
                 console.error('Error checking current mode:', error);
+                // Default to auto mode if check fails
+                this.currentMode = 'auto';
+                this.updateModeDisplay();
             });
     }
 

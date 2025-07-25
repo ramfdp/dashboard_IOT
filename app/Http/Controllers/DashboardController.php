@@ -106,11 +106,22 @@ class DashboardController extends Controller
 
     public function setAutoMode()
     {
-        $this->firebase->setAutoMode();
+        try {
+            // Set auto mode in Firebase (clear manual mode)
+            $this->firebase->setAutoMode();
 
-        Log::info("Device switched to automatic mode");
+            // Also clear any current relay manual states for clean transition
+            $this->firebase->setBatchRelayStates([
+                'manualMode' => false
+            ]);
 
-        return back()->with('success_device', 'Perangkat beralih ke mode otomatis.');
+            Log::info("Device switched to automatic mode - manual mode cleared");
+
+            return back()->with('success_device', 'Mode otomatis berhasil diaktifkan! Jadwal akan mengontrol perangkat secara otomatis.');
+        } catch (\Exception $e) {
+            Log::error('Failed to set auto mode: ' . $e->getMessage());
+            return back()->with('error_device', 'Gagal mengaktifkan mode otomatis: ' . $e->getMessage());
+        }
     }
 
     // Light schedule methods
@@ -203,11 +214,11 @@ class DashboardController extends Controller
             }
 
             // Control both relays together using batch update for better performance
+            // Don't override manual mode when in auto mode
             $relayState = $shouldLightsBeOn ? 1 : 0;
             $this->firebase->setBatchRelayStates([
                 'relay1' => $relayState,
-                'relay2' => $relayState,
-                'manual_mode' => false
+                'relay2' => $relayState
             ]);
 
             $activeDevices = $shouldLightsBeOn ? ['relay1', 'relay2'] : [];

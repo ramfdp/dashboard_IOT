@@ -21,20 +21,58 @@ let relay1State = null;
 let relay2State = null;
 let sosState = null;
 let manualModeTimer = null;
+let lastManualActivity = null;
+
+// Manual mode timeout (10 minutes)
+const MANUAL_MODE_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 // Function to reset device to auto mode
 function resetDeviceToAutoMode() {
     console.log('Resetting device to auto mode');
     deviceManualMode = false;
+    lastManualActivity = null;
 
     // Clear any existing timer
     if (manualModeTimer) {
         clearTimeout(manualModeTimer);
         manualModeTimer = null;
     }
+
+    // Update Firebase to clear manual mode
+    set(ref(db, "/relayControl/manualMode"), false);
+
+    // Notify other systems about the mode change
+    const event = new CustomEvent('modeChanged', {
+        detail: { mode: 'auto', timestamp: Date.now(), source: 'timeout' }
+    });
+    document.dispatchEvent(event);
+
+    console.log('Device returned to automatic mode');
 }
 
-// Initialize device controls after DOM and Livewire are ready
+// Function to start manual mode timeout
+function startManualModeTimeout() {
+    // Clear existing timeout
+    if (manualModeTimer) {
+        clearTimeout(manualModeTimer);
+    }
+
+    lastManualActivity = Date.now();
+
+    // Set timeout to reset to auto mode after inactivity
+    manualModeTimer = setTimeout(() => {
+        console.log('Manual mode timeout reached - returning to auto mode');
+        resetDeviceToAutoMode();
+    }, MANUAL_MODE_TIMEOUT);
+
+    console.log(`Manual mode timeout set for ${MANUAL_MODE_TIMEOUT / 1000 / 60} minutes`);
+
+    // Notify mode manager about manual mode activation
+    const event = new CustomEvent('modeChanged', {
+        detail: { mode: 'manual', timestamp: Date.now(), source: 'user_action' }
+    });
+    document.dispatchEvent(event);
+}// Initialize device controls after DOM and Livewire are ready
 function initializeDeviceControls() {
     console.log('Initializing device controls...');
 
@@ -44,7 +82,14 @@ function initializeDeviceControls() {
         listenToFirebaseDeviceChanges();
         syncInitialDeviceState();
         initializeDeviceIndicators();
-    }, 1500); // Reduced to 1.5 seconds
+
+        // Trigger initial mode check after everything is set up
+        setTimeout(() => {
+            if (window.modeManager) {
+                window.modeManager.checkCurrentMode();
+            }
+        }, 1000);
+    }, 2000); // Increased to 2 seconds to prevent race conditions
 }
 
 // Set up event listeners for device switches
@@ -65,12 +110,10 @@ function setupDeviceSwitchListeners() {
             const value = this.checked ? 1 : 0;
             console.log('ITMS 1 (Relay1) manually switched to:', value);
 
-            // Set manual mode and clear any auto-reset timer
+            // Set manual mode and start timeout
             deviceManualMode = true;
-            if (manualModeTimer) {
-                clearTimeout(manualModeTimer);
-                manualModeTimer = null;
-            }
+            set(ref(db, "/relayControl/manualMode"), true);
+            startManualModeTimeout();
 
             // Update Firebase
             set(ref(db, "/relayControl/relay1"), value).then(() => {
@@ -107,12 +150,10 @@ function setupDeviceSwitchListeners() {
             const value = this.checked ? 1 : 0;
             console.log('ITMS 2 (Relay2) manually switched to:', value);
 
-            // Set manual mode and clear any auto-reset timer
+            // Set manual mode and start timeout
             deviceManualMode = true;
-            if (manualModeTimer) {
-                clearTimeout(manualModeTimer);
-                manualModeTimer = null;
-            }
+            set(ref(db, "/relayControl/manualMode"), true);
+            startManualModeTimeout();
 
             // Update Firebase
             set(ref(db, "/relayControl/relay2"), value).then(() => {
@@ -149,12 +190,10 @@ function setupDeviceSwitchListeners() {
             const value = this.checked ? 1 : 0;
             console.log('SOS manually switched to:', value);
 
-            // Set manual mode and clear any auto-reset timer
+            // Set manual mode and start timeout
             deviceManualMode = true;
-            if (manualModeTimer) {
-                clearTimeout(manualModeTimer);
-                manualModeTimer = null;
-            }
+            set(ref(db, "/relayControl/manualMode"), true);
+            startManualModeTimeout();
 
             // Update Firebase SOS state
             set(ref(db, "/relayControl/sos"), value).then(() => {
@@ -202,12 +241,14 @@ function listenToFirebaseDeviceChanges() {
         console.log('Firebase Relay1 changed to:', value);
 
         const relay1Switch = document.querySelector('input[name="relay1"][type="checkbox"].device-switch');
-        if (relay1Switch && relay1Switch.checked !== (value === 1)) {
-            // Only update UI if this change is not from manual operation
-            // (Firebase changes from other sources like overtime system)
-            relay1Switch.checked = (value === 1);
-            relay1State = value;
-            updateDeviceIndicator(relay1Switch, value === 1 ? 'green' : 'grey');
+        if (relay1Switch) {
+            // Always sync Firebase state to UI to maintain consistency
+            if (relay1Switch.checked !== (value === 1)) {
+                relay1Switch.checked = (value === 1);
+                relay1State = value;
+                updateDeviceIndicator(relay1Switch, value === 1 ? 'green' : 'grey');
+                console.log('UI updated for Relay1:', value);
+            }
         }
     });
 
@@ -217,11 +258,14 @@ function listenToFirebaseDeviceChanges() {
         console.log('Firebase Relay2 changed to:', value);
 
         const relay2Switch = document.querySelector('input[name="relay2"][type="checkbox"].device-switch');
-        if (relay2Switch && relay2Switch.checked !== (value === 1)) {
-            // Only update UI if this change is not from manual operation
-            relay2Switch.checked = (value === 1);
-            relay2State = value;
-            updateDeviceIndicator(relay2Switch, value === 1 ? 'green' : 'grey');
+        if (relay2Switch) {
+            // Always sync Firebase state to UI to maintain consistency
+            if (relay2Switch.checked !== (value === 1)) {
+                relay2Switch.checked = (value === 1);
+                relay2State = value;
+                updateDeviceIndicator(relay2Switch, value === 1 ? 'green' : 'grey');
+                console.log('UI updated for Relay2:', value);
+            }
         }
     });
 
@@ -231,10 +275,25 @@ function listenToFirebaseDeviceChanges() {
         console.log('Firebase SOS changed to:', value);
 
         const sosSwitch = document.querySelector('input[name="sos"][type="checkbox"].device-switch');
-        if (sosSwitch && sosSwitch.checked !== (value === 1)) {
-            sosSwitch.checked = (value === 1);
-            sosState = value;
-            updateDeviceIndicator(sosSwitch, value === 1 ? 'red' : 'grey');
+        if (sosSwitch) {
+            if (sosSwitch.checked !== (value === 1)) {
+                sosSwitch.checked = (value === 1);
+                sosState = value;
+                updateDeviceIndicator(sosSwitch, value === 1 ? 'red' : 'grey');
+                console.log('UI updated for SOS:', value);
+            }
+        }
+    });
+
+    // Listen to manual mode changes to provide better logging
+    onValue(ref(db, "/relayControl/manualMode"), (snapshot) => {
+        const value = snapshot.val();
+        console.log('Firebase manualMode changed to:', value);
+
+        if (value === true) {
+            console.log('Device is now in MANUAL mode - automatic schedules suspended');
+        } else {
+            console.log('Device is now in AUTO mode - schedules will control relays');
         }
     });
 }
@@ -321,6 +380,11 @@ function initializeDeviceIndicators() {
 function manualDeviceControl(device, value) {
     console.log(`Manual control: ${device} = ${value}`);
 
+    // Set manual mode and start timeout
+    deviceManualMode = true;
+    set(ref(db, "/relayControl/manualMode"), true);
+    startManualModeTimeout();
+
     if (device === 'relay1') {
         set(ref(db, "/relayControl/relay1"), value);
         relay1State = value;
@@ -340,8 +404,6 @@ function manualDeviceControl(device, value) {
         relay1State = value;
         relay2State = value;
     }
-
-    deviceManualMode = true;
 }
 
 // Get current device states
@@ -350,9 +412,33 @@ function getDeviceStates() {
         relay1: relay1State,
         relay2: relay2State,
         sos: sosState,
-        manualMode: deviceManualMode
+        manualMode: deviceManualMode,
+        lastManualActivity: lastManualActivity,
+        manualModeTimeoutActive: manualModeTimer !== null
     };
 }
+
+// Function to show manual mode notification with countdown
+function showManualModeNotification() {
+    if (!deviceManualMode || !lastManualActivity) return;
+
+    const remainingTime = MANUAL_MODE_TIMEOUT - (Date.now() - lastManualActivity);
+    const remainingMinutes = Math.ceil(remainingTime / (1000 * 60));
+
+    if (remainingMinutes > 0) {
+        console.log(`Manual mode active - will return to auto mode in ${remainingMinutes} minutes`);
+
+        // Let ModeManager handle the display to avoid conflicts
+        if (window.modeManager) {
+            window.modeManager.updateModeDisplay();
+        }
+    }
+}// Update manual mode status every minute
+setInterval(() => {
+    if (deviceManualMode) {
+        showManualModeNotification();
+    }
+}, 60000); // Update every minute
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', initializeDeviceControls);
@@ -366,5 +452,7 @@ window.manualDeviceControl = manualDeviceControl;
 window.getDeviceStates = getDeviceStates;
 window.initializeDeviceControls = initializeDeviceControls;
 window.resetDeviceToAutoMode = resetDeviceToAutoMode;
+window.showManualModeNotification = showManualModeNotification;
+window.startManualModeTimeout = startManualModeTimeout;
 
 console.log('Device Firebase Control script loaded');

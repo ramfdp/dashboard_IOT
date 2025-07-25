@@ -15,7 +15,7 @@ class FirebaseService
         try {
             $factory = (new Factory)
                 ->withServiceAccount(storage_path('app/firebase/firebase_credentials.json'))
-                ->withDatabaseUri('https://iot-firebase-a83a5-default-rtdb.firebaseio.com');
+                ->withDatabaseUri('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app');
 
             $this->database = $factory->createDatabase();
         } catch (\Exception $e) {

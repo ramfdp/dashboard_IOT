@@ -306,7 +306,7 @@ class OvertimeControl extends Component
 
         // Immediately turn OFF relays when overtime is cut off
         try {
-            Http::timeout(3)->put('https://iot-firebase-a83a5-default-rtdb.firebaseio.com/relayControl.json', [
+            Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
                 'relay1' => 0,
                 'relay2' => 0,
                 'manualMode' => false
@@ -341,9 +341,10 @@ class OvertimeControl extends Component
     {
         // Reset relay to auto mode logic with faster timeout
         try {
-            Http::timeout(3)->put('https://iot-firebase-a83a5-default-rtdb.firebaseio.com/relay.json', [
-                'auto_mode' => true,
-                'manual_override' => false
+            Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
+                'relay1' => 0,
+                'relay2' => 0,
+                'manualMode' => false
             ]);
 
             session()->flash('success_overtime', 'Mode otomatis berhasil diaktifkan! Sistem lembur siap digunakan.');

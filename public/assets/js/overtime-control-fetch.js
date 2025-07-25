@@ -14,16 +14,17 @@ const db = getDatabase(initializeApp({
 let manualMode = false, relay1ManualState = null, relay2ManualState = null, editMode = false, editingId = null;
 
 const checkAutoMode = () => {
-    // Check if device is in manual mode by checking if any switches were manually operated
+    // Defer to device firebase control for manual mode state
     const deviceStates = window.getDeviceStates?.() || {};
-    const deviceManualMode = deviceStates.manualMode;
 
-    // If device is in manual mode, don't interfere with manual control
-    if (deviceManualMode) {
+    // If device is in manual mode, respect that state
+    if (deviceStates.manualMode) {
         manualMode = true;
+        console.log('Device is in manual mode - overtime system will not auto-control relays');
         return;
     }
 
+    // Check local overtime manual states
     const autoMode = relay1ManualState === 0 && relay2ManualState === 0;
     if (autoMode && manualMode) {
         manualMode = false;

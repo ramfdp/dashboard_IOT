@@ -84,7 +84,7 @@ class OvertimeController extends Controller
 
             // Immediately turn OFF relays when overtime is cut off
             try {
-                Http::timeout(3)->put('https://iot-firebase-a83a5-default-rtdb.firebaseio.com/relayControl.json', [
+                Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
                     'relay1' => 0,
                     'relay2' => 0,
                     'manualMode' => false
