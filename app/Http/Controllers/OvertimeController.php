@@ -31,12 +31,11 @@ class OvertimeController extends Controller
         $relayStatus = $this->getRelayStatusFromFirebase();
         $relay1 = $relayStatus['relay1'] ?? 0;
         $relay2 = $relayStatus['relay2'] ?? 0;
-        $sos    = $relayStatus['sos'] ?? 0;
 
         $users = User::with('roles')->get();
         $roles = Role::all();
 
-        return view('pages.dashboard-v1', compact('overtimes', 'dataKwh', 'relay1', 'relay2', 'sos', 'users', 'roles'));
+        return view('pages.dashboard-v1', compact('overtimes', 'dataKwh', 'relay1', 'relay2', 'users', 'roles'));
     }
 
     public function create()
@@ -419,7 +418,6 @@ class OvertimeController extends Controller
                 return [
                     'relay1' => $data['relay1'] ?? 0,
                     'relay2' => $data['relay2'] ?? 0,
-                    'sos'    => $data['sos'] ?? 0,
                 ];
             }
         } catch (\Exception $e) {
@@ -429,7 +427,6 @@ class OvertimeController extends Controller
         return [
             'relay1' => 0,
             'relay2' => 0,
-            'sos'    => 0,
         ];
     }
 }

@@ -60,12 +60,10 @@ class DashboardController extends Controller
         try {
             $relay1 = $this->firebase->getRelayState('relay1') ?? 0;
             $relay2 = $this->firebase->getRelayState('relay2') ?? 0;
-            $sos = $this->firebase->getRelayState('sos') ?? 0;
         } catch (\Exception $e) {
             // If Firebase fails, set default values
             $relay1 = 0;
             $relay2 = 0;
-            $sos = 0;
         }
 
 
@@ -79,8 +77,7 @@ class DashboardController extends Controller
             'dataKwh',
             'lightSchedules',
             'relay1',
-            'relay2',
-            'sos'
+            'relay2'
         ));
     }
 
@@ -88,18 +85,16 @@ class DashboardController extends Controller
     {
         $relay1 = $request->input('relay1', 0);
         $relay2 = $request->input('relay2', 0);
-        $sos    = $request->input('sos', 0);
 
         // Use batch update for better performance
         $this->firebase->setBatchRelayStates([
             'relay1' => $relay1,
             'relay2' => $relay2,
-            'sos' => $sos,
             'manualMode' => true
         ]);
 
         // Log manual control action
-        Log::info("Manual device control - relay1: {$relay1}, relay2: {$relay2}, sos: {$sos}");
+        Log::info("Manual device control - relay1: {$relay1}, relay2: {$relay2}");
 
         return back()->with('success_device', 'Perangkat diperbarui secara manual.');
     }
@@ -117,9 +112,29 @@ class DashboardController extends Controller
 
             Log::info("Device switched to automatic mode - manual mode cleared");
 
+            // Check if this is an AJAX request
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Mode otomatis berhasil diaktifkan! Jadwal akan mengontrol perangkat secara otomatis.',
+                    'mode' => 'auto',
+                    'timestamp' => now()->toISOString()
+                ]);
+            }
+
             return back()->with('success_device', 'Mode otomatis berhasil diaktifkan! Jadwal akan mengontrol perangkat secara otomatis.');
         } catch (\Exception $e) {
             Log::error('Failed to set auto mode: ' . $e->getMessage());
+
+            // Check if this is an AJAX request
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengaktifkan mode otomatis: ' . $e->getMessage(),
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+
             return back()->with('error_device', 'Gagal mengaktifkan mode otomatis: ' . $e->getMessage());
         }
     }

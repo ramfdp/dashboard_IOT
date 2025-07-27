@@ -225,25 +225,6 @@
     </div>
     <!-- END Modal Perhitungan Listrik -->
     
-    <!-- BEGIN row kontrol perangkat -->
-    <div class="row mb-4">
-        <div class="col text-center">
-            <span id="mode-status"
-                class="badge bg-success rounded-pill shadow"
-                style="font-size: 1.25rem; padding: 0.75rem 1.25rem;">
-                    Mode Otomatis Aktif
-            </span>
-            <div class="mt-2">
-                <form action="{{ route('dashboard.auto-mode') }}" method="POST" style="display: inline;">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-primary">
-                        <i class="fa fa-robot"></i> Aktifkan Mode Otomatis
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Jadwal Lampu -->
     <div class="row mb-4">
         <div class="col-md-12">
@@ -340,79 +321,256 @@
         </div>
     </div>
 
-    <form action="{{ route('dashboard.update') }}" method="POST">
-        @csrf
-
-        @if(session()->has('success_device'))
-            <div class="alert alert-success">
-                {{ session('success_device') }}
-            </div>
-        @endif
-
-        <div class="row g-4">
-            <!-- Lampu ITMS 1 -->
-            <div class="col-md-4">
-                <div class="card shadow-sm rounded p-4 text-center">
-                    <label class="fw-bold fs-5 mb-3">Lampu ITMS 1</label>
-                    <div class="d-flex justify-content-center align-items-center gap-3">
-                        <i class="fa fa-lightbulb text-primary fs-3"></i>
-                        <div class="form-check form-switch">
-                            <input type="hidden" name="relay1" value="0">
-                            <input class="form-check-input device-switch" type="checkbox" name="relay1" value="1" {{ (isset($relay1) && $relay1 == 1) ? 'checked' : '' }}>
-                        </div>
-                    </div>
+    <!-- Device Control Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Kontrol Perangkat Lampu
+                    </h5>
                 </div>
-            </div>
-
-            <!-- Lampu ITMS 2 -->
-            <div class="col-md-4">
-                <div class="card shadow-sm rounded p-4 text-center">
-                    <label class="fw-bold fs-5 mb-3">Lampu ITMS 2</label>
-                    <div class="d-flex justify-content-center align-items-center gap-3">
-                        <i class="fa fa-lightbulb text-primary fs-3"></i>
-                        <div class="form-check form-switch">
-                            <input type="hidden" name="relay2" value="0">
-                            <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ (isset($relay2) && $relay2 == 1) ? 'checked' : '' }}>
+                <div class="card-body py-4">
+                    <!-- Mode Status and Control -->
+                    <div class="row mb-4">
+                        <div class="col-12 text-center">
+                            <div class="d-flex justify-content-center align-items-center flex-wrap gap-3">
+                                <span id="mode-status"
+                                    class="badge bg-success rounded-pill shadow"
+                                    style="font-size: 1.1rem; padding: 0.6rem 1rem;">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Mode Otomatis Aktif
+                                </span>
+                                <button id="enable-auto-mode-btn" type="button" class="btn btn-sm btn-primary">
+                                    <i class="fa fa-robot me-1"></i> 
+                                    <span class="btn-text">Aktifkan Mode Otomatis</span>
+                                    <span class="btn-loading d-none">
+                                        <i class="fa fa-spinner fa-spin me-1"></i> Mengaktifkan...
+                                    </span>
+                                </button>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Mode manual akan otomatis kembali ke mode otomatis setelah 10 menit tidak ada aktivitas
+                                </small>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Mode SOS -->
-            <div class="col-md-4">
-                <div class="card shadow-sm rounded p-4 text-center">
-                    <label class="fw-bold fs-5 mb-3">Mode SOS</label>
-                    <div class="d-flex justify-content-center align-items-center gap-3">
-                        <i class="fa fa-bell text-danger fs-3"></i>
-                        <div class="form-check form-switch">
-                            <input type="hidden" name="sos" value="0">
-                            <input class="form-check-input device-switch" type="checkbox" name="sos" value="1" {{ (isset($sos) && $sos == 1) ? 'checked' : '' }}>
+                    <hr class="my-4">
+
+                    <form action="{{ route('dashboard.update') }}" method="POST">
+                        @csrf
+
+                        @if(session()->has('success_device'))
+                            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>
+                                {{ session('success_device') }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        @endif
+
+                        <div class="row justify-content-center g-4">
+                            <!-- Lampu ITMS 1 -->
+                            <div class="col-lg-5 col-md-6">
+                                <div class="card h-100 shadow-sm border-0 device-control-card">
+                                    <div class="card-body text-center p-4">
+                                        <div class="device-icon mb-3">
+                                            <i class="fa fa-lightbulb text-warning fs-1"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-3 text-dark">Lampu ITMS 1</h6>
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input type="hidden" name="relay1" value="0">
+                                            <input class="form-check-input device-switch fs-5" type="checkbox" name="relay1" value="1" {{ (isset($relay1) && $relay1 == 1) ? 'checked' : '' }}>
+                                        </div>
+                                        <div class="status-indicator mt-3">
+                                            <small class="text-muted">Status: <span class="relay1-status">{{ (isset($relay1) && $relay1 == 1) ? 'ON' : 'OFF' }}</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Lampu ITMS 2 -->
+                            <div class="col-lg-5 col-md-6">
+                                <div class="card h-100 shadow-sm border-0 device-control-card">
+                                    <div class="card-body text-center p-4">
+                                        <div class="device-icon mb-3">
+                                            <i class="fa fa-lightbulb text-warning fs-1"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-3 text-dark">Lampu ITMS 2</h6>
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input type="hidden" name="relay2" value="0">
+                                            <input class="form-check-input device-switch fs-5" type="checkbox" name="relay2" value="1" {{ (isset($relay2) && $relay2 == 1) ? 'checked' : '' }}>
+                                        </div>
+                                        <div class="status-indicator mt-3">
+                                            <small class="text-muted">Status: <span class="relay2-status">{{ (isset($relay2) && $relay2 == 1) ? 'ON' : 'OFF' }}</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
-
-        <div class="row mt-5">
-            <div class="col-md-12 text-center">
-                <button class="btn btn-primary btn-lg px-5 py-3 shadow fw-bold w-100" type="submit">
-                    Nyalakan Mode SOS
-                </button>
-            </div>
-        </div>
-    </form>
+    </div>
 
     <!-- Livewire Overtime Control Component -->
     @if(class_exists('App\Livewire\OvertimeControl'))
         @livewire('overtime-control')
     @endif
 
-    <!-- CSS untuk Indikator -->
+    <!-- CSS untuk Indikator dan Device Controls -->
     <style>
         .indicator {
             transition: background-color 0.3s ease; 
         }
+
+        .device-control-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .device-control-card:hover {
+            transform: translateY(-5px);
+            border-color: #007bff;
+            box-shadow: 0 8px 25px rgba(0,123,255,0.15) !important;
+        }
+
+        .device-switch {
+            width: 3rem !important;
+            height: 1.5rem !important;
+            cursor: pointer;
+        }
+
+        .device-switch:checked {
+            background-color: #28a745 !important;
+            border-color: #28a745 !important;
+        }
+
+        .device-icon {
+            transition: color 0.3s ease;
+        }
+
+        .card-header {
+            border-radius: 0.5rem 0.5rem 0 0 !important;
+        }
+
+        .device-control-card .card-body {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        }
+
+        .mode-status-display .badge {
+            transition: all 0.3s ease;
+        }
+
+        .relay1-status, .relay2-status {
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 768px) {
+            .device-control-card {
+                margin-bottom: 1rem;
+            }
+        }
+
+        .btn-loading {
+            transition: all 0.3s ease;
+        }
     </style>
+
+    <!-- AJAX Auto Mode Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const enableAutoModeBtn = document.getElementById('enable-auto-mode-btn');
+            const modeStatus = document.getElementById('mode-status');
+            
+            if (enableAutoModeBtn) {
+                enableAutoModeBtn.addEventListener('click', function() {
+                    // Disable button and show loading state
+                    this.disabled = true;
+                    this.querySelector('.btn-text').classList.add('d-none');
+                    this.querySelector('.btn-loading').classList.remove('d-none');
+                    
+                    // Get CSRF token
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                                 document.querySelector('input[name="_token"]')?.value;
+                    
+                    // Make AJAX request
+                    fetch('{{ route("dashboard.auto-mode") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Success - update UI
+                        modeStatus.innerHTML = '<i class="fas fa-clock me-1"></i>Mode Otomatis Aktif';
+                        modeStatus.className = 'badge bg-success rounded-pill shadow';
+                        
+                        // Show success message
+                        showNotification('success', 'Mode otomatis berhasil diaktifkan!');
+                        
+                        // Reset device states if available
+                        if (window.resetDeviceToAutoMode) {
+                            window.resetDeviceToAutoMode();
+                        }
+                        
+                        // Notify mode manager if available
+                        if (window.modeManager) {
+                            window.modeManager.checkCurrentMode();
+                        }
+                        
+                        console.log('Auto mode activated successfully');
+                    })
+                    .catch(error => {
+                        console.error('Error activating auto mode:', error);
+                        showNotification('error', 'Gagal mengaktifkan mode otomatis. Silakan coba lagi.');
+                    })
+                    .finally(() => {
+                        // Re-enable button and hide loading state
+                        this.disabled = false;
+                        this.querySelector('.btn-text').classList.remove('d-none');
+                        this.querySelector('.btn-loading').classList.add('d-none');
+                    });
+                });
+            }
+            
+            // Notification function
+            function showNotification(type, message) {
+                // Remove existing notifications
+                const existingNotifications = document.querySelectorAll('.auto-mode-notification');
+                existingNotifications.forEach(notification => notification.remove());
+                
+                // Create notification
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show auto-mode-notification`;
+                notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                
+                notification.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto remove after 4 seconds
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 4000);
+            }
+        });
+    </script>
     
 <!-- User Management Section -->
 @if(auth()->check() && auth()->user()->getRoleNames()->first() && auth()->user()->getRoleNames()->first() != 'user')

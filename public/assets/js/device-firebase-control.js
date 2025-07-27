@@ -19,7 +19,6 @@ const db = getDatabase(app);
 let deviceManualMode = false;
 let relay1State = null;
 let relay2State = null;
-let sosState = null;
 let manualModeTimer = null;
 let lastManualActivity = null;
 
@@ -126,7 +125,7 @@ function setupDeviceSwitchListeners() {
             relay1State = value;
 
             // Update visual indicator
-            updateDeviceIndicator(this, value === 1 ? 'green' : 'grey');
+            updateDeviceIndicator(this, value === 1 ? 'success' : 'grey');
 
             console.log('Device now in manual mode due to ITMS 1 switch');
         });
@@ -166,7 +165,7 @@ function setupDeviceSwitchListeners() {
             relay2State = value;
 
             // Update visual indicator
-            updateDeviceIndicator(this, value === 1 ? 'green' : 'grey');
+            updateDeviceIndicator(this, value === 1 ? 'success' : 'grey');
 
             console.log('Device now in manual mode due to ITMS 2 switch');
         });
@@ -174,60 +173,6 @@ function setupDeviceSwitchListeners() {
         console.log('ITMS 2 switch listener attached');
     } else {
         console.warn('ITMS 2 switch not found');
-    }
-
-    // SOS control
-    const sosSwitch = document.querySelector('input[name="sos"][type="checkbox"].device-switch');
-    if (sosSwitch) {
-        // Remove existing listeners and clone to prevent conflicts
-        const newSosSwitch = sosSwitch.cloneNode(true);
-        sosSwitch.parentNode.replaceChild(newSosSwitch, sosSwitch);
-
-        newSosSwitch.addEventListener('change', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const value = this.checked ? 1 : 0;
-            console.log('SOS manually switched to:', value);
-
-            // Set manual mode and start timeout
-            deviceManualMode = true;
-            set(ref(db, "/relayControl/manualMode"), true);
-            startManualModeTimeout();
-
-            // Update Firebase SOS state
-            set(ref(db, "/relayControl/sos"), value).then(() => {
-                console.log('SOS updated in Firebase successfully');
-            }).catch((error) => {
-                console.error('Error updating SOS in Firebase:', error);
-            });
-
-            // When SOS is activated, turn on both relays
-            if (value === 1) {
-                set(ref(db, "/relayControl/relay1"), 1);
-                set(ref(db, "/relayControl/relay2"), 1);
-                console.log('SOS activated - turning on all relays');
-            } else {
-                // When SOS is deactivated, turn off both relays
-                set(ref(db, "/relayControl/relay1"), 0);
-                set(ref(db, "/relayControl/relay2"), 0);
-                console.log('SOS deactivated - turning off all relays');
-            }
-
-            // Update local state
-            sosState = value;
-            relay1State = value;
-            relay2State = value;
-
-            // Update visual indicator
-            updateDeviceIndicator(this, value === 1 ? 'red' : 'grey');
-
-            console.log('Device now in manual mode due to SOS switch');
-        });
-
-        console.log('SOS switch listener attached');
-    } else {
-        console.warn('SOS switch not found');
     }
 }
 
@@ -246,7 +191,7 @@ function listenToFirebaseDeviceChanges() {
             if (relay1Switch.checked !== (value === 1)) {
                 relay1Switch.checked = (value === 1);
                 relay1State = value;
-                updateDeviceIndicator(relay1Switch, value === 1 ? 'green' : 'grey');
+                updateDeviceIndicator(relay1Switch, value === 1 ? 'success' : 'grey');
                 console.log('UI updated for Relay1:', value);
             }
         }
@@ -263,24 +208,8 @@ function listenToFirebaseDeviceChanges() {
             if (relay2Switch.checked !== (value === 1)) {
                 relay2Switch.checked = (value === 1);
                 relay2State = value;
-                updateDeviceIndicator(relay2Switch, value === 1 ? 'green' : 'grey');
+                updateDeviceIndicator(relay2Switch, value === 1 ? 'success' : 'grey');
                 console.log('UI updated for Relay2:', value);
-            }
-        }
-    });
-
-    // Listen to SOS changes
-    onValue(ref(db, "/relayControl/sos"), (snapshot) => {
-        const value = snapshot.val();
-        console.log('Firebase SOS changed to:', value);
-
-        const sosSwitch = document.querySelector('input[name="sos"][type="checkbox"].device-switch');
-        if (sosSwitch) {
-            if (sosSwitch.checked !== (value === 1)) {
-                sosSwitch.checked = (value === 1);
-                sosState = value;
-                updateDeviceIndicator(sosSwitch, value === 1 ? 'red' : 'grey');
-                console.log('UI updated for SOS:', value);
             }
         }
     });
@@ -310,7 +239,7 @@ function syncInitialDeviceState() {
             if (relay1Switch) {
                 relay1Switch.checked = (value === 1);
                 relay1State = value;
-                updateDeviceIndicator(relay1Switch, value === 1 ? 'green' : 'grey');
+                updateDeviceIndicator(relay1Switch, value === 1 ? 'success' : 'grey');
                 console.log('Initial Relay1 state:', value);
             }
         }
@@ -324,22 +253,8 @@ function syncInitialDeviceState() {
             if (relay2Switch) {
                 relay2Switch.checked = (value === 1);
                 relay2State = value;
-                updateDeviceIndicator(relay2Switch, value === 1 ? 'green' : 'grey');
+                updateDeviceIndicator(relay2Switch, value === 1 ? 'success' : 'grey');
                 console.log('Initial Relay2 state:', value);
-            }
-        }
-    }, { once: true });
-
-    // Get initial SOS state
-    onValue(ref(db, "/relayControl/sos"), (snapshot) => {
-        const value = snapshot.val();
-        if (value !== null) {
-            const sosSwitch = document.querySelector('input[name="sos"][type="checkbox"].device-switch');
-            if (sosSwitch) {
-                sosSwitch.checked = (value === 1);
-                sosState = value;
-                updateDeviceIndicator(sosSwitch, value === 1 ? 'red' : 'grey');
-                console.log('Initial SOS state:', value);
             }
         }
     }, { once: true });
@@ -350,6 +265,24 @@ function updateDeviceIndicator(switchElement, color) {
     const indicator = switchElement.closest(".d-flex")?.querySelector(".indicator");
     if (indicator) {
         indicator.style.backgroundColor = color;
+    }
+
+    // Update status text for new layout
+    const relayName = switchElement.name;
+    const statusElement = document.querySelector(`.${relayName}-status`);
+    if (statusElement) {
+        const isOn = switchElement.checked;
+        statusElement.textContent = isOn ? 'ON' : 'OFF';
+        statusElement.style.color = isOn ? '#28a745' : '#6c757d';
+    }
+
+    // Update device icon color
+    const card = switchElement.closest('.device-control-card');
+    if (card) {
+        const icon = card.querySelector('.device-icon i');
+        if (icon) {
+            icon.className = icon.className.replace(/text-\w+/, `text-${switchElement.checked ? 'success' : 'warning'}`);
+        }
     }
 }
 
@@ -391,18 +324,6 @@ function manualDeviceControl(device, value) {
     } else if (device === 'relay2') {
         set(ref(db, "/relayControl/relay2"), value);
         relay2State = value;
-    } else if (device === 'sos') {
-        set(ref(db, "/relayControl/sos"), value);
-        if (value === 1) {
-            set(ref(db, "/relayControl/relay1"), 1);
-            set(ref(db, "/relayControl/relay2"), 1);
-        } else {
-            set(ref(db, "/relayControl/relay1"), 0);
-            set(ref(db, "/relayControl/relay2"), 0);
-        }
-        sosState = value;
-        relay1State = value;
-        relay2State = value;
     }
 }
 
@@ -411,7 +332,6 @@ function getDeviceStates() {
     return {
         relay1: relay1State,
         relay2: relay2State,
-        sos: sosState,
         manualMode: deviceManualMode,
         lastManualActivity: lastManualActivity,
         manualModeTimeoutActive: manualModeTimer !== null

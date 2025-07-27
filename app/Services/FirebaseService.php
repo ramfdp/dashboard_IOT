@@ -48,18 +48,6 @@ class FirebaseService
         }
     }
 
-    public function setSOSMode($value)
-    {
-        try {
-            return $this->database
-                ->getReference('relayControl/sos')
-                ->set((int) $value);
-        } catch (\Exception $e) {
-            Log::error("Failed to set SOS mode: " . $e->getMessage());
-            return false;
-        }
-    }
-
     // Manual mode management
     public function setManualMode($value)
     {
