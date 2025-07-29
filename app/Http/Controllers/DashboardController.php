@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Karyawan;
 use App\Models\Divisi;
 use App\Models\LightSchedule;
+use App\Models\Overtime;
 use Spatie\Permission\Models\Role;
 use App\Models\HistoryKwh;
 use App\Services\FirebaseService;
@@ -139,6 +140,41 @@ class DashboardController extends Controller
         }
     }
 
+    public function setManualMode()
+    {
+        try {
+            // Set manual mode in Firebase
+            $this->firebase->setManualMode(true);
+
+            Log::info("Device switched to manual mode - automatic schedules suspended");
+
+            // Check if this is an AJAX request
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Mode manual berhasil diaktifkan! Anda dapat mengontrol perangkat secara manual.',
+                    'mode' => 'manual',
+                    'timestamp' => now()->toISOString()
+                ]);
+            }
+
+            return back()->with('success_device', 'Mode manual berhasil diaktifkan! Anda dapat mengontrol perangkat secara manual.');
+        } catch (\Exception $e) {
+            Log::error('Failed to set manual mode: ' . $e->getMessage());
+
+            // Check if this is an AJAX request
+            if (request()->expectsJson() || request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal mengaktifkan mode manual: ' . $e->getMessage(),
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error_device', 'Gagal mengaktifkan mode manual: ' . $e->getMessage());
+        }
+    }
+
     // Light schedule methods
     public function storeSchedule(Request $request)
     {
@@ -195,6 +231,28 @@ class DashboardController extends Controller
                     'success' => true,
                     'message' => 'Schedule check skipped - device in manual mode',
                     'manual_mode' => true
+                ]);
+            }
+
+            // Check for active overtime - if any exists, skip schedule control
+            $activeOvertimes = Overtime::where(function ($query) {
+                $query->where('status', Overtime::STATUS_RUNNING)
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where('status', Overtime::STATUS_PENDING)
+                            ->whereDate('overtime_date', Carbon::today())
+                            ->whereTime('start_time', '<=', Carbon::now()->format('H:i:s'));
+                    });
+            })->exists();
+
+            if ($activeOvertimes) {
+                Log::info("Skipping schedule check - active overtime detected");
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Schedule check skipped - active overtime in progress',
+                    'active_devices' => ['relay1', 'relay2'], // Overtime keeps lights on
+                    'inactive_devices' => [],
+                    'manual_mode' => false,
+                    'overtime_active' => true
                 ]);
             }
 

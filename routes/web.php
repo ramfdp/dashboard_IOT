@@ -38,6 +38,7 @@
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::post('/dashboard/update', [DashboardController::class, 'update'])->name('dashboard.update');
     Route::post('/dashboard/auto-mode', [DashboardController::class, 'setAutoMode'])->name('dashboard.auto-mode');
+    Route::post('/dashboard/manual-mode', [DashboardController::class, 'setManualMode'])->name('dashboard.manual-mode');
 
     // Light schedule routes
     Route::post('/dashboard/schedule', [DashboardController::class, 'storeSchedule'])->name('dashboard.schedule.store');
@@ -134,6 +135,8 @@
         Route::delete('/{id}', [OvertimeController::class, 'destroy'])->name('destroy');
         Route::post('/{id}/cutoff', [OvertimeController::class, 'cutoff'])->name('cutoff');
         Route::post('/{id}/start', [OvertimeController::class, 'start'])->name('start');
+        Route::post('/{id}/auto-start', [OvertimeController::class, 'autoStart'])->name('auto-start');
+        Route::post('/{id}/auto-complete', [OvertimeController::class, 'autoComplete'])->name('auto-complete');
     });
     Route::post('/dashboard/auto', [DashboardController::class, 'setAuto'])->name('dashboard.auto');
 

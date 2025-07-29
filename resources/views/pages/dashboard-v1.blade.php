@@ -230,7 +230,7 @@
         <div class="col-md-12">
             <div class="card shadow-sm rounded p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Scheduler Lampu Kantor (Semua Lampu)</h4>
+                    <h4>Scheduler Lampu Kantor</h4>
                     <button id="manual-schedule-check" class="btn btn-sm btn-info">
                         <i class="fa fa-refresh"></i> Check Schedules Now
                     </button>
@@ -342,18 +342,27 @@
                                         <i class="fas fa-clock me-1"></i>
                                         Mode Otomatis Aktif
                                 </span>
-                                <button id="enable-auto-mode-btn" type="button" class="btn btn-sm btn-primary">
-                                    <i class="fa fa-robot me-1"></i> 
-                                    <span class="btn-text">Aktifkan Mode Otomatis</span>
-                                    <span class="btn-loading d-none">
-                                        <i class="fa fa-spinner fa-spin me-1"></i> Mengaktifkan...
-                                    </span>
-                                </button>
+                                <div class="btn-group" role="group">
+                                    <button id="enable-auto-mode-btn" type="button" class="btn btn-sm btn-success">
+                                        <i class="fa fa-robot me-1"></i> 
+                                        <span class="btn-text">Mode Otomatis</span>
+                                        <span class="btn-loading d-none">
+                                            <i class="fa fa-spinner fa-spin me-1"></i> Mengaktifkan...
+                                        </span>
+                                    </button>
+                                    <button id="enable-manual-mode-btn" type="button" class="btn btn-sm btn-warning">
+                                        <i class="fa fa-hand-paper me-1"></i> 
+                                        <span class="btn-text">Mode Manual</span>
+                                        <span class="btn-loading d-none">
+                                            <i class="fa fa-spinner fa-spin me-1"></i> Mengaktifkan...
+                                        </span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="mt-2">
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    Mode manual akan otomatis kembali ke mode otomatis setelah 10 menit tidak ada aktivitas
+                                    Mode manual: Kontrol perangkat secara manual. Mode otomatis: Sistem mengikuti jadwal yang telah ditentukan.
                                 </small>
                             </div>
                         </div>
@@ -486,72 +495,119 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const enableAutoModeBtn = document.getElementById('enable-auto-mode-btn');
+            const enableManualModeBtn = document.getElementById('enable-manual-mode-btn');
             const modeStatus = document.getElementById('mode-status');
             
+            // Auto Mode Button Handler
             if (enableAutoModeBtn) {
                 enableAutoModeBtn.addEventListener('click', function() {
-                    // Disable button and show loading state
-                    this.disabled = true;
-                    this.querySelector('.btn-text').classList.add('d-none');
-                    this.querySelector('.btn-loading').classList.remove('d-none');
-                    
-                    // Get CSRF token
-                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
-                                 document.querySelector('input[name="_token"]')?.value;
-                    
-                    // Make AJAX request
-                    fetch('{{ route("dashboard.auto-mode") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': token,
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({})
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Success - update UI
-                        modeStatus.innerHTML = '<i class="fas fa-clock me-1"></i>Mode Otomatis Aktif';
-                        modeStatus.className = 'badge bg-success rounded-pill shadow';
+                    activateMode('auto', this);
+                });
+            }
+            
+            // Manual Mode Button Handler
+            if (enableManualModeBtn) {
+                enableManualModeBtn.addEventListener('click', function() {
+                    activateMode('manual', this);
+                });
+            }
+            
+            // Generic mode activation function
+            function activateMode(mode, buttonElement) {
+                // Disable both buttons and show loading state
+                enableAutoModeBtn.disabled = true;
+                enableManualModeBtn.disabled = true;
+                
+                const btnText = buttonElement.querySelector('.btn-text');
+                const btnLoading = buttonElement.querySelector('.btn-loading');
+                
+                btnText.classList.add('d-none');
+                btnLoading.classList.remove('d-none');
+                
+                // Get CSRF token
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                             document.querySelector('input[name="_token"]')?.value;
+                
+                // Determine the endpoint and request data
+                const endpoint = mode === 'auto' ? '{{ route("dashboard.auto-mode") }}' : '{{ route("dashboard.manual-mode") }}';
+                
+                // Make AJAX request
+                fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update mode status based on response
+                        if (mode === 'auto') {
+                            modeStatus.innerHTML = '<i class="fas fa-clock me-1"></i>Mode Otomatis Aktif';
+                            modeStatus.className = 'badge bg-success rounded-pill shadow';
+                            
+                            // Update button states
+                            enableAutoModeBtn.className = 'btn btn-sm btn-success';
+                            enableManualModeBtn.className = 'btn btn-sm btn-outline-warning';
+                            
+                            // Reset device states if available
+                            if (window.resetDeviceToAutoMode) {
+                                window.resetDeviceToAutoMode();
+                            }
+                        } else {
+                            modeStatus.innerHTML = '<i class="fas fa-hand-paper me-1"></i>Mode Manual Aktif';
+                            modeStatus.className = 'badge bg-warning rounded-pill shadow';
+                            
+                            // Update button states
+                            enableAutoModeBtn.className = 'btn btn-sm btn-outline-success';
+                            enableManualModeBtn.className = 'btn btn-sm btn-warning';
+                            
+                            // Start manual mode timer if available
+                            if (window.startManualModeTimeout) {
+                                window.startManualModeTimeout();
+                            }
+                        }
                         
                         // Show success message
-                        showNotification('success', 'Mode otomatis berhasil diaktifkan!');
-                        
-                        // Reset device states if available
-                        if (window.resetDeviceToAutoMode) {
-                            window.resetDeviceToAutoMode();
-                        }
+                        showNotification('success', data.message || `Mode ${mode === 'auto' ? 'otomatis' : 'manual'} berhasil diaktifkan!`);
                         
                         // Notify mode manager if available
                         if (window.modeManager) {
                             window.modeManager.checkCurrentMode();
                         }
                         
-                        console.log('Auto mode activated successfully');
-                    })
-                    .catch(error => {
-                        console.error('Error activating auto mode:', error);
-                        showNotification('error', 'Gagal mengaktifkan mode otomatis. Silakan coba lagi.');
-                    })
-                    .finally(() => {
-                        // Re-enable button and hide loading state
-                        this.disabled = false;
-                        this.querySelector('.btn-text').classList.remove('d-none');
-                        this.querySelector('.btn-loading').classList.add('d-none');
-                    });
+                        console.log(`${mode} mode activated successfully`);
+                    } else {
+                        throw new Error(data.message || 'Failed to activate mode');
+                    }
+                })
+                .catch(error => {
+                    console.error(`Error activating ${mode} mode:`, error);
+                    showNotification('error', `Gagal mengaktifkan mode ${mode === 'auto' ? 'otomatis' : 'manual'}. Silakan coba lagi.`);
+                })
+                .finally(() => {
+                    // Re-enable buttons and hide loading states
+                    enableAutoModeBtn.disabled = false;
+                    enableManualModeBtn.disabled = false;
+                    
+                    // Reset all button loading states
+                    document.querySelectorAll('.btn-text').forEach(el => el.classList.remove('d-none'));
+                    document.querySelectorAll('.btn-loading').forEach(el => el.classList.add('d-none'));
                 });
             }
             
             // Notification function
             function showNotification(type, message) {
                 // Remove existing notifications
-                const existingNotifications = document.querySelectorAll('.auto-mode-notification');
+                const existingNotifications = document.querySelectorAll('.mode-notification');
                 existingNotifications.forEach(notification => notification.remove());
                 
                 // Create notification
                 const notification = document.createElement('div');
-                notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show auto-mode-notification`;
+                notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show mode-notification`;
                 notification.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
                 
                 notification.innerHTML = `

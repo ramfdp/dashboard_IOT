@@ -58,12 +58,17 @@ class LightScheduleManager {
                 this.lastResponse = data; // Store response for manual mode checking
                 console.log('Schedule check response:', data);
 
-                if (data.success && !data.manual_mode) {
+                if (data.success && !data.manual_mode && !data.overtime_active) {
                     this.updateDeviceStatus(data.active_devices, data.inactive_devices);
                     this.showScheduleNotification(data);
                 } else if (data.manual_mode) {
                     console.log('Device is in manual mode - schedule control suspended');
                     this.clearScheduleIndicators();
+                } else if (data.overtime_active) {
+                    console.log('Overtime is active - schedule control suspended, maintaining lights ON');
+                    this.clearScheduleIndicators();
+                    // Add overtime indicator
+                    this.addOvertimeIndicators();
                 }
             } else {
                 console.error('Failed to check schedules:', response.statusText);
@@ -74,9 +79,9 @@ class LightScheduleManager {
     }
 
     updateDeviceStatus(activeDevices, inactiveDevices) {
-        // Don't update UI if response indicates manual mode
-        if (this.lastResponse && this.lastResponse.manual_mode) {
-            console.log('Skipping UI update - device in manual mode');
+        // Don't update UI if response indicates manual mode or overtime active
+        if (this.lastResponse && (this.lastResponse.manual_mode || this.lastResponse.overtime_active)) {
+            console.log('Skipping UI update - device in manual mode or overtime active');
             return;
         }
 
@@ -124,9 +129,35 @@ class LightScheduleManager {
         indicators.forEach(indicator => indicator.remove());
     }
 
+    addOvertimeIndicators() {
+        // Add overtime indicators to show devices are controlled by overtime
+        const deviceCards = document.querySelectorAll('.device-control-card');
+        deviceCards.forEach(card => {
+            // Remove existing indicators
+            const existingIndicator = card.querySelector('.schedule-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+
+            // Add overtime indicator
+            const indicator = document.createElement('div');
+            indicator.className = 'schedule-indicator badge bg-warning';
+            indicator.innerHTML = '<i class="fa fa-briefcase"></i> Overtime Active';
+            indicator.style.position = 'absolute';
+            indicator.style.top = '10px';
+            indicator.style.right = '10px';
+            indicator.style.fontSize = '0.75rem';
+
+            card.style.position = 'relative';
+            card.appendChild(indicator);
+        });
+    }
+
     showScheduleNotification(data) {
         // Show a subtle notification about schedule execution
-        if (data.active_devices.length > 0 || data.inactive_devices.length > 0) {
+        if (data.overtime_active) {
+            this.showToast('Overtime is active - devices controlled by overtime system', 'warning');
+        } else if (data.active_devices.length > 0 || data.inactive_devices.length > 0) {
             const message = `Schedule executed: ${data.active_devices.length} device(s) turned ON, ${data.inactive_devices.length} device(s) turned OFF`;
             this.showToast(message, 'info');
         }

@@ -50,14 +50,39 @@ const isOvertimeActive = overtime => {
     // If overtime is cut off (status = 2), it's never active regardless of time
     if (overtime.status === 2) return false;
 
-    // If overtime is running (status = 1), it's active
-    if (overtime.status === 1) return true;
+    // If overtime is running (status = 1), check if end time has passed
+    if (overtime.status === 1) {
+        if (overtime.end_time) {
+            const endTime = new Date(`${overtime.overtime_date}T${cleanTime(overtime.end_time)}`);
+            if (now >= endTime) {
+                // End time reached - this overtime should be marked as completed
+                console.log(`Overtime ${overtime.id} end time reached - should be completed`);
+                completeOvertimeAutomatically(overtime.id);
+                return false;
+            }
+        }
+        return true;
+    }
 
     // If overtime is not started yet (status = 0), check if it should be active based on time
     const startTime = new Date(`${overtime.overtime_date}T${cleanTime(overtime.start_time)}`);
     const endTime = overtime.end_time ? new Date(`${overtime.overtime_date}T${cleanTime(overtime.end_time)}`) : null;
 
-    return overtime.status === 0 && now >= startTime && (!endTime || now < endTime);
+    if (overtime.status === 0 && now >= startTime) {
+        if (!endTime || now < endTime) {
+            // Overtime should start now - update status to running
+            console.log(`Overtime ${overtime.id} start time reached - should be started`);
+            startOvertimeAutomatically(overtime.id);
+            return true;
+        } else {
+            // Overtime period has already passed without starting
+            console.log(`Overtime ${overtime.id} period has passed - should be completed`);
+            completeOvertimeAutomatically(overtime.id);
+            return false;
+        }
+    }
+
+    return false;
 };
 
 const getStatusInfo = overtime => {
@@ -74,6 +99,64 @@ const getStatusInfo = overtime => {
 
     const status = statusMap[overtime.status] || statusMap[0];
     return { displayStatus: overtime.status, statusText: status.text, statusClass: status.class };
+};
+
+// Auto-start overtime when start time is reached
+const startOvertimeAutomatically = async (overtimeId) => {
+    try {
+        console.log(`Auto-starting overtime ${overtimeId}`);
+        const response = await apiRequest(`/overtime/${overtimeId}/auto-start`, {
+            method: 'POST',
+            body: JSON.stringify({ auto_start: true })
+        });
+
+        if (response.success) {
+            console.log(`Overtime ${overtimeId} auto-started successfully`);
+            showOvertimeNotification(`Overtime #${overtimeId} automatically started`, 'success');
+            // Refresh the data immediately
+            setTimeout(() => updateLemburStatusDanRelay(), 500);
+        }
+    } catch (error) {
+        console.error(`Failed to auto-start overtime ${overtimeId}:`, error);
+        showOvertimeNotification(`Failed to auto-start overtime #${overtimeId}`, 'danger');
+    }
+};
+
+// Auto-complete overtime when end time is reached
+const completeOvertimeAutomatically = async (overtimeId) => {
+    try {
+        console.log(`Auto-completing overtime ${overtimeId}`);
+        const response = await apiRequest(`/overtime/${overtimeId}/auto-complete`, {
+            method: 'POST',
+            body: JSON.stringify({ auto_complete: true })
+        });
+
+        if (response.success) {
+            console.log(`Overtime ${overtimeId} auto-completed successfully`);
+            showOvertimeNotification(`Overtime #${overtimeId} automatically completed`, 'info');
+
+            // Turn off relays immediately if no other active overtime
+            const currentData = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+            const hasOtherActive = currentData.overtimes?.filter(o => o.id !== overtimeId).some(isOvertimeActive) || false;
+
+            if (!hasOtherActive) {
+                console.log('No other active overtime - turning OFF relays');
+                try {
+                    set(ref(db, "/relayControl/relay1"), 0);
+                    set(ref(db, "/relayControl/relay2"), 0);
+                    showOvertimeNotification('All overtime completed - lights turned OFF', 'warning');
+                } catch (firebaseError) {
+                    console.warn('Failed to control relays after auto-completion:', firebaseError);
+                }
+            }
+
+            // Refresh the data immediately
+            setTimeout(() => updateLemburStatusDanRelay(), 500);
+        }
+    } catch (error) {
+        console.error(`Failed to auto-complete overtime ${overtimeId}:`, error);
+        showOvertimeNotification(`Failed to auto-complete overtime #${overtimeId}`, 'danger');
+    }
 };
 
 const apiRequest = async (url, options = {}) => {
@@ -422,6 +505,54 @@ const resetToAutoMode = () => {
     }
 
     updateLemburStatusDanRelay();
+};
+
+// Dedicated function to check for overtime end times
+const checkOvertimeEndTimes = async () => {
+    try {
+        const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+        if (!data.overtimes?.length) return;
+
+        const now = new Date();
+        let hasStatusChanges = false;
+        let statusChangeCount = 0;
+
+        for (const overtime of data.overtimes) {
+            if (overtime.status === 1 && overtime.end_time) { // Running overtime with end time
+                const endTime = new Date(`${overtime.overtime_date}T${cleanTime(overtime.end_time)}`);
+                if (now >= endTime) {
+                    console.log(`Overtime ${overtime.id} end time reached - auto-completing`);
+                    await completeOvertimeAutomatically(overtime.id);
+                    hasStatusChanges = true;
+                    statusChangeCount++;
+                }
+            } else if (overtime.status === 0) { // Pending overtime
+                const startTime = new Date(`${overtime.overtime_date}T${cleanTime(overtime.start_time)}`);
+                if (now >= startTime) {
+                    const endTime = overtime.end_time ? new Date(`${overtime.overtime_date}T${cleanTime(overtime.end_time)}`) : null;
+                    if (!endTime || now < endTime) {
+                        console.log(`Overtime ${overtime.id} start time reached - auto-starting`);
+                        await startOvertimeAutomatically(overtime.id);
+                        hasStatusChanges = true;
+                        statusChangeCount++;
+                    } else {
+                        console.log(`Overtime ${overtime.id} period has passed - auto-completing`);
+                        await completeOvertimeAutomatically(overtime.id);
+                        hasStatusChanges = true;
+                        statusChangeCount++;
+                    }
+                }
+            }
+        }
+
+        // If there were status changes, refresh the display and relay states
+        if (hasStatusChanges) {
+            console.log(`Overtime status changes detected (${statusChangeCount} changes) - refreshing display`);
+            setTimeout(() => updateLemburStatusDanRelay(), 1000);
+        }
+    } catch (error) {
+        console.error('Error checking overtime end times:', error);
+    }
 }; document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const form = document.querySelector('form[action*="overtime"]');
@@ -439,22 +570,29 @@ const resetToAutoMode = () => {
         console.log('Overtime control system initialized');
     }, 1500);
 
-    let overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 15000);
-    let statusInterval = setInterval(showModeStatus, 5000);
+    // More frequent updates for better real-time detection
+    let overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 5000); // Every 5 seconds
+    let statusInterval = setInterval(showModeStatus, 3000); // Every 3 seconds
+
+    // Additional high-frequency check specifically for overtime end times
+    let overtimeEndTimeCheck = setInterval(checkOvertimeEndTimes, 10000); // Every 10 seconds
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
             clearInterval(overtimeUpdateInterval);
             clearInterval(statusInterval);
+            clearInterval(overtimeEndTimeCheck);
         } else {
-            overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 15000);
-            statusInterval = setInterval(showModeStatus, 5000);
+            overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 5000);
+            statusInterval = setInterval(showModeStatus, 3000);
+            overtimeEndTimeCheck = setInterval(checkOvertimeEndTimes, 10000);
         }
     });
 
     window.addEventListener('beforeunload', () => {
         clearInterval(overtimeUpdateInterval);
         clearInterval(statusInterval);
+        clearInterval(overtimeEndTimeCheck);
     });
 });
 
@@ -469,3 +607,37 @@ Object.assign(window, {
     }).catch(err => console.error("Error checking current state:", err)),
     checkModeStatus: () => ({ manualMode, relay1ManualState, relay2ManualState, editMode, editingId })
 });
+
+// Show automatic status change notifications
+const showOvertimeNotification = (message, type = 'info') => {
+    // Remove existing overtime notifications
+    const existingNotifications = document.querySelectorAll('.overtime-notification');
+    existingNotifications.forEach(notification => notification.remove());
+
+    // Create notification
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show overtime-notification`;
+    notification.style.cssText = 'position: fixed; top: 70px; right: 20px; z-index: 9999; min-width: 350px; max-width: 400px;';
+
+    const iconMap = {
+        'success': 'check-circle',
+        'info': 'info-circle',
+        'warning': 'exclamation-triangle',
+        'danger': 'exclamation-triangle'
+    };
+
+    notification.innerHTML = `
+        <i class="fas fa-${iconMap[type] || 'info-circle'} me-2"></i>
+        <strong>Overtime Update:</strong> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Auto remove after 6 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 6000);
+};

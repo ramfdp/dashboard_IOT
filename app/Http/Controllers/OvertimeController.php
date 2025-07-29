@@ -116,6 +116,118 @@ class OvertimeController extends Controller
         }
     }
 
+    public function autoStart(Request $request, $id)
+    {
+        try {
+            $overtime = Overtime::findOrFail($id);
+
+            if ($overtime->status !== 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lembur sudah dimulai atau selesai.',
+                    'current_status' => $overtime->status
+                ], 400);
+            }
+
+            // Check if current time is appropriate for starting
+            $now = Carbon::now('Asia/Jakarta');
+            $startTime = Carbon::parse("{$overtime->overtime_date} {$overtime->start_time}");
+
+            if ($now->lt($startTime)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Belum waktunya memulai lembur.',
+                ], 400);
+            }
+
+            // Start the overtime
+            $overtime->update(['status' => 1]);
+
+            Log::info("Overtime {$id} auto-started at " . $now->format('Y-m-d H:i:s'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lembur dimulai secara otomatis',
+                'overtime' => $overtime->fresh()
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data lembur tidak ditemukan'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Auto-start error for overtime ID {$id}: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function autoComplete(Request $request, $id)
+    {
+        try {
+            $overtime = Overtime::findOrFail($id);
+
+            if ($overtime->status === 2) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lembur sudah selesai.',
+                    'current_status' => $overtime->status
+                ], 400);
+            }
+
+            $now = Carbon::now('Asia/Jakarta');
+
+            // Calculate duration if overtime was running
+            $duration = null;
+            if ($overtime->status === 1) {
+                $startTimeRaw = $overtime->start_time;
+                if (strlen($startTimeRaw) > 8) {
+                    $startDateTime = Carbon::parse($startTimeRaw);
+                } else {
+                    $startDateTime = Carbon::parse("{$overtime->overtime_date} {$startTimeRaw}");
+                }
+                $duration = $startDateTime->diffInMinutes($now);
+            }
+
+            // Complete the overtime
+            $updateData = [
+                'status' => 2,
+                'end_time' => $now->format('H:i:s')
+            ];
+
+            if ($duration !== null) {
+                $updateData['duration'] = $duration;
+            }
+
+            $overtime->update($updateData);
+
+            Log::info("Overtime {$id} auto-completed at " . $now->format('Y-m-d H:i:s'));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Lembur diselesaikan secara otomatis',
+                'duration' => $duration,
+                'end_time' => $now->format('H:i:s'),
+                'overtime' => $overtime->fresh()
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data lembur tidak ditemukan'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error("Auto-complete error for overtime ID {$id}: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function store(Request $request)
     {
