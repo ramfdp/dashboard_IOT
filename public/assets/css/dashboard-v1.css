@@ -1,0 +1,58 @@
+/* Dashboard v1 Specific Styles */
+
+.indicator {
+    transition: background-color 0.3s ease; 
+}
+
+.device-control-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.device-control-card:hover {
+    transform: translateY(-5px);
+    border-color: #007bff;
+    box-shadow: 0 8px 25px rgba(0,123,255,0.15) !important;
+}
+
+.device-switch {
+    width: 3rem !important;
+    height: 1.5rem !important;
+    cursor: pointer;
+}
+
+.device-switch:checked {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.device-icon {
+    transition: color 0.3s ease;
+}
+
+.card-header {
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+.device-control-card .card-body {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.mode-status-display .badge {
+    transition: all 0.3s ease;
+}
+
+.relay1-status, .relay2-status {
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    .device-control-card {
+        margin-bottom: 1rem;
+    }
+}
+
+.btn-loading {
+    transition: all 0.3s ease;
+}
