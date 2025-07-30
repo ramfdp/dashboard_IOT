@@ -37,22 +37,12 @@
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     <script src="/assets/js/demo/dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    {{-- <script src="/assets/js/random-gen-moni.js"></script> --}}
     <script src="/assets/js/perhitung-grafik-moni.js"></script>
-    {{-- Commented out to prevent conflicts with device-firebase-control.js --}}
-    {{-- <script src="/assets/js/logika-controling.js"></script> --}}
     <script src="/assets/js/logika-form-lembur.js"></script>
-    {{-- <script src="/assets/js/realtime-charts-update.js"></script> --}}
-    {{-- Commented out to prevent conflicts with device-firebase-control.js --}}
-    {{-- <script src="/assets/js/logika-perangkat.js"></script> --}}
-    {{-- <script src="/assets/js/logika-form-lembur2.js"></script> --}}
-    {{-- User management now handled by Livewire component --}}
-    {{-- <script src="/assets/js/logika-user-management.js"></script> --}}
     <script src="/assets/js/fetch-api-monitoring.js"></script>
     {{-- Firebase scripts for device and overtime control --}}
     <script type="module" src="/assets/js/overtime-control-fetch.js"></script>
     <script type="module" src="/assets/js/device-firebase-control.js"></script>
-    {{-- Temporarily disabled to prevent conflicts: <script type="module" src="/assets/js/LightSchedule.js"></script> --}}
     <script src="/assets/js/LightScheduleManager.js"></script>
     <script src="/assets/js/ModeManager.js"></script>
 @endpush

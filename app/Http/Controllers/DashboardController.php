@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Department;
 use App\Models\Karyawan;
 use App\Models\Divisi;
 use App\Models\LightSchedule;
-use App\Models\Overtime;
-use Spatie\Permission\Models\Role;
 use App\Models\HistoryKwh;
+use App\Models\Overtime;
 use App\Services\FirebaseService;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
@@ -26,21 +26,13 @@ class DashboardController extends Controller
 
     public function index()
     {
-        // Ambil data roles
         $roles = Role::all();
-
-        // Ambil data users beserta roles
-        $users = User::with('roles')->get();
-
-        // Ambil data departments
+        $users = User::with('role')->get();
         $departments = Department::all();
-
-        // Ambil data karyawan dengan relasi divisi
-        $karyawans = Karyawan::with('divisi')->get();
-
-        // Ambil data divisions
+        $karyawans = Karyawan::all();
         $divisions = Divisi::all();
 
+        // Get data KWH
         $dataKwh = HistoryKwh::select('waktu', 'daya')
             ->orderBy('waktu', 'asc')
             ->get();
@@ -66,7 +58,6 @@ class DashboardController extends Controller
             $relay1 = 0;
             $relay2 = 0;
         }
-
 
         // Kirim semua data ke view
         return view('pages.dashboard-v1', compact(
@@ -175,50 +166,6 @@ class DashboardController extends Controller
         }
     }
 
-    // Light schedule methods
-    public function storeSchedule(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-        ]);
-
-        LightSchedule::create($request->only(['name', 'day_of_week', 'start_time', 'end_time']));
-
-        return back()->with('success_schedule', 'Jadwal lampu berhasil ditambahkan. Semua lampu akan dikontrol bersamaan.');
-    }
-
-    public function updateSchedule(Request $request, LightSchedule $schedule)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'is_active' => 'boolean'
-        ]);
-
-        $schedule->update($request->only(['name', 'day_of_week', 'start_time', 'end_time', 'is_active']));
-
-        return back()->with('success_schedule', 'Jadwal lampu berhasil diperbarui.');
-    }
-
-    public function destroySchedule(LightSchedule $schedule)
-    {
-        $schedule->delete();
-
-        return back()->with('success_schedule', 'Jadwal lampu berhasil dihapus.');
-    }
-
-    public function toggleSchedule(LightSchedule $schedule)
-    {
-        $schedule->update(['is_active' => !$schedule->is_active]);
-
-        return back()->with('success_schedule', 'Status jadwal berhasil diubah.');
-    }
-
     public function checkSchedules()
     {
         try {
@@ -289,10 +236,19 @@ class DashboardController extends Controller
             // Control both relays together using batch update for better performance
             // Don't override manual mode when in auto mode
             $relayState = $shouldLightsBeOn ? 1 : 0;
-            $this->firebase->setBatchRelayStates([
+
+            Log::info("Attempting to set Firebase relays - relay1: {$relayState}, relay2: {$relayState}");
+
+            $firebaseResult = $this->firebase->setBatchRelayStates([
                 'relay1' => $relayState,
                 'relay2' => $relayState
             ]);
+
+            if ($firebaseResult === false) {
+                Log::error("Failed to update Firebase relay states!");
+            } else {
+                Log::info("Successfully updated Firebase relay states");
+            }
 
             $activeDevices = $shouldLightsBeOn ? ['relay1', 'relay2'] : [];
             $inactiveDevices = $shouldLightsBeOn ? [] : ['relay1', 'relay2'];
@@ -312,6 +268,68 @@ class DashboardController extends Controller
                 'success' => false,
                 'message' => 'Error checking schedules: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    // Traditional schedule management methods
+
+    public function storeSchedule(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|max:255',
+                'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after:start_time',
+            ]);
+
+            LightSchedule::create($request->only(['name', 'day_of_week', 'start_time', 'end_time']));
+
+            return back()->with('success_schedule', 'Jadwal lampu berhasil ditambahkan. Semua lampu akan dikontrol bersamaan.');
+        } catch (\Exception $e) {
+            Log::error('Error creating schedule: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Gagal menambahkan jadwal: ' . $e->getMessage()]);
+        }
+    }
+
+    public function updateSchedule(Request $request, LightSchedule $schedule)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|max:255',
+                'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after:start_time',
+            ]);
+
+            $schedule->update($request->only(['name', 'day_of_week', 'start_time', 'end_time']));
+
+            return back()->with('success_schedule', 'Jadwal berhasil diperbarui');
+        } catch (\Exception $e) {
+            Log::error('Error updating schedule: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Gagal memperbarui jadwal: ' . $e->getMessage()]);
+        }
+    }
+
+    public function destroySchedule(LightSchedule $schedule)
+    {
+        try {
+            $schedule->delete();
+            return back()->with('success_schedule', 'Jadwal berhasil dihapus');
+        } catch (\Exception $e) {
+            Log::error('Error deleting schedule: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Gagal menghapus jadwal: ' . $e->getMessage()]);
+        }
+    }
+
+    public function toggleSchedule(LightSchedule $schedule)
+    {
+        try {
+            $schedule->update(['is_active' => !$schedule->is_active]);
+            return back()->with('success_schedule', 'Status jadwal berhasil diubah');
+        } catch (\Exception $e) {
+            Log::error('Error toggling schedule: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Gagal mengubah status jadwal: ' . $e->getMessage()]);
         }
     }
 

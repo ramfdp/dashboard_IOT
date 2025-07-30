@@ -23,7 +23,6 @@
     use App\Http\Controllers\KaryawanController;
     use App\Http\Controllers\RelayController;
     use App\Http\Controllers\CCTVController;
-    use App\Http\Controllers\LightScheduleController;
 
 
 
@@ -167,3 +166,6 @@
 
     // API route for schedule checking (can be called by cron job)
     Route::post('/api/check-schedules', [DashboardController::class, 'checkSchedules'])->name('api.schedules.check');
+
+    // Test route for schedule debugging
+    Route::get('/test/schedule-check', [DashboardController::class, 'checkSchedules'])->name('test.schedule-check');

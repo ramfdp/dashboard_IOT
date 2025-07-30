@@ -33,3 +33,6 @@ Route::put('/listrik/{id}', [ListrikController::class, 'update']);
 Route::delete('/listrik/{id}', [ListrikController::class, 'destroy']);
 Route::get('/fetch-store-pzem', [HistoryKwhController::class, 'fetchFromFirebase']);
 
+// Schedule checking routes
+Route::post('/check-schedules', [\App\Http\Controllers\DashboardController::class, 'checkSchedules']);
+Route::get('/test/schedule-check', [\App\Http\Controllers\DashboardController::class, 'checkSchedules']);

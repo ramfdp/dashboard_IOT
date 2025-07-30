@@ -99,7 +99,9 @@ class LightScheduleManager {
                 this.addScheduleIndicator(switchElement, 'inactive');
             }
         });
-    } addScheduleIndicator(switchElement, status) {
+    }
+
+    addScheduleIndicator(switchElement, status) {
         // Add visual indicator that device is controlled by schedule
         const container = switchElement.closest('.card');
         if (container) {

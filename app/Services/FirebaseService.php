@@ -93,9 +93,17 @@ class FirebaseService
             foreach ($states as $relay => $value) {
                 $updates["relayControl/{$relay}"] = (int) $value;
             }
-            return $this->database->getReference()->update($updates);
+
+            Log::info("Firebase batch update - sending data: " . json_encode($updates));
+
+            $result = $this->database->getReference()->update($updates);
+
+            Log::info("Firebase batch update completed successfully");
+
+            return $result;
         } catch (\Exception $e) {
             Log::error("Failed to set batch relay states: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
             return false;
         }
     }
