@@ -12,7 +12,7 @@
 				<a href="javascript:;" class="menu-profile-link" data-toggle="app-sidebar-profile" data-target="#appSidebarProfileMenu">
 					<div class="menu-profile-cover with-shadow"></div>
 					<div class="menu-profile-image">
-						<img src="/assets/img/user/user-13.jpg" alt="" />
+						<img src="/assets/img/user/ks-icon.png" alt="" />
 					</div>
 					<div class="menu-profile-info">
 					<div class="d-flex align-items-center">
