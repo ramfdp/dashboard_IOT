@@ -1,9 +1,16 @@
 {
-    "name": "laravel/laravel",
+    "name": "ramfdp/smart-building-iot-dashboard",
     "type": "project",
-    "description": "The Laravel Framework.",
-    "keywords": ["framework", "laravel"],
+    "description": "A comprehensive IoT dashboard for smart building management with ESP32 integration, real-time monitoring, and intelligent device control.",
+    "keywords": ["laravel", "iot", "dashboard", "esp32", "smart-building", "firebase", "monitoring"],
     "license": "MIT",
+    "authors": [
+        {
+            "name": "ramfdp",
+            "email": "developer@example.com",
+            "role": "Developer"
+        }
+    ],
     "require": {
         "php": "^8.1",
         "guzzlehttp/guzzle": "^7.9",

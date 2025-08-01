@@ -51,27 +51,24 @@ function resetDeviceToAutoMode() {
 
 // Function to start manual mode timeout
 function startManualModeTimeout() {
-    // Clear existing timeout
-    if (manualModeTimer) {
-        clearTimeout(manualModeTimer);
-    }
+    console.log('[Timeout DISABLED] Manual mode akan aktif permanen hingga dinonaktifkan pengguna.');
 
     lastManualActivity = Date.now();
 
-    // Set timeout to reset to auto mode after inactivity
-    manualModeTimer = setTimeout(() => {
-        console.log('Manual mode timeout reached - returning to auto mode');
-        resetDeviceToAutoMode();
-    }, MANUAL_MODE_TIMEOUT);
+    // Kosongkan timer
+    if (manualModeTimer) {
+        clearTimeout(manualModeTimer);
+        manualModeTimer = null;
+    }
 
-    console.log(`Manual mode timeout set for ${MANUAL_MODE_TIMEOUT / 1000 / 60} minutes`);
-
-    // Notify mode manager about manual mode activation
+    // Tetap kirim event
     const event = new CustomEvent('modeChanged', {
         detail: { mode: 'manual', timestamp: Date.now(), source: 'user_action' }
     });
     document.dispatchEvent(event);
-}// Initialize device controls after DOM and Livewire are ready
+}
+
+// Initialize device controls after DOM and Livewire are ready
 function initializeDeviceControls() {
     console.log('Initializing device controls...');
 
@@ -183,12 +180,13 @@ function listenToFirebaseDeviceChanges() {
     // Listen to Relay1 changes
     onValue(ref(db, "/relayControl/relay1"), (snapshot) => {
         const value = snapshot.val();
-        console.log('Firebase Relay1 changed to:', value);
 
-        const relay1Switch = document.querySelector('input[name="relay1"][type="checkbox"].device-switch');
-        if (relay1Switch) {
-            // Always sync Firebase state to UI to maintain consistency
-            if (relay1Switch.checked !== (value === 1)) {
+        // Only process if value actually changed
+        if (value !== null && value !== relay1State) {
+            console.log('Firebase Relay1 changed to:', value);
+
+            const relay1Switch = document.querySelector('input[name="relay1"][type="checkbox"].device-switch');
+            if (relay1Switch) {
                 relay1Switch.checked = (value === 1);
                 relay1State = value;
                 updateDeviceIndicator(relay1Switch, value === 1 ? 'success' : 'grey');
@@ -200,12 +198,13 @@ function listenToFirebaseDeviceChanges() {
     // Listen to Relay2 changes
     onValue(ref(db, "/relayControl/relay2"), (snapshot) => {
         const value = snapshot.val();
-        console.log('Firebase Relay2 changed to:', value);
 
-        const relay2Switch = document.querySelector('input[name="relay2"][type="checkbox"].device-switch');
-        if (relay2Switch) {
-            // Always sync Firebase state to UI to maintain consistency
-            if (relay2Switch.checked !== (value === 1)) {
+        // Only process if value actually changed
+        if (value !== null && value !== relay2State) {
+            console.log('Firebase Relay2 changed to:', value);
+
+            const relay2Switch = document.querySelector('input[name="relay2"][type="checkbox"].device-switch');
+            if (relay2Switch) {
                 relay2Switch.checked = (value === 1);
                 relay2State = value;
                 updateDeviceIndicator(relay2Switch, value === 1 ? 'success' : 'grey');
@@ -217,12 +216,24 @@ function listenToFirebaseDeviceChanges() {
     // Listen to manual mode changes to provide better logging
     onValue(ref(db, "/relayControl/manualMode"), (snapshot) => {
         const value = snapshot.val();
-        console.log('Firebase manualMode changed to:', value);
 
-        if (value === true) {
-            console.log('Device is now in MANUAL mode - automatic schedules suspended');
-        } else {
-            console.log('Device is now in AUTO mode - schedules will control relays');
+        // Only process if the manual mode state actually changed
+        if (value !== null && deviceManualMode !== value) {
+            console.log('Firebase manualMode changed to:', value);
+            deviceManualMode = value;
+
+            if (value === true) {
+                console.log('Device is now in MANUAL mode - automatic schedules suspended');
+                startManualModeTimeout();
+            } else {
+                console.log('Device is now in AUTO mode - schedules will control relays');
+                // Clear manual mode timer when auto mode is active
+                if (manualModeTimer) {
+                    clearTimeout(manualModeTimer);
+                    manualModeTimer = null;
+                }
+                lastManualActivity = null;
+            }
         }
     });
 }
