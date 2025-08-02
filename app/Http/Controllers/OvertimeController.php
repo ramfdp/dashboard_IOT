@@ -138,6 +138,14 @@ class OvertimeController extends Controller
             // Start the overtime
             $overtime->update(['status' => 1]);
 
+            // Immediately update Firebase relay states after starting
+            try {
+                $this->updateRelayStatesBasedOnActiveOvertimes();
+                Log::info("Overtime {$id} auto-started - Firebase relay states updated immediately");
+            } catch (\Exception $e) {
+                Log::warning("Overtime {$id} auto-started but failed to update Firebase: " . $e->getMessage());
+            }
+
             Log::info("Overtime {$id} auto-started at " . $now->format('Y-m-d H:i:s'));
 
             return response()->json([
@@ -198,6 +206,14 @@ class OvertimeController extends Controller
             }
 
             $overtime->update($updateData);
+
+            // Immediately update Firebase relay states after completion
+            try {
+                $this->updateRelayStatesBasedOnActiveOvertimes($id);
+                Log::info("Overtime {$id} auto-completed - Firebase relay states updated immediately");
+            } catch (\Exception $e) {
+                Log::warning("Overtime {$id} auto-completed but failed to update Firebase: " . $e->getMessage());
+            }
 
             Log::info("Overtime {$id} auto-completed at " . $now->format('Y-m-d H:i:s'));
 
@@ -348,12 +364,13 @@ class OvertimeController extends Controller
     {
         $now = Carbon::now('Asia/Jakarta');
         $updated = false;
+        $statusChanges = [];
 
         $overtimes = Overtime::all();
 
         foreach ($overtimes as $overtime) {
-            $startTime = Carbon::parse($overtime->start_time);
-            $endTime = $overtime->end_time ? Carbon::parse($overtime->end_time) : null;
+            $startTime = Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->start_time);
+            $endTime = $overtime->end_time ? Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->end_time) : null;
 
             $newStatus = $overtime->status;
 
@@ -372,13 +389,31 @@ class OvertimeController extends Controller
             }
 
             if ($overtime->status != $newStatus) {
+                $oldStatus = $overtime->status;
                 $overtime->status = $newStatus;
                 $overtime->save();
                 $updated = true;
+
+                $statusChanges[] = [
+                    'id' => $overtime->id,
+                    'oldStatus' => $oldStatus,
+                    'newStatus' => $newStatus,
+                    'lightSelection' => $overtime->light_selection ?? 'all'
+                ];
+
+                Log::info("Overtime {$overtime->id} status changed from {$oldStatus} to {$newStatus}");
             }
         }
 
         if ($updated) {
+            // Immediately update Firebase relay states when status changes occur
+            try {
+                $this->updateRelayStatesBasedOnActiveOvertimes();
+                Log::info("Firebase relay states updated immediately due to status changes", ['changes' => $statusChanges]);
+            } catch (\Exception $e) {
+                Log::error("Failed to update Firebase relay states: " . $e->getMessage());
+            }
+
             $this->triggerPusher();
         }
     }
@@ -548,8 +583,8 @@ class OvertimeController extends Controller
             ->get()
             ->filter(function ($overtime) use ($now) {
                 // Check if overtime should still be active based on time
-                $startTime = Carbon::parse($overtime->start_time);
-                $endTime = $overtime->end_time ? Carbon::parse($overtime->end_time) : null;
+                $startTime = Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->start_time);
+                $endTime = $overtime->end_time ? Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->end_time) : null;
 
                 return $now->gte($startTime) && (!$endTime || $now->lt($endTime));
             });

@@ -2,29 +2,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase
 import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
 const db = getDatabase(initializeApp({
-    apiKey: "AIzaSyDi-2L7pOKJH1gOAJnSvhMfLUINRPTX7Yg",
-    authDomain: "smart-building-3e5c1.firebaseapp.com",
-    databaseURL: "https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "smart-building-3e5c1",
-    storageBucket: "smart-building-3e5c1.appspot.com",
-    messagingSenderId: "693247019169",
-    appId: "1:693247019169:web:xxxxxx"
+    apiKey: "AIzaSyDi-2L7pOKJH1gOAJnSvhMfLUINRPTX7Yg", authDomain: "smart-building-3e5c1.firebaseapp.com",
+    databaseURL: "https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "smart-building-3e5c1",
+    storageBucket: "smart-building-3e5c1.appspot.com", messagingSenderId: "693247019169", appId: "1:693247019169:web:xxxxxx"
 }));
 
 let manualMode = false, relay1ManualState = null, relay2ManualState = null, editMode = false, editingId = null;
 
 const checkAutoMode = () => {
-    // Defer to device firebase control for manual mode state
     const deviceStates = window.getDeviceStates?.() || {};
+    if (deviceStates.manualMode) return manualMode = true;
 
-    // If device is in manual mode, respect that state
-    if (deviceStates.manualMode) {
-        manualMode = true;
-        console.log('Device is in manual mode - overtime system will not auto-control relays');
-        return;
-    }
-
-    // Check local overtime manual states
     const autoMode = relay1ManualState === 0 && relay2ManualState === 0;
     if (autoMode && manualMode) {
         manualMode = false;
@@ -46,42 +34,25 @@ const cleanTime = timeString => timeString?.match(/^(\d{1,2}:\d{2})/)?.[1] + ':0
 
 const isOvertimeActive = overtime => {
     const now = new Date();
-
-    // If overtime is cut off (status = 2), it's never active regardless of time
     if (overtime.status === 2) return false;
 
-    // If overtime is running (status = 1), check if end time has passed
     if (overtime.status === 1) {
         if (overtime.end_time) {
-            // Extract date from overtime_date (handle both date and datetime strings)
-            const dateOnly = overtime.overtime_date.split(' ')[0]; // Get just the date part
+            const dateOnly = overtime.overtime_date.split(' ')[0];
             const endTime = new Date(`${dateOnly}T${cleanTime(overtime.end_time)}`);
-            if (now >= endTime) {
-                // End time reached - this overtime should be marked as completed
-                completeOvertimeAutomatically(overtime.id);
-                return false;
-            }
+            if (now >= endTime) { completeOvertimeAutomatically(overtime.id); return false; }
         }
         return true;
     }
 
-    // If overtime is not started yet (status = 0), check if it should be active based on time
-    const dateOnly = overtime.overtime_date.split(' ')[0]; // Get just the date part
+    const dateOnly = overtime.overtime_date.split(' ')[0];
     const startTime = new Date(`${dateOnly}T${cleanTime(overtime.start_time)}`);
     const endTime = overtime.end_time ? new Date(`${dateOnly}T${cleanTime(overtime.end_time)}`) : null;
 
     if (overtime.status === 0 && now >= startTime) {
-        if (!endTime || now < endTime) {
-            // Overtime should start now - update status to running
-            startOvertimeAutomatically(overtime.id);
-            return true;
-        } else {
-            // Overtime period has already passed without starting
-            completeOvertimeAutomatically(overtime.id);
-            return false;
-        }
+        if (!endTime || now < endTime) { startOvertimeAutomatically(overtime.id); return true; }
+        else { completeOvertimeAutomatically(overtime.id); return false; }
     }
-
     return false;
 };
 
@@ -104,97 +75,68 @@ const getStatusInfo = overtime => {
 // Auto-start overtime when start time is reached
 const startOvertimeAutomatically = async (overtimeId) => {
     try {
-        console.log(`Auto-starting overtime ${overtimeId}`);
         const response = await apiRequest(`/overtime/${overtimeId}/auto-start`, {
             method: 'POST',
             body: JSON.stringify({ auto_start: true })
         });
-
         if (response.success) {
-            console.log(`Overtime ${overtimeId} auto-started successfully`);
             showOvertimeNotification(`Overtime #${overtimeId} automatically started`, 'success');
-            // Refresh the data immediately
             setTimeout(() => updateLemburStatusDanRelay(), 500);
         }
     } catch (error) {
-        console.error(`Failed to auto-start overtime ${overtimeId}:`, error);
         showOvertimeNotification(`Failed to auto-start overtime #${overtimeId}`, 'danger');
     }
 };
 
-// Auto-complete overtime when end time is reached
 const completeOvertimeAutomatically = async (overtimeId) => {
     try {
-        console.log(`Auto-completing overtime ${overtimeId}`);
         showOvertimeNotification(`Auto-completing overtime #${overtimeId}...`, 'warning');
-
         const response = await apiRequest(`/overtime/${overtimeId}/auto-complete`, {
             method: 'POST',
             body: JSON.stringify({ auto_complete: true })
         });
 
         if (response.success) {
-            console.log(`Overtime ${overtimeId} completed successfully`);
-            showOvertimeNotification(`Overtime #${overtimeId} automatically completed`, 'success');            // Use smart relay control based on remaining active overtimes
-            console.log(`Checking remaining active overtimes...`);
+            showOvertimeNotification(`Overtime #${overtimeId} automatically completed`, 'success');
             const currentData = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
             const remainingActiveOvertimes = currentData.overtimes?.filter(o => o.id !== overtimeId).filter(isOvertimeActive) || [];
 
+            let relay1State = 0, relay2State = 0;
             if (remainingActiveOvertimes.length > 0) {
-                // There are still active overtimes - update relays based on their light selections
-                console.log(`${remainingActiveOvertimes.length} other overtime(s) still active - updating relays`);
-
-                let relay1ShouldBeOn = false;
-                let relay2ShouldBeOn = false;
-
                 remainingActiveOvertimes.forEach(overtime => {
                     const lightSelection = overtime.light_selection || 'all';
-                    if (lightSelection === 'itms1' || lightSelection === 'all') {
-                        relay1ShouldBeOn = true;
-                    }
-                    if (lightSelection === 'itms2' || lightSelection === 'all') {
-                        relay2ShouldBeOn = true;
-                    }
+                    if (lightSelection === 'itms1' || lightSelection === 'all') relay1State = 1;
+                    if (lightSelection === 'itms2' || lightSelection === 'all') relay2State = 1;
                 });
-
-                console.log(`Updating relays: Relay1=${relay1ShouldBeOn ? 'ON' : 'OFF'}, Relay2=${relay2ShouldBeOn ? 'ON' : 'OFF'}`);
-                await set(ref(db, "/relayControl/relay1"), relay1ShouldBeOn ? 1 : 0);
-                await set(ref(db, "/relayControl/relay2"), relay2ShouldBeOn ? 1 : 0);
-
                 showOvertimeNotification(`Overtime completed - lights updated based on remaining active overtimes`, 'info');
             } else {
-                // No more active overtimes - turn OFF all relays
-                console.log('No other active overtime - turning OFF all relays');
-                try {
-                    await set(ref(db, "/relayControl/relay1"), 0);
-                    await set(ref(db, "/relayControl/relay2"), 0);
-                    showOvertimeNotification('All overtime completed - lights turned OFF', 'warning');
-                } catch (firebaseError) {
-                    console.error('Failed to control relays:', firebaseError);
-                }
+                showOvertimeNotification('All overtime completed - lights turned OFF immediately', 'success');
             }
 
-            // Refresh the data immediately and trigger backend status check
+            try {
+                await Promise.all([
+                    set(ref(db, "/relayControl/relay1"), relay1State),
+                    set(ref(db, "/relayControl/relay2"), relay2State)
+                ]);
+            } catch (firebaseError) {
+                showOvertimeNotification('Overtime completed but failed to control lights', 'warning');
+            }
+
             setTimeout(() => {
                 updateLemburStatusDanRelay();
                 triggerBackendStatusCheck();
             }, 500);
         } else {
-            console.error(`Auto-complete API error:`, response);
             showOvertimeNotification(`Failed to auto-complete overtime #${overtimeId}`, 'danger');
         }
     } catch (error) {
-        console.error(`Failed to auto-complete overtime ${overtimeId}:`, error);
         showOvertimeNotification(`Error auto-completing overtime #${overtimeId}`, 'danger');
-        showOvertimeNotification(`Failed to auto-complete overtime #${overtimeId}`, 'danger');
     }
 };
 
 const apiRequest = async (url, options = {}) => {
     const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const defaultOptions = {
-        headers: { 'X-CSRF-TOKEN': token || '', 'Content-Type': 'application/json', ...options.headers }
-    };
+    const defaultOptions = { headers: { 'X-CSRF-TOKEN': token || '', 'Content-Type': 'application/json', ...options.headers } };
     const response = await fetch(url, { ...defaultOptions, ...options });
     if (!response.ok) throw new Error(`Server Error: ${response.status}`);
     return response.json();
@@ -203,11 +145,7 @@ const apiRequest = async (url, options = {}) => {
 const updateTable = overtimes => {
     const tbody = document.getElementById("lembur-tbody");
     if (!tbody) return;
-
-    if (!overtimes?.length) {
-        tbody.innerHTML = `<tr><td colspan="11" class="text-center">Belum ada data lembur.</td></tr>`;
-        return;
-    }
+    if (!overtimes?.length) { tbody.innerHTML = `<tr><td colspan="11" class="text-center">Belum ada data lembur.</td></tr>`; return; }
 
     tbody.innerHTML = overtimes.map((overtime, index) => {
         const { displayStatus, statusText, statusClass } = getStatusInfo(overtime);
@@ -215,7 +153,6 @@ const updateTable = overtimes => {
             day: '2-digit', month: '2-digit', year: 'numeric'
         });
 
-        // Light selection display
         const lightSelection = overtime.light_selection || 'all';
         const lightBadge = lightSelection === 'itms1' ? '<span class="badge bg-info">ITMS 1</span>' :
             lightSelection === 'itms2' ? '<span class="badge bg-warning">ITMS 2</span>' :
@@ -227,27 +164,13 @@ const updateTable = overtimes => {
             displayStatus === 1 ? `<button class="btn btn-sm btn-warning" onclick="cutOffOvertime(${overtime.id})"><i class="fas fa-stop"></i> Cut-off</button>` : ''
         ].join('');
 
-        return `<tr>
-            <td>${index + 1}</td>
-            <td>${overtime.division_name}</td>
-            <td>${overtime.employee_name}</td>
-            <td>${formattedDate}</td>
-            <td>${overtime.start_time}</td>
-            <td>${overtime.end_time ?? '-'}</td>
-            <td>${overtime.duration ?? '-'}</td>
-            <td><span class="badge bg-${statusClass}">${statusText}</span></td>
-            <td>${lightBadge}</td>
-            <td>${overtime.notes ?? '-'}</td>
-            <td>${actions}</td>
-        </tr>`;
+        return `<tr><td>${index + 1}</td><td>${overtime.division_name}</td><td>${overtime.employee_name}</td><td>${formattedDate}</td><td>${overtime.start_time}</td><td>${overtime.end_time ?? '-'}</td><td>${overtime.duration ?? '-'}</td><td><span class="badge bg-${statusClass}">${statusText}</span></td><td>${lightBadge}</td><td>${overtime.notes ?? '-'}</td><td>${actions}</td></tr>`;
     }).join('');
 };
 
 const updateLemburStatusDanRelay = async () => {
-    // Check if device is in manual mode - if so, don't auto-control relays
     const deviceStates = window.getDeviceStates?.() || {};
     if (deviceStates.manualMode || manualMode) {
-        console.log('Manual mode detected - skipping automatic relay control');
         try {
             const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
             updateTable(data.overtimes);
@@ -259,51 +182,53 @@ const updateLemburStatusDanRelay = async () => {
 
     try {
         const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
-        updateTable(data.overtimes);
+        const previousStates = window.previousOvertimeStates || {};
+        const currentStates = {};
+        let hasStatusChanges = false;
 
-        // Check if overtime system is available from backend
-        if (data.overtimeAvailable === false) {
-            console.log('Overtime system: Not available - scheduler system active');
-            return;
-        }
+        if (data.overtimes) {
+            data.overtimes.forEach(overtime => {
+                const currentStatus = overtime.status;
+                const previousStatus = previousStates[overtime.id];
+                currentStates[overtime.id] = currentStatus;
 
-        // Check if system is in manual mode before controlling relays
-        const manualModeRef = ref(db, "/relayControl/manualMode");
-        const manualModeSnapshot = await get(manualModeRef);
-        const isManualMode = manualModeSnapshot.val() === true;
-
-        if (isManualMode) {
-            console.log('Overtime system: Skipping relay control - device in manual mode');
-            return;
-        }
-
-        // Only control relays if overtime is available and not in manual mode
-        const activeOvertimes = data.overtimes?.filter(isOvertimeActive) || [];
-        const hasActive = activeOvertimes.length > 0;
-
-        if (hasActive) {
-            console.log('Overtime mode - controlling specific relays based on light selection');
-
-            // Determine which relays should be ON based on light selection
-            let relay1ShouldBeOn = false;
-            let relay2ShouldBeOn = false;
-
-            activeOvertimes.forEach(overtime => {
-                const lightSelection = overtime.light_selection || 'all';
-                if (lightSelection === 'itms1' || lightSelection === 'all') {
-                    relay1ShouldBeOn = true;
-                }
-                if (lightSelection === 'itms2' || lightSelection === 'all') {
-                    relay2ShouldBeOn = true;
+                if (previousStatus !== undefined && previousStatus !== currentStatus) {
+                    hasStatusChanges = true;
+                    const message = currentStatus === 2 ? `Overtime #${overtime.id} completed` : `Overtime #${overtime.id} started`;
+                    const type = currentStatus === 2 ? 'success' : 'info';
+                    showOvertimeNotification(message, type);
                 }
             });
+        }
 
-            console.log(`Setting relays: Relay1=${relay1ShouldBeOn ? 'ON' : 'OFF'}, Relay2=${relay2ShouldBeOn ? 'ON' : 'OFF'}`);
-            set(ref(db, "/relayControl/relay1"), relay1ShouldBeOn ? 1 : 0);
-            set(ref(db, "/relayControl/relay2"), relay2ShouldBeOn ? 1 : 0);
-        } else {
-            // Don't turn off relays here - let schedule system handle it
-            console.log('No active overtime - letting schedule system control relays');
+        window.previousOvertimeStates = currentStates;
+        updateTable(data.overtimes);
+
+        if (data.overtimeAvailable === false) return;
+
+        const manualModeSnapshot = await get(ref(db, "/relayControl/manualMode"));
+        if (manualModeSnapshot.val() === true) return;
+
+        const activeOvertimes = data.overtimes?.filter(isOvertimeActive) || [];
+        let relay1State = 0, relay2State = 0;
+
+        if (activeOvertimes.length > 0) {
+            activeOvertimes.forEach(overtime => {
+                const lightSelection = overtime.light_selection || 'all';
+                if (lightSelection === 'itms1' || lightSelection === 'all') relay1State = 1;
+                if (lightSelection === 'itms2' || lightSelection === 'all') relay2State = 1;
+            });
+
+            await Promise.all([
+                set(ref(db, "/relayControl/relay1"), relay1State),
+                set(ref(db, "/relayControl/relay2"), relay2State)
+            ]);
+        } else if (hasStatusChanges) {
+            await Promise.all([
+                set(ref(db, "/relayControl/relay1"), 0),
+                set(ref(db, "/relayControl/relay2"), 0)
+            ]);
+            showOvertimeNotification('All overtime completed - lights turned OFF', 'info');
         }
     } catch (err) {
         console.error("Gagal memuat lembur:", err);
@@ -326,10 +251,8 @@ const updateLemburStatusDanRelay = async () => {
 const validateForm = () => {
     const elements = getFormData();
     const validations = [
-        [elements.division_name, 'Nama divisi harus diisi'],
-        [elements.employee_name, 'Nama karyawan harus diisi'],
-        [elements.overtime_date, 'Tanggal lembur harus diisi'],
-        [elements.start_time, 'Waktu mulai harus diisi'],
+        [elements.division_name, 'Nama divisi harus diisi'], [elements.employee_name, 'Nama karyawan harus diisi'],
+        [elements.overtime_date, 'Tanggal lembur harus diisi'], [elements.start_time, 'Waktu mulai harus diisi'],
         [elements.light_selection, 'Pilihan lampu harus dipilih']
     ];
 
@@ -337,13 +260,9 @@ const validateForm = () => {
         if (!value) return alert(msg), false;
     }
 
-    if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(elements.start_time)) {
-        return alert('Format waktu mulai tidak valid'), false;
-    }
-
-    if (elements.end_time && !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(elements.end_time)) {
-        return alert('Format waktu selesai tidak valid'), false;
-    }
+    const timePattern = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timePattern.test(elements.start_time)) return alert('Format waktu mulai tidak valid'), false;
+    if (elements.end_time && !timePattern.test(elements.end_time)) return alert('Format waktu selesai tidak valid'), false;
 
     if (elements.end_time) {
         const start = new Date(`${elements.overtime_date}T${elements.start_time}`);
@@ -361,16 +280,13 @@ const editOvertime = async id => {
         if (!data.success) return;
 
         const overtime = data.overtime;
-        const elements = ['division_name', 'employee_name', 'overtime_date', 'start_time', 'end_time', 'notes', 'light_selection'];
-
-        elements.forEach(key => {
+        ['division_name', 'employee_name', 'overtime_date', 'start_time', 'end_time', 'notes', 'light_selection'].forEach(key => {
             const el = document.getElementById(key);
             if (!el) return;
-
-            if (key === 'overtime_date') el.value = overtime[key]?.slice(0, 10) || '';
-            else if (key.includes('time')) el.value = overtime[key]?.substring(0, 5) || '';
-            else if (key === 'light_selection') el.value = overtime[key] || 'all';
-            else el.value = overtime[key] || '';
+            el.value = key === 'overtime_date' ? overtime[key]?.slice(0, 10) || '' :
+                key.includes('time') ? overtime[key]?.substring(0, 5) || '' :
+                    key === 'light_selection' ? overtime[key] || 'all' :
+                        overtime[key] || '';
         });
 
         const form = document.querySelector('form[action*="overtime"]');
@@ -381,21 +297,14 @@ const editOvertime = async id => {
                 submitBtn.textContent = 'Update';
                 submitBtn.className = submitBtn.className.replace('btn-primary', 'btn-success');
             }
-
             if (!form.querySelector('.btn-cancel')) {
                 const cancelBtn = document.createElement('button');
-                Object.assign(cancelBtn, {
-                    type: 'button',
-                    className: 'btn btn-secondary btn-cancel ms-2',
-                    textContent: 'Cancel',
-                    onclick: cancelEdit
-                });
+                Object.assign(cancelBtn, { type: 'button', className: 'btn btn-secondary btn-cancel ms-2', textContent: 'Cancel', onclick: cancelEdit });
                 submitBtn.parentNode.appendChild(cancelBtn);
             }
         }
         document.querySelector('.panel-heading h1')?.scrollIntoView({ behavior: 'smooth' });
     } catch (err) {
-        console.error("Gagal memuat data overtime:", err);
         alert('Gagal memuat data untuk edit');
     }
 };
@@ -424,7 +333,6 @@ const deleteOvertime = async id => {
         alert(data.success ? 'Data lembur berhasil dihapus' : 'Gagal menghapus data lembur');
         if (data.success) updateLemburStatusDanRelay();
     } catch (err) {
-        console.error("Gagal menghapus overtime:", err);
         alert('Gagal menghapus data lembur');
     }
 };
@@ -436,62 +344,41 @@ const cutOffOvertime = async id => {
         alert(data.success ? 'Lembur berhasil dihentikan' : data.message || 'Gagal menghentikan lembur');
 
         if (data.success) {
-            // Use smart relay control after cutoff - check remaining active overtimes
             try {
                 const currentData = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
                 const remainingActiveOvertimes = currentData.overtimes?.filter(o => o.id !== id).filter(isOvertimeActive) || [];
 
+                let relay1State = 0, relay2State = 0;
                 if (remainingActiveOvertimes.length > 0) {
-                    // There are still active overtimes - update relays based on their light selections
-                    console.log(`${remainingActiveOvertimes.length} other overtime(s) still active after cutoff - updating relay states`);
-
-                    let relay1ShouldBeOn = false;
-                    let relay2ShouldBeOn = false;
-
                     remainingActiveOvertimes.forEach(overtime => {
                         const lightSelection = overtime.light_selection || 'all';
-                        if (lightSelection === 'itms1' || lightSelection === 'all') {
-                            relay1ShouldBeOn = true;
-                        }
-                        if (lightSelection === 'itms2' || lightSelection === 'all') {
-                            relay2ShouldBeOn = true;
-                        }
+                        if (lightSelection === 'itms1' || lightSelection === 'all') relay1State = 1;
+                        if (lightSelection === 'itms2' || lightSelection === 'all') relay2State = 1;
                     });
-
-                    console.log(`Updating relays after cutoff: Relay1=${relay1ShouldBeOn ? 'ON' : 'OFF'}, Relay2=${relay2ShouldBeOn ? 'ON' : 'OFF'}`);
-                    set(ref(db, "/relayControl/relay1"), relay1ShouldBeOn ? 1 : 0);
-                    set(ref(db, "/relayControl/relay2"), relay2ShouldBeOn ? 1 : 0);
-                    set(ref(db, "/relayControl/manualMode"), false);
-
-                    console.log('Relays updated based on remaining active overtimes after cutoff');
-                } else {
-                    // No more active overtimes - turn OFF all relays
-                    set(ref(db, "/relayControl/relay1"), 0);
-                    set(ref(db, "/relayControl/relay2"), 0);
-                    set(ref(db, "/relayControl/manualMode"), false);
-                    console.log('All relays turned OFF after cutoff - no remaining active overtimes');
                 }
+
+                await Promise.all([
+                    set(ref(db, "/relayControl/relay1"), relay1State),
+                    set(ref(db, "/relayControl/relay2"), relay2State),
+                    set(ref(db, "/relayControl/manualMode"), false)
+                ]);
             } catch (firebaseError) {
                 console.warn('Failed to immediately control relays after cutoff:', firebaseError);
             }
-
             setTimeout(() => updateLemburStatusDanRelay(), 1500);
         }
     } catch (err) {
-        console.error("Gagal cut-off overtime:", err);
         alert('Terjadi kesalahan saat menghentikan lembur');
     }
 };
 
 const handleEditSubmit = async () => {
     if (!validateForm()) return;
-
     try {
         const data = await apiRequest(`/overtime/${editingId}/update`, {
             method: 'PUT',
             body: JSON.stringify(getFormData())
         });
-
         if (data.success) {
             alert('Data lembur berhasil diupdate');
             cancelEdit();
@@ -501,32 +388,37 @@ const handleEditSubmit = async () => {
             alert(data.message || 'Gagal mengupdate data lembur');
         }
     } catch (err) {
-        console.error("Gagal update overtime:", err);
         alert('Terjadi kesalahan saat mengupdate data lembur');
     }
 };
 
 const forceRefreshRelayState = async () => {
-    // Check if device is in manual mode - if so, don't force refresh
     const deviceStates = window.getDeviceStates?.() || {};
-    if (deviceStates.manualMode || manualMode) {
-        console.log('Manual mode detected - skipping force refresh');
-        return;
-    }
+    if (deviceStates.manualMode || manualMode) return;
 
     try {
         const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
         if (!data.overtimes?.length) {
-            set(ref(db, "/relayControl/relay1"), 0);
-            set(ref(db, "/relayControl/relay2"), 0);
+            await Promise.all([
+                set(ref(db, "/relayControl/relay1"), 0),
+                set(ref(db, "/relayControl/relay2"), 0)
+            ]);
             return;
         }
-        const hasActive = data.overtimes.some(isOvertimeActive);
-        const relayState = hasActive ? 1 : 0;
 
-        console.log('Force refresh - updating relays to:', relayState);
-        set(ref(db, "/relayControl/relay1"), relayState);
-        set(ref(db, "/relayControl/relay2"), relayState);
+        const activeOvertimes = data.overtimes.filter(isOvertimeActive);
+        let relay1State = 0, relay2State = 0;
+
+        activeOvertimes.forEach(overtime => {
+            const lightSelection = overtime.light_selection || 'all';
+            if (lightSelection === 'itms1' || lightSelection === 'all') relay1State = 1;
+            if (lightSelection === 'itms2' || lightSelection === 'all') relay2State = 1;
+        });
+
+        await Promise.all([
+            set(ref(db, "/relayControl/relay1"), relay1State),
+            set(ref(db, "/relayControl/relay2"), relay2State)
+        ]);
     } catch (err) {
         console.error("Gagal force refresh:", err);
     }
@@ -537,43 +429,30 @@ const updateSwitchState = (name, value) => {
     if (switchEl && switchEl.checked !== (value === 1)) {
         switchEl.checked = (value === 1);
         const indicator = switchEl.closest(".d-flex")?.querySelector(".indicator");
-        if (indicator) {
-            const color = name === 'sos' ? (value === 1 ? "red" : "grey") : (value === 1 ? "green" : "grey");
-            indicator.style.backgroundColor = color;
-        }
+        if (indicator) indicator.style.backgroundColor = name === 'sos' ? (value === 1 ? "red" : "grey") : (value === 1 ? "green" : "grey");
     }
 };
 
-const setupFirebaseListeners = () => {
-    ['relay1', 'relay2', 'sos'].forEach(name => {
-        onValue(ref(db, `/relayControl/${name}`), snapshot => {
-            updateSwitchState(name, snapshot.val());
-        });
-    });
-};
+const setupFirebaseListeners = () => { ['relay1', 'relay2', 'sos'].forEach(name => { onValue(ref(db, `/relayControl/${name}`), snapshot => { updateSwitchState(name, snapshot.val()); }); }); };
 
 const showModeStatus = () => {
     const statusEl = document.getElementById('mode-status');
     if (!statusEl) return;
 
-    // Check device manual mode first
     const deviceStates = window.getDeviceStates?.() || {};
     const sosActive = document.querySelector('input[name="sos"][type="checkbox"].device-switch')?.checked;
 
     if (sosActive) {
         statusEl.textContent = 'Mode SOS Aktif - Semua Relay ON';
         statusEl.className = 'badge bg-danger';
-    } else if (deviceStates.manualMode) {
-        const active = [];
-        if (deviceStates.relay1 === 1) active.push('ITMS 1');
-        if (deviceStates.relay2 === 1) active.push('ITMS 2');
-        statusEl.textContent = `Mode Manual Aktif (${active.join(', ') || 'Semua OFF'})`;
-        statusEl.className = 'badge bg-warning';
-    } else if (manualMode) {
-        const active = [];
-        if (relay1ManualState === 1) active.push('ITMS 1');
-        if (relay2ManualState === 1) active.push('ITMS 2');
-        statusEl.textContent = `Mode Manual Aktif (${active.join(', ') || 'Semua OFF'})`;
+    } else if (deviceStates.manualMode || manualMode) {
+        const getActiveStates = () => {
+            const active = [];
+            if ((deviceStates.relay1 || relay1ManualState) === 1) active.push('ITMS 1');
+            if ((deviceStates.relay2 || relay2ManualState) === 1) active.push('ITMS 2');
+            return active;
+        };
+        statusEl.textContent = `Mode Manual Aktif (${getActiveStates().join(', ') || 'Semua OFF'})`;
         statusEl.className = 'badge bg-warning';
     } else {
         statusEl.textContent = 'Mode Otomatis Aktif (Berdasarkan Jadwal Lembur)';
@@ -582,15 +461,9 @@ const showModeStatus = () => {
 };
 
 const resetToAutoMode = () => {
-    // Reset both manual modes
     manualMode = false;
     relay1ManualState = relay2ManualState = null;
-
-    // Reset device manual mode if function exists
-    if (window.resetDeviceToAutoMode) {
-        window.resetDeviceToAutoMode();
-    }
-
+    if (window.resetDeviceToAutoMode) window.resetDeviceToAutoMode();
     updateLemburStatusDanRelay();
 };
 
@@ -602,45 +475,29 @@ const checkOvertimeEndTimes = async () => {
 
         const now = new Date();
         let hasStatusChanges = false;
-        let statusChangeCount = 0;
 
         for (const overtime of data.overtimes) {
-            if (overtime.status === 1 && overtime.end_time) { // Running overtime with end time
-                const dateOnly = overtime.overtime_date.split(' ')[0]; // Get just the date part
-                const endTime = new Date(`${dateOnly}T${cleanTime(overtime.end_time)}`);
-                if (now >= endTime) {
-                    console.log(`Overtime ${overtime.id} end time reached - auto-completing`);
+            const dateOnly = overtime.overtime_date.split(' ')[0];
+            const startTime = new Date(`${dateOnly}T${cleanTime(overtime.start_time)}`);
+            const endTime = overtime.end_time ? new Date(`${dateOnly}T${cleanTime(overtime.end_time)}`) : null;
+
+            if (overtime.status === 1 && endTime && now >= endTime) {
+                await completeOvertimeAutomatically(overtime.id);
+                hasStatusChanges = true;
+            } else if (overtime.status === 0 && now >= startTime) {
+                if (!endTime || now < endTime) {
+                    await startOvertimeAutomatically(overtime.id);
+                } else {
                     await completeOvertimeAutomatically(overtime.id);
-                    hasStatusChanges = true;
-                    statusChangeCount++;
                 }
-            } else if (overtime.status === 0) { // Pending overtime
-                const dateOnly = overtime.overtime_date.split(' ')[0]; // Get just the date part
-                const startTime = new Date(`${dateOnly}T${cleanTime(overtime.start_time)}`);
-                if (now >= startTime) {
-                    const endTime = overtime.end_time ? new Date(`${dateOnly}T${cleanTime(overtime.end_time)}`) : null;
-                    if (!endTime || now < endTime) {
-                        console.log(`Overtime ${overtime.id} start time reached - auto-starting`);
-                        await startOvertimeAutomatically(overtime.id);
-                        hasStatusChanges = true;
-                        statusChangeCount++;
-                    } else {
-                        console.log(`Overtime ${overtime.id} period has passed - auto-completing`);
-                        await completeOvertimeAutomatically(overtime.id);
-                        hasStatusChanges = true;
-                        statusChangeCount++;
-                    }
-                }
+                hasStatusChanges = true;
             }
         }
 
-        // If there were status changes, refresh the display and relay states
         if (hasStatusChanges) {
-            console.log(`${statusChangeCount} overtime status changes detected - refreshing`);
-            setTimeout(() => {
-                updateLemburStatusDanRelay();
-                triggerBackendStatusCheck();
-            }, 1000);
+            await updateLemburStatusDanRelay();
+            setTimeout(() => triggerBackendStatusCheck(), 500);
+            setTimeout(() => updateLemburStatusDanRelay(), 2000);
         }
     } catch (error) {
         console.error('Error checking overtime end times:', error);
@@ -648,47 +505,28 @@ const checkOvertimeEndTimes = async () => {
 }; document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const form = document.querySelector('form[action*="overtime"]');
-        if (form) {
-            form.addEventListener('submit', e => {
-                if (editMode) {
-                    e.preventDefault();
-                    handleEditSubmit();
-                }
-            });
-        }
-
+        if (form) form.addEventListener('submit', e => { if (editMode) { e.preventDefault(); handleEditSubmit(); } });
         setupFirebaseListeners();
         updateLemburStatusDanRelay();
-        console.log('Overtime control system initialized');
     }, 1500);
 
-    // More frequent updates for better real-time detection
-    let overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 5000); // Every 5 seconds
-    let statusInterval = setInterval(showModeStatus, 3000); // Every 3 seconds
-
-    // Additional high-frequency check specifically for overtime end times
-    let overtimeEndTimeCheck = setInterval(checkOvertimeEndTimes, 10000); // Every 10 seconds
+    let overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 3000);
+    let statusInterval = setInterval(showModeStatus, 2000);
+    let overtimeEndTimeCheck = setInterval(checkOvertimeEndTimes, 5000);
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            clearInterval(overtimeUpdateInterval);
-            clearInterval(statusInterval);
-            clearInterval(overtimeEndTimeCheck);
+            [overtimeUpdateInterval, statusInterval, overtimeEndTimeCheck].forEach(clearInterval);
         } else {
-            overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 5000);
-            statusInterval = setInterval(showModeStatus, 3000);
-            overtimeEndTimeCheck = setInterval(checkOvertimeEndTimes, 10000);
+            updateLemburStatusDanRelay(); checkOvertimeEndTimes();
+            overtimeUpdateInterval = setInterval(updateLemburStatusDanRelay, 3000);
+            statusInterval = setInterval(showModeStatus, 2000);
+            overtimeEndTimeCheck = setInterval(checkOvertimeEndTimes, 5000);
         }
     });
-
-    window.addEventListener('beforeunload', () => {
-        clearInterval(overtimeUpdateInterval);
-        clearInterval(statusInterval);
-        clearInterval(overtimeEndTimeCheck);
-    });
+    window.addEventListener('beforeunload', () => { [overtimeUpdateInterval, statusInterval, overtimeEndTimeCheck].forEach(clearInterval); });
 });
 
-// Export functions to global scope
 Object.assign(window, {
     updateLemburStatusDanRelay, manualRelayControl, resetToAutoMode, editOvertime,
     deleteOvertime, cutOffOvertime, cancelEdit, forceRefreshRelayState,
@@ -702,21 +540,13 @@ Object.assign(window, {
 
 // Show automatic status change notifications
 const showOvertimeNotification = (message, type = 'info') => {
-    // Remove existing overtime notifications
-    const existingNotifications = document.querySelectorAll('.overtime-notification');
-    existingNotifications.forEach(notification => notification.remove());
+    document.querySelectorAll('.overtime-notification').forEach(notification => notification.remove());
 
-    // Create notification
     const notification = document.createElement('div');
     notification.className = `alert alert-${type} alert-dismissible fade show overtime-notification`;
     notification.style.cssText = 'position: fixed; top: 70px; right: 20px; z-index: 9999; min-width: 350px; max-width: 400px;';
 
-    const iconMap = {
-        'success': 'check-circle',
-        'info': 'info-circle',
-        'warning': 'exclamation-triangle',
-        'danger': 'exclamation-triangle'
-    };
+    const iconMap = { 'success': 'check-circle', 'info': 'info-circle', 'warning': 'exclamation-triangle', 'danger': 'exclamation-triangle' };
 
     notification.innerHTML = `
         <i class="fas fa-${iconMap[type] || 'info-circle'} me-2"></i>
@@ -725,29 +555,18 @@ const showOvertimeNotification = (message, type = 'info') => {
     `;
 
     document.body.appendChild(notification);
-
-    // Auto remove after 6 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
-        }
-    }, 6000);
+    setTimeout(() => notification.parentNode && notification.remove(), 6000);
 };
 
 // Trigger backend status check via Livewire
 const triggerBackendStatusCheck = () => {
     try {
-        // Try to call Livewire component method if available
         if (window.Livewire && window.Livewire.all && window.Livewire.all().length > 0) {
             const overtimeComponent = window.Livewire.all().find(component =>
                 component.name === 'overtime-control' ||
                 component.__instance.fingerprint.name === 'overtime-control'
             );
-
-            if (overtimeComponent) {
-                overtimeComponent.call('checkForAutomaticStatusChanges');
-                console.log('Backend status check triggered');
-            }
+            if (overtimeComponent) overtimeComponent.call('checkForAutomaticStatusChanges');
         }
     } catch (error) {
         console.error('Failed to trigger backend status check:', error);
