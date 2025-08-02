@@ -115,6 +115,21 @@
                             @enderror
                         </div>
 
+                        <div class="form-group mb-3">
+                            <label for="light_selection" class="form-label">Pilih Lampu yang Akan Dinyalakan</label>
+                            <select wire:model="light_selection" id="light_selection" 
+                                    class="form-control @error('light_selection') is-invalid @enderror" required>
+                                <option value="">-- Pilih Lampu --</option>
+                                <option value="itms1">ITMS 1 Light (Relay 1)</option>
+                                <option value="itms2">ITMS 2 Light (Relay 2)</option>
+                                <option value="all">Semua Lampu (ITMS 1 & 2)</option>
+                            </select>
+                            @error('light_selection')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <div class="form-text">Pilih lampu mana yang akan dinyalakan selama lembur</div>
+                        </div>
+
                         <div class="form-group mb-4">
                             <button type="submit" class="btn btn-primary" 
                                     wire:loading.attr="disabled" 
@@ -140,6 +155,14 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h4>Daftar Lembur</h4>
                         <div class="btn-group">
+                            <button type="button" class="btn btn-success btn-sm" wire:click="forceStatusCheck" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="forceStatusCheck">
+                                    <i class="fas fa-clock"></i> Check Status
+                                </span>
+                                <span wire:loading wire:target="forceStatusCheck">
+                                    <i class="fas fa-spinner fa-spin"></i> Checking...
+                                </span>
+                            </button>
                             <button type="button" class="btn btn-info btn-sm" wire:click="updateLemburStatusDanRelay" wire:loading.attr="disabled">
                                 <span wire:loading.remove wire:target="updateLemburStatusDanRelay">
                                     <i class="fas fa-sync"></i> Refresh
@@ -163,16 +186,17 @@
                         <table class="table table-bordered table-striped table-hover">
                             <thead class="table-dark">
                                 <tr>
-                                    <th width="5%">No</th>
-                                    <th width="12%">Divisi</th>
-                                    <th width="12%">Nama Karyawan</th>
-                                    <th width="10%">Tanggal</th>
-                                    <th width="8%">Mulai</th>
-                                    <th width="8%">Selesai</th>
-                                    <th width="8%">Durasi</th>
-                                    <th width="10%">Status</th>
-                                    <th width="12%">Catatan</th>
-                                    <th width="15%">Aksi</th>
+                                    <th width="4%">No</th>
+                                    <th width="10%">Divisi</th>
+                                    <th width="10%">Nama Karyawan</th>
+                                    <th width="8%">Tanggal</th>
+                                    <th width="7%">Mulai</th>
+                                    <th width="7%">Selesai</th>
+                                    <th width="7%">Durasi</th>
+                                    <th width="8%">Status</th>
+                                    <th width="10%">Lampu</th>
+                                    <th width="10%">Catatan</th>
+                                    <th width="14%">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="lembur-tbody">
@@ -193,6 +217,18 @@
                                             @else
                                                 <span class="badge bg-success">Selesai</span>
                                             @endif
+                                        </td>
+                                        <td>
+                                            @php
+                                                $lightSelection = $ot->light_selection ?? 'all';
+                                                $lightText = match($lightSelection) {
+                                                    'itms1' => '<span class="badge bg-info">ITMS 1</span>',
+                                                    'itms2' => '<span class="badge bg-warning">ITMS 2</span>',
+                                                    'all' => '<span class="badge bg-success">Semua</span>',
+                                                    default => '<span class="badge bg-secondary">Semua</span>'
+                                                };
+                                            @endphp
+                                            {!! $lightText !!}
                                         </td>
                                         <td>{{ $ot->notes ?? '-' }}</td>
                                         <td>
@@ -229,7 +265,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="10" class="text-center">Belum ada data lembur.</td>
+                                        <td colspan="11" class="text-center">Belum ada data lembur.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -274,6 +310,21 @@
         <div class="modal-backdrop fade show"></div>
     @endif
     <!-- END Enhanced Form Lembur Section -->
+
+    <!-- Auto-refresh script for backend status checking -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-check for status changes every 30 seconds
+            setInterval(function() {
+                @this.call('checkForAutomaticStatusChanges');
+            }, 30000);
+            
+            // Initial check after page load
+            setTimeout(function() {
+                @this.call('checkForAutomaticStatusChanges');
+            }, 3000);
+        });
+    </script>
 
     <!-- CSS untuk Indikator -->
     <style>

@@ -21,7 +21,8 @@ class Overtime extends Model
         'status',
         'notes',
         'approved_by',
-        'approved_at'
+        'approved_at',
+        'light_selection'
     ];
 
     protected $casts = [

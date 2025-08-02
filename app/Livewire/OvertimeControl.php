@@ -8,6 +8,7 @@ use App\Models\Overtime;
 use App\Models\LightSchedule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Pusher\Pusher;
 
@@ -22,6 +23,7 @@ class OvertimeControl extends Component
     public $start_time = '';
     public $end_time = '';
     public $notes = '';
+    public $light_selection = '';
 
     // Modal properties
     public $showCutOffModal = false;
@@ -44,6 +46,7 @@ class OvertimeControl extends Component
         'start_time' => 'required|date_format:H:i',
         'end_time' => 'nullable|date_format:H:i|after:start_time',
         'notes' => 'nullable|string|max:500',
+        'light_selection' => 'required|in:itms1,itms2,all',
     ];
 
     protected $messages = [
@@ -52,6 +55,8 @@ class OvertimeControl extends Component
         'overtime_date.required' => 'Tanggal lembur harus diisi.',
         'start_time.required' => 'Waktu mulai harus diisi.',
         'end_time.after' => 'Waktu selesai harus setelah waktu mulai.',
+        'light_selection.required' => 'Pilihan lampu harus dipilih.',
+        'light_selection.in' => 'Pilihan lampu tidak valid.',
     ];
 
     public function mount()
@@ -210,6 +215,7 @@ class OvertimeControl extends Component
                 'duration' => $duration,
                 'status' => $status,
                 'notes' => $this->notes,
+                'light_selection' => $this->light_selection,
             ]);
 
             session()->flash('success_overtime', 'Data lembur berhasil diupdate!');
@@ -224,6 +230,7 @@ class OvertimeControl extends Component
                 'duration' => $duration,
                 'status' => $status,
                 'notes' => $this->notes,
+                'light_selection' => $this->light_selection,
             ]);
 
             session()->flash('success_overtime', 'Lembur berhasil disimpan!');
@@ -245,6 +252,7 @@ class OvertimeControl extends Component
         $this->start_time = Carbon::parse($overtime->start_time)->format('H:i');
         $this->end_time = $overtime->end_time ? Carbon::parse($overtime->end_time)->format('H:i') : '';
         $this->notes = $overtime->notes ?? '';
+        $this->light_selection = $overtime->light_selection ?? 'all';
     }
 
     public function cancelEdit()
@@ -304,15 +312,10 @@ class OvertimeControl extends Component
             'notes' => $overtime->notes . "\n\nCut-off reason: " . $this->cutoff_reason
         ]);
 
-        // Immediately turn OFF relays when overtime is cut off
+        // Smart relay control based on remaining active overtimes
         try {
-            Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
-                'relay1' => 0,
-                'relay2' => 0,
-                'manualMode' => false
-            ]);
-
-            session()->flash('success_overtime', 'Lembur berhasil dihentikan! Lampu dimatikan otomatis.');
+            $this->updateRelayStatesBasedOnActiveOvertimes($this->selectedOvertimeId);
+            session()->flash('success_overtime', 'Lembur berhasil dihentikan! Lampu diatur otomatis berdasarkan lembur aktif lainnya.');
         } catch (\Exception $e) {
             session()->flash('success_overtime', 'Lembur berhasil dihentikan! (Relay mungkin perlu dimatikan manual)');
         }
@@ -353,6 +356,48 @@ class OvertimeControl extends Component
         }
     }
 
+    private function updateRelayStatesBasedOnActiveOvertimes($excludeOvertimeId = null)
+    {
+        // Get all active overtimes excluding the one being cut off
+        $now = Carbon::now('Asia/Jakarta');
+        $activeOvertimes = Overtime::where('status', 1)
+            ->when($excludeOvertimeId, function ($query, $excludeId) {
+                return $query->where('id', '!=', $excludeId);
+            })
+            ->get()
+            ->filter(function ($overtime) use ($now) {
+                // Check if overtime should still be active based on time
+                $startTime = Carbon::parse($overtime->start_time);
+                $endTime = $overtime->end_time ? Carbon::parse($overtime->end_time) : null;
+
+                return $now->gte($startTime) && (!$endTime || $now->lt($endTime));
+            });
+
+        $relay1ShouldBeOn = false;
+        $relay2ShouldBeOn = false;
+
+        // Determine which relays should be ON based on active overtimes' light selections
+        foreach ($activeOvertimes as $overtime) {
+            $lightSelection = $overtime->light_selection ?? 'all';
+
+            if ($lightSelection === 'itms1' || $lightSelection === 'all') {
+                $relay1ShouldBeOn = true;
+            }
+            if ($lightSelection === 'itms2' || $lightSelection === 'all') {
+                $relay2ShouldBeOn = true;
+            }
+        }
+
+        // Update Firebase with the calculated relay states
+        Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
+            'relay1' => $relay1ShouldBeOn ? 1 : 0,
+            'relay2' => $relay2ShouldBeOn ? 1 : 0,
+            'manualMode' => false
+        ]);
+
+        Log::info("Smart relay control updated: Relay1={$relay1ShouldBeOn}, Relay2={$relay2ShouldBeOn}, Active overtimes: {$activeOvertimes->count()}");
+    }
+
     private function resetForm()
     {
         $this->division_name = '';
@@ -361,6 +406,7 @@ class OvertimeControl extends Component
         $this->start_time = '';
         $this->end_time = '';
         $this->notes = '';
+        $this->light_selection = '';
     }
 
     private function updateOvertimeStatuses()
@@ -371,8 +417,8 @@ class OvertimeControl extends Component
         $overtimes = Overtime::all();
 
         foreach ($overtimes as $overtime) {
-            $startTime = Carbon::parse($overtime->start_time);
-            $endTime = $overtime->end_time ? Carbon::parse($overtime->end_time) : null;
+            $startTime = Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->start_time);
+            $endTime = $overtime->end_time ? Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->end_time) : null;
 
             $newStatus = $overtime->status;
 
@@ -401,6 +447,100 @@ class OvertimeControl extends Component
         if ($updated) {
             $this->triggerPusher();
         }
+    }
+
+    /**
+     * Check for automatic overtime status changes and refresh if needed
+     * This method will be called periodically to ensure backend stays in sync
+     */
+    public function checkForAutomaticStatusChanges()
+    {
+        $now = Carbon::now('Asia/Jakarta');
+        $hasChanges = false;
+
+        // Get all running overtimes that might need auto-completion
+        $runningOvertimes = Overtime::where('status', 1)->get();
+
+        foreach ($runningOvertimes as $overtime) {
+            if ($overtime->end_time) {
+                $endTime = Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->end_time);
+
+                // If overtime end time has passed, it should be completed
+                if ($now->gte($endTime)) {
+                    Log::info("Backend auto-completing overtime {$overtime->id} - end time reached");
+
+                    // Update overtime status to completed
+                    $overtime->update([
+                        'status' => 2,
+                        'end_time' => $endTime->format('H:i:s'),
+                        'duration' => Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->start_time)->diffInMinutes($endTime)
+                    ]);
+
+                    $hasChanges = true;
+                }
+            }
+        }        // Get all pending overtimes that might need auto-start
+        $pendingOvertimes = Overtime::where('status', 0)->get();
+
+        foreach ($pendingOvertimes as $overtime) {
+            $startTime = Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->start_time);
+
+            // If start time has passed and it's still today, auto-start it
+            if ($now->gte($startTime) && $now->isSameDay($startTime)) {
+                $endTime = $overtime->end_time ? Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->end_time) : null;
+
+                // Only auto-start if we haven't passed the end time (if it exists)
+                if (!$endTime || $now->lt($endTime)) {
+                    Log::info("Backend auto-starting overtime {$overtime->id} - start time reached");
+
+                    $overtime->update(['status' => 1]);
+                    $hasChanges = true;
+                } else {
+                    // If both start and end time have passed, mark as completed
+                    Log::info("Backend auto-completing overtime {$overtime->id} - period has passed");
+
+                    $overtime->update([
+                        'status' => 2,
+                        'end_time' => $endTime->format('H:i:s'),
+                        'duration' => Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->start_time)->diffInMinutes($endTime)
+                    ]);
+
+                    $hasChanges = true;
+                }
+            }
+        }        // If there were status changes, update relay states and refresh the view
+        if ($hasChanges) {
+            Log::info("Backend detected automatic status changes - updating relay states and refreshing view");
+
+            // Update relay states based on current active overtimes
+            $this->updateRelayStatesBasedOnActiveOvertimes();
+
+            // Force refresh the component to show updated data
+            $this->dispatch('$refresh');
+
+            // Also trigger pusher to notify other users
+            $this->triggerPusher();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Manually trigger status check and refresh
+     * Can be called from frontend when needed
+     */
+    public function forceStatusCheck()
+    {
+        $changed = $this->checkForAutomaticStatusChanges();
+
+        if ($changed) {
+            session()->flash('success_overtime', 'Status lembur berhasil diperbarui secara otomatis!');
+        }
+
+        // Always refresh the status check
+        $this->updateLemburStatusDanRelay();
     }
 
     private function triggerPusher()

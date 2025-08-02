@@ -81,15 +81,10 @@ class OvertimeController extends Controller
                 'status' => 2
             ]);
 
-            // Immediately turn OFF relays when overtime is cut off
+            // Smart relay control based on remaining active overtimes
             try {
-                Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
-                    'relay1' => 0,
-                    'relay2' => 0,
-                    'manualMode' => false
-                ]);
-
-                Log::info("Overtime {$id} cut off - relays turned OFF automatically");
+                $this->updateRelayStatesBasedOnActiveOvertimes($id);
+                Log::info("Overtime {$id} cut off - smart relay control applied");
             } catch (\Exception $e) {
                 Log::warning("Overtime {$id} cut off but failed to control relays: " . $e->getMessage());
             }
@@ -540,5 +535,47 @@ class OvertimeController extends Controller
             'relay1' => 0,
             'relay2' => 0,
         ];
+    }
+
+    private function updateRelayStatesBasedOnActiveOvertimes($excludeOvertimeId = null)
+    {
+        // Get all active overtimes excluding the one being cut off
+        $now = Carbon::now('Asia/Jakarta');
+        $activeOvertimes = Overtime::where('status', 1)
+            ->when($excludeOvertimeId, function ($query, $excludeId) {
+                return $query->where('id', '!=', $excludeId);
+            })
+            ->get()
+            ->filter(function ($overtime) use ($now) {
+                // Check if overtime should still be active based on time
+                $startTime = Carbon::parse($overtime->start_time);
+                $endTime = $overtime->end_time ? Carbon::parse($overtime->end_time) : null;
+
+                return $now->gte($startTime) && (!$endTime || $now->lt($endTime));
+            });
+
+        $relay1ShouldBeOn = false;
+        $relay2ShouldBeOn = false;
+
+        // Determine which relays should be ON based on active overtimes' light selections
+        foreach ($activeOvertimes as $overtime) {
+            $lightSelection = $overtime->light_selection ?? 'all';
+
+            if ($lightSelection === 'itms1' || $lightSelection === 'all') {
+                $relay1ShouldBeOn = true;
+            }
+            if ($lightSelection === 'itms2' || $lightSelection === 'all') {
+                $relay2ShouldBeOn = true;
+            }
+        }
+
+        // Update Firebase with the calculated relay states
+        Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
+            'relay1' => $relay1ShouldBeOn ? 1 : 0,
+            'relay2' => $relay2ShouldBeOn ? 1 : 0,
+            'manualMode' => false
+        ]);
+
+        Log::info("Smart relay control updated: Relay1={$relay1ShouldBeOn}, Relay2={$relay2ShouldBeOn}, Active overtimes: {$activeOvertimes->count()}");
     }
 }

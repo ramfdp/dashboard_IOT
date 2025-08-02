@@ -3,7 +3,6 @@
 @section('title', 'Dashboard')
 
 @push('css')
-    <link href="/assets/plugins/jvectormap-next/jquery-jvectormap.css" rel="stylesheet" />
     <link href="/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css" rel="stylesheet" />
     <link href="/assets/plugins/gritter/css/jquery.gritter.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet" />
@@ -33,8 +32,6 @@
     <script src="/assets/plugins/flot/source/jquery.flot.symbol.js"></script>
     <script src="/assets/plugins/flot/source/jquery.flot.legend.js"></script>
     <script src="/assets/plugins/jquery-sparkline/jquery.sparkline.min.js"></script>
-    <script src="/assets/plugins/jvectormap-next/jquery-jvectormap.min.js"></script>
-    <script src="/assets/plugins/jvectormap-content/world-mill.js"></script>
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     <script src="/assets/js/demo/dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
