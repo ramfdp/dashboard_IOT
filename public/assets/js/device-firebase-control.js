@@ -273,12 +273,7 @@ function syncInitialDeviceState() {
 
 // Update visual indicator for a switch
 function updateDeviceIndicator(switchElement, color) {
-    const indicator = switchElement.closest(".d-flex")?.querySelector(".indicator");
-    if (indicator) {
-        indicator.style.backgroundColor = color;
-    }
-
-    // Update status text for new layout
+    // Update status text
     const relayName = switchElement.name;
     const statusElement = document.querySelector(`.${relayName}-status`);
     if (statusElement) {
@@ -287,12 +282,14 @@ function updateDeviceIndicator(switchElement, color) {
         statusElement.style.color = isOn ? '#28a745' : '#6c757d';
     }
 
-    // Update device icon color
+    // Update device icon - find the lightbulb icon in the same card
     const card = switchElement.closest('.device-control-card');
     if (card) {
-        const icon = card.querySelector('.device-icon i');
-        if (icon) {
-            icon.className = icon.className.replace(/text-\w+/, `text-${switchElement.checked ? 'success' : 'warning'}`);
+        const lightbulbIcon = card.querySelector('.device-icon .fa-lightbulb');
+        if (lightbulbIcon) {
+            // Remove existing color classes and add new one
+            lightbulbIcon.classList.remove('text-warning', 'text-success', 'text-secondary');
+            lightbulbIcon.classList.add(switchElement.checked ? 'text-success' : 'text-secondary');
         }
     }
 }
@@ -301,22 +298,10 @@ function updateDeviceIndicator(switchElement, color) {
 function initializeDeviceIndicators() {
     console.log('Initializing device indicators...');
 
-    // Add indicators if they don't exist
+    // Update all device switches to reflect their current state
     document.querySelectorAll('.device-switch').forEach(switchEl => {
-        const container = switchEl.closest('.d-flex');
-        if (container && !container.querySelector('.indicator')) {
-            const indicator = document.createElement('div');
-            indicator.className = 'indicator';
-            indicator.style.cssText = `
-                width: 20px;
-                height: 20px;
-                border-radius: 50%;
-                background-color: grey;
-                margin-left: 10px;
-                transition: background-color 0.3s ease;
-            `;
-            container.appendChild(indicator);
-        }
+        // Update the visual indicators based on current state
+        updateDeviceIndicator(switchEl, switchEl.checked ? 'success' : 'grey');
     });
 }
 
