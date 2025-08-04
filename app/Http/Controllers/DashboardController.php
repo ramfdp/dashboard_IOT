@@ -53,10 +53,22 @@ class DashboardController extends Controller
         try {
             $relay1 = $this->firebase->getRelayState('relay1') ?? 0;
             $relay2 = $this->firebase->getRelayState('relay2') ?? 0;
+            $relay3 = $this->firebase->getRelayState('relay3') ?? 0;
+            $relay4 = $this->firebase->getRelayState('relay4') ?? 0;
+            $relay5 = $this->firebase->getRelayState('relay5') ?? 0;
+            $relay6 = $this->firebase->getRelayState('relay6') ?? 0;
+            $relay7 = $this->firebase->getRelayState('relay7') ?? 0;
+            $relay8 = $this->firebase->getRelayState('relay8') ?? 0;
         } catch (\Exception $e) {
             // If Firebase fails, set default values
             $relay1 = 0;
             $relay2 = 0;
+            $relay3 = 0;
+            $relay4 = 0;
+            $relay5 = 0;
+            $relay6 = 0;
+            $relay7 = 0;
+            $relay8 = 0;
         }
 
         // Kirim semua data ke view
@@ -69,7 +81,13 @@ class DashboardController extends Controller
             'dataKwh',
             'lightSchedules',
             'relay1',
-            'relay2'
+            'relay2',
+            'relay3',
+            'relay4',
+            'relay5',
+            'relay6',
+            'relay7',
+            'relay8'
         ));
     }
 
@@ -77,11 +95,23 @@ class DashboardController extends Controller
     {
         $relay1 = $request->input('relay1', 0);
         $relay2 = $request->input('relay2', 0);
+        $relay3 = $request->input('relay3', 0);
+        $relay4 = $request->input('relay4', 0);
+        $relay5 = $request->input('relay5', 0);
+        $relay6 = $request->input('relay6', 0);
+        $relay7 = $request->input('relay7', 0);
+        $relay8 = $request->input('relay8', 0);
 
         // Use batch update for better performance
         $this->firebase->setBatchRelayStates([
             'relay1' => $relay1,
             'relay2' => $relay2,
+            'relay3' => $relay3,
+            'relay4' => $relay4,
+            'relay5' => $relay5,
+            'relay6' => $relay6,
+            'relay7' => $relay7,
+            'relay8' => $relay8,
             'manualMode' => true
         ]);
 
@@ -196,7 +226,7 @@ class DashboardController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Schedule check skipped - active overtime in progress',
-                    'active_devices' => ['relay1', 'relay2'], // Overtime keeps lights on
+                    'active_devices' => ['relay1', 'relay2', 'relay3', 'relay4', 'relay5', 'relay6', 'relay7', 'relay8'], // Overtime keeps all lights on
                     'inactive_devices' => [],
                     'manual_mode' => false,
                     'overtime_active' => true
@@ -237,11 +267,17 @@ class DashboardController extends Controller
             // Don't override manual mode when in auto mode
             $relayState = $shouldLightsBeOn ? 1 : 0;
 
-            Log::info("Attempting to set Firebase relays - relay1: {$relayState}, relay2: {$relayState}");
+            Log::info("Attempting to set Firebase relays - all 8 relays: {$relayState}");
 
             $firebaseResult = $this->firebase->setBatchRelayStates([
                 'relay1' => $relayState,
-                'relay2' => $relayState
+                'relay2' => $relayState,
+                'relay3' => $relayState,
+                'relay4' => $relayState,
+                'relay5' => $relayState,
+                'relay6' => $relayState,
+                'relay7' => $relayState,
+                'relay8' => $relayState
             ]);
 
             if ($firebaseResult === false) {
@@ -250,8 +286,8 @@ class DashboardController extends Controller
                 Log::info("Successfully updated Firebase relay states");
             }
 
-            $activeDevices = $shouldLightsBeOn ? ['relay1', 'relay2'] : [];
-            $inactiveDevices = $shouldLightsBeOn ? [] : ['relay1', 'relay2'];
+            $activeDevices = $shouldLightsBeOn ? ['relay1', 'relay2', 'relay3', 'relay4', 'relay5', 'relay6', 'relay7', 'relay8'] : [];
+            $inactiveDevices = $shouldLightsBeOn ? [] : ['relay1', 'relay2', 'relay3', 'relay4', 'relay5', 'relay6', 'relay7', 'relay8'];
 
             Log::info("Schedule check completed. All lights: " . ($shouldLightsBeOn ? 'ON' : 'OFF'));
 

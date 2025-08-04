@@ -390,8 +390,9 @@ class OvertimeController extends Controller
 
             if ($overtime->status != $newStatus) {
                 $oldStatus = $overtime->status;
-                $overtime->status = $newStatus;
-                $overtime->save();
+
+                // Only update the status field to preserve other fields like light_selection
+                $overtime->update(['status' => $newStatus]);
                 $updated = true;
 
                 $statusChanges[] = [
@@ -401,7 +402,9 @@ class OvertimeController extends Controller
                     'lightSelection' => $overtime->light_selection ?? 'all'
                 ];
 
-                Log::info("Overtime {$overtime->id} status changed from {$oldStatus} to {$newStatus}");
+                Log::info("OvertimeController: Overtime {$overtime->id} status changed from {$oldStatus} to {$newStatus}", [
+                    'light_selection_preserved' => $overtime->light_selection
+                ]);
             }
         }
 
@@ -589,28 +592,48 @@ class OvertimeController extends Controller
                 return $now->gte($startTime) && (!$endTime || $now->lt($endTime));
             });
 
-        $relay1ShouldBeOn = false;
-        $relay2ShouldBeOn = false;
+        // Initialize all relay states to false
+        $relayStates = [
+            'relay1' => false,
+            'relay2' => false,
+            'relay3' => false,
+            'relay4' => false,
+            'relay5' => false,
+            'relay6' => false,
+            'relay7' => false,
+            'relay8' => false,
+        ];
 
         // Determine which relays should be ON based on active overtimes' light selections
         foreach ($activeOvertimes as $overtime) {
             $lightSelection = $overtime->light_selection ?? 'all';
 
-            if ($lightSelection === 'itms1' || $lightSelection === 'all') {
-                $relay1ShouldBeOn = true;
-            }
-            if ($lightSelection === 'itms2' || $lightSelection === 'all') {
-                $relay2ShouldBeOn = true;
+            // Handle legacy ITMS selections for backward compatibility
+            if ($lightSelection === 'itms1') {
+                $relayStates['relay1'] = true;
+            } elseif ($lightSelection === 'itms2') {
+                $relayStates['relay2'] = true;
+            } elseif ($lightSelection === 'all') {
+                // Turn on all relays when "all" is selected
+                foreach ($relayStates as $relay => $state) {
+                    $relayStates[$relay] = true;
+                }
+            } elseif (in_array($lightSelection, ['relay1', 'relay2', 'relay3', 'relay4', 'relay5', 'relay6', 'relay7', 'relay8'])) {
+                // Handle individual relay selections
+                $relayStates[$lightSelection] = true;
             }
         }
 
-        // Update Firebase with the calculated relay states
-        Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
-            'relay1' => $relay1ShouldBeOn ? 1 : 0,
-            'relay2' => $relay2ShouldBeOn ? 1 : 0,
-            'manualMode' => false
-        ]);
+        // Prepare Firebase update data
+        $firebaseData = ['manualMode' => false];
+        foreach ($relayStates as $relay => $shouldBeOn) {
+            $firebaseData[$relay] = $shouldBeOn ? 1 : 0;
+        }
 
-        Log::info("Smart relay control updated: Relay1={$relay1ShouldBeOn}, Relay2={$relay2ShouldBeOn}, Active overtimes: {$activeOvertimes->count()}");
+        // Update Firebase with the calculated relay states
+        Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', $firebaseData);
+
+        $activeRelays = array_keys(array_filter($relayStates));
+        Log::info("Smart relay control updated: Active relays: " . implode(', ', $activeRelays) . ", Active overtimes: {$activeOvertimes->count()}");
     }
 }

@@ -378,40 +378,154 @@
                             </div>
                         @endif
 
-                        <div class="row justify-content-center g-4">
-                            <!-- Lampu ITMS 1 -->
-                            <div class="col-lg-5 col-md-6">
+                        <div class="row justify-content-center g-3">
+                            <!-- Relay 1 -->
+                            <div class="col-lg-3 col-md-4 col-sm-6">
                                 <div class="card h-100 shadow-sm border-0 device-control-card">
-                                    <div class="card-body text-center p-4">
-                                        <div class="device-icon mb-3">
-                                            <i class="fa fa-lightbulb text-warning fs-1"></i>
+                                    <div class="card-body text-center p-3">
+                                        <div class="device-icon mb-2">
+                                            <i class="fa fa-lightbulb text-warning fs-3"></i>
                                         </div>
-                                        <h6 class="fw-bold mb-3 text-dark">Lampu ITMS 1</h6>
+                                        <h6 class="fw-bold mb-2 text-dark">Relay 1</h6>
                                         <div class="form-check form-switch d-flex justify-content-center">
                                             <input type="hidden" name="relay1" value="0">
-                                            <input class="form-check-input device-switch fs-5" type="checkbox" name="relay1" value="1" {{ (isset($relay1) && $relay1 == 1) ? 'checked' : '' }}>
+                                            <input class="form-check-input device-switch" type="checkbox" name="relay1" value="1" {{ (isset($relay1) && $relay1 == 1) ? 'checked' : '' }}>
                                         </div>
-                                        <div class="status-indicator mt-3">
+                                        <div class="status-indicator mt-2">
                                             <small class="text-muted">Status: <span class="relay1-status">{{ (isset($relay1) && $relay1 == 1) ? 'ON' : 'OFF' }}</span></small>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Lampu ITMS 2 -->
-                            <div class="col-lg-5 col-md-6">
+                            <!-- Relay 2 -->
+                            <div class="col-lg-3 col-md-4 col-sm-6">
                                 <div class="card h-100 shadow-sm border-0 device-control-card">
-                                    <div class="card-body text-center p-4">
-                                        <div class="device-icon mb-3">
-                                            <i class="fa fa-lightbulb text-warning fs-1"></i>
+                                    <div class="card-body text-center p-3">
+                                        <div class="device-icon mb-2">
+                                            <i class="fa fa-lightbulb text-warning fs-3"></i>
                                         </div>
-                                        <h6 class="fw-bold mb-3 text-dark">Lampu ITMS 2</h6>
+                                        <h6 class="fw-bold mb-2 text-dark">Relay 2</h6>
                                         <div class="form-check form-switch d-flex justify-content-center">
                                             <input type="hidden" name="relay2" value="0">
-                                            <input class="form-check-input device-switch fs-5" type="checkbox" name="relay2" value="1" {{ (isset($relay2) && $relay2 == 1) ? 'checked' : '' }}>
+                                            <input class="form-check-input device-switch" type="checkbox" name="relay2" value="1" {{ (isset($relay2) && $relay2 == 1) ? 'checked' : '' }}>
                                         </div>
-                                        <div class="status-indicator mt-3">
+                                        <div class="status-indicator mt-2">
                                             <small class="text-muted">Status: <span class="relay2-status">{{ (isset($relay2) && $relay2 == 1) ? 'ON' : 'OFF' }}</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Relay 3 -->
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="card h-100 shadow-sm border-0 device-control-card">
+                                    <div class="card-body text-center p-3">
+                                        <div class="device-icon mb-2">
+                                            <i class="fa fa-lightbulb text-warning fs-3"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-2 text-dark">Relay 3</h6>
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input type="hidden" name="relay3" value="0">
+                                            <input class="form-check-input device-switch" type="checkbox" name="relay3" value="1" {{ (isset($relay3) && $relay3 == 1) ? 'checked' : '' }}>
+                                        </div>
+                                        <div class="status-indicator mt-2">
+                                            <small class="text-muted">Status: <span class="relay3-status">{{ (isset($relay3) && $relay3 == 1) ? 'ON' : 'OFF' }}</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Relay 4 -->
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="card h-100 shadow-sm border-0 device-control-card">
+                                    <div class="card-body text-center p-3">
+                                        <div class="device-icon mb-2">
+                                            <i class="fa fa-lightbulb text-warning fs-3"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-2 text-dark">Relay 4</h6>
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input type="hidden" name="relay4" value="0">
+                                            <input class="form-check-input device-switch" type="checkbox" name="relay4" value="1" {{ (isset($relay4) && $relay4 == 1) ? 'checked' : '' }}>
+                                        </div>
+                                        <div class="status-indicator mt-2">
+                                            <small class="text-muted">Status: <span class="relay4-status">{{ (isset($relay4) && $relay4 == 1) ? 'ON' : 'OFF' }}</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Relay 5 -->
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="card h-100 shadow-sm border-0 device-control-card">
+                                    <div class="card-body text-center p-3">
+                                        <div class="device-icon mb-2">
+                                            <i class="fa fa-lightbulb text-warning fs-3"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-2 text-dark">Relay 5</h6>
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input type="hidden" name="relay5" value="0">
+                                            <input class="form-check-input device-switch" type="checkbox" name="relay5" value="1" {{ (isset($relay5) && $relay5 == 1) ? 'checked' : '' }}>
+                                        </div>
+                                        <div class="status-indicator mt-2">
+                                            <small class="text-muted">Status: <span class="relay5-status">{{ (isset($relay5) && $relay5 == 1) ? 'ON' : 'OFF' }}</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Relay 6 -->
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="card h-100 shadow-sm border-0 device-control-card">
+                                    <div class="card-body text-center p-3">
+                                        <div class="device-icon mb-2">
+                                            <i class="fa fa-lightbulb text-warning fs-3"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-2 text-dark">Relay 6</h6>
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input type="hidden" name="relay6" value="0">
+                                            <input class="form-check-input device-switch" type="checkbox" name="relay6" value="1" {{ (isset($relay6) && $relay6 == 1) ? 'checked' : '' }}>
+                                        </div>
+                                        <div class="status-indicator mt-2">
+                                            <small class="text-muted">Status: <span class="relay6-status">{{ (isset($relay6) && $relay6 == 1) ? 'ON' : 'OFF' }}</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Relay 7 -->
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="card h-100 shadow-sm border-0 device-control-card">
+                                    <div class="card-body text-center p-3">
+                                        <div class="device-icon mb-2">
+                                            <i class="fa fa-lightbulb text-warning fs-3"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-2 text-dark">Relay 7</h6>
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input type="hidden" name="relay7" value="0">
+                                            <input class="form-check-input device-switch" type="checkbox" name="relay7" value="1" {{ (isset($relay7) && $relay7 == 1) ? 'checked' : '' }}>
+                                        </div>
+                                        <div class="status-indicator mt-2">
+                                            <small class="text-muted">Status: <span class="relay7-status">{{ (isset($relay7) && $relay7 == 1) ? 'ON' : 'OFF' }}</span></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Relay 8 -->
+                            <div class="col-lg-3 col-md-4 col-sm-6">
+                                <div class="card h-100 shadow-sm border-0 device-control-card">
+                                    <div class="card-body text-center p-3">
+                                        <div class="device-icon mb-2">
+                                            <i class="fa fa-lightbulb text-warning fs-3"></i>
+                                        </div>
+                                        <h6 class="fw-bold mb-2 text-dark">Relay 8</h6>
+                                        <div class="form-check form-switch d-flex justify-content-center">
+                                            <input type="hidden" name="relay8" value="0">
+                                            <input class="form-check-input device-switch" type="checkbox" name="relay8" value="1" {{ (isset($relay8) && $relay8 == 1) ? 'checked' : '' }}>
+                                        </div>
+                                        <div class="status-indicator mt-2">
+                                            <small class="text-muted">Status: <span class="relay8-status">{{ (isset($relay8) && $relay8 == 1) ? 'ON' : 'OFF' }}</span></small>
                                         </div>
                                     </div>
                                 </div>

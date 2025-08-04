@@ -8,6 +8,12 @@
                 </div>
 
                 <div class="panel-body">
+                    @if (session()->has('debug_message'))
+                        <div class="alert alert-info">
+                            <strong>DEBUG:</strong> {{ session('debug_message') }}
+                        </div>
+                    @endif
+
                     @if (session()->has('success_overtime'))
                         <div class="alert alert-success">
                             {{ session('success_overtime') }}
@@ -116,18 +122,28 @@
                         </div>
 
                         <div class="form-group mb-3">
-                            <label for="light_selection" class="form-label">Pilih Lampu yang Akan Dinyalakan</label>
+                            <label for="light_selection" class="form-label">Pilih Relay yang Akan Dinyalakan</label>
                             <select wire:model="light_selection" id="light_selection" 
                                     class="form-control @error('light_selection') is-invalid @enderror" required>
-                                <option value="">-- Pilih Lampu --</option>
-                                <option value="itms1">ITMS 1 Light (Relay 1)</option>
-                                <option value="itms2">ITMS 2 Light (Relay 2)</option>
-                                <option value="all">Semua Lampu (ITMS 1 & 2)</option>
+                                <option value="">-- Pilih Relay --</option>
+                                
+                                <!-- Individual Relay Options -->
+                                <option value="relay1">Relay 1 (ITMS 1 Light)</option>
+                                <option value="relay2">Relay 2 (ITMS 2 Light)</option>
+                                <option value="relay3">Relay 3 (Additional Device 1)</option>
+                                <option value="relay4">Relay 4 (Additional Device 2)</option>
+                                <option value="relay5">Relay 5 (Additional Device 3)</option>
+                                <option value="relay6">Relay 6 (Additional Device 4)</option>
+                                <option value="relay7">Relay 7 (Additional Device 5)</option>
+                                <option value="relay8">Relay 8 (Additional Device 6)</option>
+                                
+                                <!-- All Relays Option -->
+                                <option value="all">Semua Relay (All 8 Relays)</option>
                             </select>
                             @error('light_selection')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <div class="form-text">Pilih lampu mana yang akan dinyalakan selama lembur</div>
+                            <div class="form-text">Pilih relay mana yang akan dinyalakan selama lembur.</div>
                         </div>
 
                         <div class="form-group mb-4">
@@ -222,10 +238,18 @@
                                             @php
                                                 $lightSelection = $ot->light_selection ?? 'all';
                                                 $lightText = match($lightSelection) {
-                                                    'itms1' => '<span class="badge bg-info">ITMS 1</span>',
-                                                    'itms2' => '<span class="badge bg-warning">ITMS 2</span>',
-                                                    'all' => '<span class="badge bg-success">Semua</span>',
-                                                    default => '<span class="badge bg-secondary">Semua</span>'
+                                                    'relay1' => '<span class="badge bg-primary">Relay 1</span>',
+                                                    'relay2' => '<span class="badge bg-secondary">Relay 2</span>',
+                                                    'relay3' => '<span class="badge bg-info">Relay 3</span>',
+                                                    'relay4' => '<span class="badge bg-warning">Relay 4</span>',
+                                                    'relay5' => '<span class="badge bg-danger">Relay 5</span>',
+                                                    'relay6' => '<span class="badge bg-dark">Relay 6</span>',
+                                                    'relay7' => '<span class="badge bg-light text-dark">Relay 7</span>',
+                                                    'relay8' => '<span class="badge bg-muted">Relay 8</span>',
+                                                    'itms1' => '<span class="badge bg-primary">Relay 1 (Legacy)</span>',
+                                                    'itms2' => '<span class="badge bg-secondary">Relay 2 (Legacy)</span>',
+                                                    'all' => '<span class="badge bg-success">Semua Relay</span>',
+                                                    default => '<span class="badge bg-danger">' . e($lightSelection) . '</span>'
                                                 };
                                             @endphp
                                             {!! $lightText !!}

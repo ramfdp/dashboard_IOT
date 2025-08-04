@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class Overtime extends Model
@@ -35,6 +36,45 @@ class Overtime extends Model
     protected $attributes = [
         'status' => 0, // 0: pending, 1: running, 2: completed
     ];
+
+    /**
+     * Mutator for light_selection to ensure it's never truly null
+     */
+    public function setLightSelectionAttribute($value)
+    {
+        // Critical Debug: Force write to debug file
+        file_put_contents(
+            storage_path('logs/debug_overtime.log'),
+            date('Y-m-d H:i:s') . " - MODEL MUTATOR: input={$value}, empty=" . (empty($value) ? 'true' : 'false') . ", null=" . (is_null($value) ? 'true' : 'false') . "\n",
+            FILE_APPEND | LOCK_EX
+        );
+
+        // Only set to 'all' if the value is explicitly null, not just empty string
+        if (is_null($value)) {
+            $this->attributes['light_selection'] = 'all';
+            file_put_contents(
+                storage_path('logs/debug_overtime.log'),
+                date('Y-m-d H:i:s') . " - MODEL MUTATOR: Setting to 'all' because input was null\n",
+                FILE_APPEND | LOCK_EX
+            );
+        } else {
+            $this->attributes['light_selection'] = $value;
+            file_put_contents(
+                storage_path('logs/debug_overtime.log'),
+                date('Y-m-d H:i:s') . " - MODEL MUTATOR: Setting to '{$value}'\n",
+                FILE_APPEND | LOCK_EX
+            );
+        }
+    }
+
+    /**
+     * Accessor for light_selection - removed automatic 'all' fallback
+     * This was causing issues during model updates
+     */
+    public function getLightSelectionAttribute($value)
+    {
+        return $value; // Return the actual value without fallback
+    }
 
     /**
      * Status constants

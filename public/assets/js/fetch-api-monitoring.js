@@ -8,10 +8,11 @@ function fetchPZEMAndRelayData() {
             const current = sensor?.current ?? 0;
             const power = sensor?.power ?? 0;
 
-            // Daya lampu (relay aktif = 9 W)
+            // Daya lampu (relay aktif = 9 W each)
             let dayaLampu = 0;
-            if (relay?.relay1 == 1) dayaLampu += 9;
-            if (relay?.relay2 == 1) dayaLampu += 9;
+            for (let i = 1; i <= 8; i++) {
+                if (relay?.[`relay${i}`] == 1) dayaLampu += 9;
+            }
 
             const totalPower = power + dayaLampu;
 

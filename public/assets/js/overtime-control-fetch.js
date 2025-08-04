@@ -9,6 +9,10 @@ const db = getDatabase(initializeApp({
 
 let manualMode = false, relay1ManualState = null, relay2ManualState = null, editMode = false, editingId = null;
 
+// Additional relay states for expanded system
+let relay3ManualState = null, relay4ManualState = null, relay5ManualState = null, relay6ManualState = null;
+let relay7ManualState = null, relay8ManualState = null;
+
 const checkAutoMode = () => {
     const deviceStates = window.getDeviceStates?.() || {};
     if (deviceStates.manualMode) return manualMode = true;
@@ -101,23 +105,40 @@ const completeOvertimeAutomatically = async (overtimeId) => {
             const currentData = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
             const remainingActiveOvertimes = currentData.overtimes?.filter(o => o.id !== overtimeId).filter(isOvertimeActive) || [];
 
-            let relay1State = 0, relay2State = 0;
+            // Initialize all relay states to 0
+            let relayStates = {
+                relay1: 0, relay2: 0, relay3: 0, relay4: 0,
+                relay5: 0, relay6: 0, relay7: 0, relay8: 0
+            };
+
             if (remainingActiveOvertimes.length > 0) {
                 remainingActiveOvertimes.forEach(overtime => {
                     const lightSelection = overtime.light_selection || 'all';
-                    if (lightSelection === 'itms1' || lightSelection === 'all') relay1State = 1;
-                    if (lightSelection === 'itms2' || lightSelection === 'all') relay2State = 1;
+
+                    // Handle legacy selections
+                    if (lightSelection === 'itms1') {
+                        relayStates.relay1 = 1;
+                    } else if (lightSelection === 'itms2') {
+                        relayStates.relay2 = 1;
+                    } else if (lightSelection === 'all') {
+                        // Turn on all relays
+                        Object.keys(relayStates).forEach(relay => relayStates[relay] = 1);
+                    } else if (relayStates.hasOwnProperty(lightSelection)) {
+                        // Handle individual relay selections
+                        relayStates[lightSelection] = 1;
+                    }
                 });
-                showOvertimeNotification(`Overtime completed - lights updated based on remaining active overtimes`, 'info');
+                showOvertimeNotification(`Overtime completed - relays updated based on remaining active overtimes`, 'info');
             } else {
-                showOvertimeNotification('All overtime completed - lights turned OFF immediately', 'success');
+                showOvertimeNotification('All overtime completed - all relays turned OFF immediately', 'success');
             }
 
             try {
-                await Promise.all([
-                    set(ref(db, "/relayControl/relay1"), relay1State),
-                    set(ref(db, "/relayControl/relay2"), relay2State)
-                ]);
+                // Update all relays in Firebase
+                const relayPromises = Object.entries(relayStates).map(([relay, state]) =>
+                    set(ref(db, `/relayControl/${relay}`), state)
+                );
+                await Promise.all(relayPromises);
             } catch (firebaseError) {
                 showOvertimeNotification('Overtime completed but failed to control lights', 'warning');
             }
@@ -147,23 +168,35 @@ const updateTable = overtimes => {
     if (!tbody) return;
     if (!overtimes?.length) { tbody.innerHTML = `<tr><td colspan="11" class="text-center">Belum ada data lembur.</td></tr>`; return; }
 
+    const getLightBadge = (lightSelection) => {
+        switch (lightSelection) {
+            case 'relay1': return '<span class="badge bg-primary">Relay 1</span>';
+            case 'relay2': return '<span class="badge bg-secondary">Relay 2</span>';
+            case 'relay3': return '<span class="badge bg-info">Relay 3</span>';
+            case 'relay4': return '<span class="badge bg-warning">Relay 4</span>';
+            case 'relay5': return '<span class="badge bg-danger">Relay 5</span>';
+            case 'relay6': return '<span class="badge bg-dark">Relay 6</span>';
+            case 'relay7': return '<span class="badge bg-light text-dark">Relay 7</span>';
+            case 'relay8': return '<span class="badge bg-muted">Relay 8</span>';
+            case 'itms1': return '<span class="badge bg-primary">Relay 1 (Legacy)</span>';
+            case 'itms2': return '<span class="badge bg-secondary">Relay 2 (Legacy)</span>';
+            case 'all': return '<span class="badge bg-success">Semua Relay</span>';
+            default: return `<span class="badge bg-danger">${lightSelection || 'Tidak diketahui'}</span>`;
+        }
+    };
+
     tbody.innerHTML = overtimes.map((overtime, index) => {
         const { displayStatus, statusText, statusClass } = getStatusInfo(overtime);
         const formattedDate = new Date(overtime.overtime_date).toLocaleDateString('id-ID', {
             day: '2-digit', month: '2-digit', year: 'numeric'
         });
-
         const lightSelection = overtime.light_selection || 'all';
-        const lightBadge = lightSelection === 'itms1' ? '<span class="badge bg-info">ITMS 1</span>' :
-            lightSelection === 'itms2' ? '<span class="badge bg-warning">ITMS 2</span>' :
-                '<span class="badge bg-success">Semua</span>';
-
+        const lightBadge = getLightBadge(lightSelection);
         const actions = [
             `<button class="btn btn-sm btn-primary me-1" onclick="editOvertime(${overtime.id})"><i class="fas fa-edit"></i> Edit</button>`,
             `<button class="btn btn-sm btn-danger me-1" onclick="deleteOvertime(${overtime.id})"><i class="fas fa-trash"></i> Delete</button>`,
             displayStatus === 1 ? `<button class="btn btn-sm btn-warning" onclick="cutOffOvertime(${overtime.id})"><i class="fas fa-stop"></i> Cut-off</button>` : ''
         ].join('');
-
         return `<tr><td>${index + 1}</td><td>${overtime.division_name}</td><td>${overtime.employee_name}</td><td>${formattedDate}</td><td>${overtime.start_time}</td><td>${overtime.end_time ?? '-'}</td><td>${overtime.duration ?? '-'}</td><td><span class="badge bg-${statusClass}">${statusText}</span></td><td>${lightBadge}</td><td>${overtime.notes ?? '-'}</td><td>${actions}</td></tr>`;
     }).join('');
 };
@@ -210,25 +243,43 @@ const updateLemburStatusDanRelay = async () => {
         if (manualModeSnapshot.val() === true) return;
 
         const activeOvertimes = data.overtimes?.filter(isOvertimeActive) || [];
-        let relay1State = 0, relay2State = 0;
+
+        // Initialize all relay states to 0
+        let relayStates = {
+            relay1: 0, relay2: 0, relay3: 0, relay4: 0,
+            relay5: 0, relay6: 0, relay7: 0, relay8: 0
+        };
 
         if (activeOvertimes.length > 0) {
             activeOvertimes.forEach(overtime => {
                 const lightSelection = overtime.light_selection || 'all';
-                if (lightSelection === 'itms1' || lightSelection === 'all') relay1State = 1;
-                if (lightSelection === 'itms2' || lightSelection === 'all') relay2State = 1;
+
+                // Handle legacy selections
+                if (lightSelection === 'itms1') {
+                    relayStates.relay1 = 1;
+                } else if (lightSelection === 'itms2') {
+                    relayStates.relay2 = 1;
+                } else if (lightSelection === 'all') {
+                    // Turn on all relays
+                    Object.keys(relayStates).forEach(relay => relayStates[relay] = 1);
+                } else if (relayStates.hasOwnProperty(lightSelection)) {
+                    // Handle individual relay selections
+                    relayStates[lightSelection] = 1;
+                }
             });
 
-            await Promise.all([
-                set(ref(db, "/relayControl/relay1"), relay1State),
-                set(ref(db, "/relayControl/relay2"), relay2State)
-            ]);
+            // Update all relays in Firebase
+            const relayPromises = Object.entries(relayStates).map(([relay, state]) =>
+                set(ref(db, `/relayControl/${relay}`), state)
+            );
+            await Promise.all(relayPromises);
         } else if (hasStatusChanges) {
-            await Promise.all([
-                set(ref(db, "/relayControl/relay1"), 0),
-                set(ref(db, "/relayControl/relay2"), 0)
-            ]);
-            showOvertimeNotification('All overtime completed - lights turned OFF', 'info');
+            // Turn off all relays
+            const relayPromises = Object.keys(relayStates).map(relay =>
+                set(ref(db, `/relayControl/${relay}`), 0)
+            );
+            await Promise.all(relayPromises);
+            showOvertimeNotification('All overtime completed - all relays turned OFF', 'info');
         }
     } catch (err) {
         console.error("Gagal memuat lembur:", err);
@@ -348,20 +399,37 @@ const cutOffOvertime = async id => {
                 const currentData = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
                 const remainingActiveOvertimes = currentData.overtimes?.filter(o => o.id !== id).filter(isOvertimeActive) || [];
 
-                let relay1State = 0, relay2State = 0;
+                // Initialize all relay states to 0
+                let relayStates = {
+                    relay1: 0, relay2: 0, relay3: 0, relay4: 0,
+                    relay5: 0, relay6: 0, relay7: 0, relay8: 0
+                };
+
                 if (remainingActiveOvertimes.length > 0) {
                     remainingActiveOvertimes.forEach(overtime => {
                         const lightSelection = overtime.light_selection || 'all';
-                        if (lightSelection === 'itms1' || lightSelection === 'all') relay1State = 1;
-                        if (lightSelection === 'itms2' || lightSelection === 'all') relay2State = 1;
+
+                        // Handle legacy selections
+                        if (lightSelection === 'itms1') {
+                            relayStates.relay1 = 1;
+                        } else if (lightSelection === 'itms2') {
+                            relayStates.relay2 = 1;
+                        } else if (lightSelection === 'all') {
+                            // Turn on all relays
+                            Object.keys(relayStates).forEach(relay => relayStates[relay] = 1);
+                        } else if (relayStates.hasOwnProperty(lightSelection)) {
+                            // Handle individual relay selections
+                            relayStates[lightSelection] = 1;
+                        }
                     });
                 }
 
-                await Promise.all([
-                    set(ref(db, "/relayControl/relay1"), relay1State),
-                    set(ref(db, "/relayControl/relay2"), relay2State),
-                    set(ref(db, "/relayControl/manualMode"), false)
-                ]);
+                // Update all relays in Firebase
+                const relayPromises = Object.entries(relayStates).map(([relay, state]) =>
+                    set(ref(db, `/relayControl/${relay}`), state)
+                );
+                relayPromises.push(set(ref(db, "/relayControl/manualMode"), false));
+                await Promise.all(relayPromises);
             } catch (firebaseError) {
                 console.warn('Failed to immediately control relays after cutoff:', firebaseError);
             }
@@ -398,27 +466,46 @@ const forceRefreshRelayState = async () => {
 
     try {
         const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+
+        // Initialize all relay states to 0
+        let relayStates = {
+            relay1: 0, relay2: 0, relay3: 0, relay4: 0,
+            relay5: 0, relay6: 0, relay7: 0, relay8: 0
+        };
+
         if (!data.overtimes?.length) {
-            await Promise.all([
-                set(ref(db, "/relayControl/relay1"), 0),
-                set(ref(db, "/relayControl/relay2"), 0)
-            ]);
+            // Turn off all relays if no overtimes
+            const relayPromises = Object.keys(relayStates).map(relay =>
+                set(ref(db, `/relayControl/${relay}`), 0)
+            );
+            await Promise.all(relayPromises);
             return;
         }
 
         const activeOvertimes = data.overtimes.filter(isOvertimeActive);
-        let relay1State = 0, relay2State = 0;
 
         activeOvertimes.forEach(overtime => {
             const lightSelection = overtime.light_selection || 'all';
-            if (lightSelection === 'itms1' || lightSelection === 'all') relay1State = 1;
-            if (lightSelection === 'itms2' || lightSelection === 'all') relay2State = 1;
+
+            // Handle legacy selections
+            if (lightSelection === 'itms1') {
+                relayStates.relay1 = 1;
+            } else if (lightSelection === 'itms2') {
+                relayStates.relay2 = 1;
+            } else if (lightSelection === 'all') {
+                // Turn on all relays
+                Object.keys(relayStates).forEach(relay => relayStates[relay] = 1);
+            } else if (relayStates.hasOwnProperty(lightSelection)) {
+                // Handle individual relay selections
+                relayStates[lightSelection] = 1;
+            }
         });
 
-        await Promise.all([
-            set(ref(db, "/relayControl/relay1"), relay1State),
-            set(ref(db, "/relayControl/relay2"), relay2State)
-        ]);
+        // Update all relays in Firebase
+        const relayPromises = Object.entries(relayStates).map(([relay, state]) =>
+            set(ref(db, `/relayControl/${relay}`), state)
+        );
+        await Promise.all(relayPromises);
     } catch (err) {
         console.error("Gagal force refresh:", err);
     }
@@ -433,7 +520,19 @@ const updateSwitchState = (name, value) => {
     }
 };
 
-const setupFirebaseListeners = () => { ['relay1', 'relay2', 'sos'].forEach(name => { onValue(ref(db, `/relayControl/${name}`), snapshot => { updateSwitchState(name, snapshot.val()); }); }); };
+const setupFirebaseListeners = () => {
+    // Set up listeners for all 8 relays
+    for (let i = 1; i <= 8; i++) {
+        onValue(ref(db, `/relayControl/relay${i}`), snapshot => {
+            updateSwitchState(`relay${i}`, snapshot.val());
+        });
+    }
+
+    // Keep SOS functionality
+    onValue(ref(db, `/relayControl/sos`), snapshot => {
+        updateSwitchState('sos', snapshot.val());
+    });
+};
 
 const showModeStatus = () => {
     const statusEl = document.getElementById('mode-status');

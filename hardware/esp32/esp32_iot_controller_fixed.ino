@@ -18,6 +18,12 @@ const char *WIFI_PASSWORD = "ITMS2023";
 // ===== Pin Definitions =====
 #define RELAY1_PIN 26
 #define RELAY2_PIN 27
+#define RELAY3_PIN 14
+#define RELAY4_PIN 12
+#define RELAY5_PIN 13
+#define RELAY6_PIN 25
+#define RELAY7_PIN 33
+#define RELAY8_PIN 32
 #define PZEM1_RX 16
 #define PZEM1_TX 17
 #define PZEM2_RX 18
@@ -37,10 +43,12 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 25200, 60000);
 
 // Current states
-bool relay1State = false, relay2State = false;
+bool relay1State = false, relay2State = false, relay3State = false, relay4State = false;
+bool relay5State = false, relay6State = false, relay7State = false, relay8State = false;
 
 // Previous states to track changes
-bool prevRelay1State = false, prevRelay2State = false;
+bool prevRelay1State = false, prevRelay2State = false, prevRelay3State = false, prevRelay4State = false;
+bool prevRelay5State = false, prevRelay6State = false, prevRelay7State = false, prevRelay8State = false;
 String prevTimestamp = "";
 
 unsigned long lastSensorRead = 0, lastFirebaseUpdate = 0, lastConnectionCheck = 0;
@@ -128,10 +136,25 @@ void setupPins()
 {
     pinMode(RELAY1_PIN, OUTPUT);
     pinMode(RELAY2_PIN, OUTPUT);
+    pinMode(RELAY3_PIN, OUTPUT);
+    pinMode(RELAY4_PIN, OUTPUT);
+    pinMode(RELAY5_PIN, OUTPUT);
+    pinMode(RELAY6_PIN, OUTPUT);
+    pinMode(RELAY7_PIN, OUTPUT);
+    pinMode(RELAY8_PIN, OUTPUT);
     pinMode(STATUS_LED, OUTPUT);
+
+    // Initialize all relays to OFF state
     digitalWrite(RELAY1_PIN, LOW);
     digitalWrite(RELAY2_PIN, LOW);
-    Serial.println("✓ Pins configured");
+    digitalWrite(RELAY3_PIN, LOW);
+    digitalWrite(RELAY4_PIN, LOW);
+    digitalWrite(RELAY5_PIN, LOW);
+    digitalWrite(RELAY6_PIN, LOW);
+    digitalWrite(RELAY7_PIN, LOW);
+    digitalWrite(RELAY8_PIN, LOW);
+
+    Serial.println("✓ All 8 relay pins configured");
 }
 
 void connectToWiFi()
@@ -281,27 +304,39 @@ void updateDeviceStatusOnChange()
     bool hasChanges = false;
     String timestamp = getTimestamp();
 
-    // Check if relay1 state changed
-    if (relay1State != prevRelay1State)
+    // Check all relay states for changes
+    struct RelayState
     {
-        Firebase.setBool(firebaseData, "/devices/relay1", relay1State);
-        prevRelay1State = relay1State;
-        hasChanges = true;
-        Serial.println("Device status updated: Relay1 = " + String(relay1State ? 1 : 0));
-    }
+        bool *current;
+        bool *previous;
+        const char *name;
+    };
 
-    // Check if relay2 state changed
-    if (relay2State != prevRelay2State)
+    RelayState relays[] = {
+        {&relay1State, &prevRelay1State, "relay1"},
+        {&relay2State, &prevRelay2State, "relay2"},
+        {&relay3State, &prevRelay3State, "relay3"},
+        {&relay4State, &prevRelay4State, "relay4"},
+        {&relay5State, &prevRelay5State, "relay5"},
+        {&relay6State, &prevRelay6State, "relay6"},
+        {&relay7State, &prevRelay7State, "relay7"},
+        {&relay8State, &prevRelay8State, "relay8"}};
+
+    for (int i = 0; i < 8; i++)
     {
-        Firebase.setBool(firebaseData, "/devices/relay2", relay2State);
-        prevRelay2State = relay2State;
-        hasChanges = true;
-        Serial.println("Device status updated: Relay2 = " + String(relay2State ? 1 : 0));
+        if (*relays[i].current != *relays[i].previous)
+        {
+            Firebase.setBool(firebaseData, String("/devices/") + relays[i].name, *relays[i].current);
+            *relays[i].previous = *relays[i].current;
+            hasChanges = true;
+            Serial.println("Device status updated: " + String(relays[i].name) + " = " + String(*relays[i].current ? 1 : 0));
+        }
     }
 
     if (hasChanges)
     {
-        Serial.println("Device status updated in Firebase");
+        Firebase.setString(firebaseData, "/devices/lastUpdate", timestamp);
+        Serial.println("Device status updated in Firebase with timestamp: " + timestamp);
     }
 }
 
@@ -328,54 +363,123 @@ void readRelayStatesFromFirebase()
     if (!Firebase.ready())
         return;
 
-    // Simply read relay1 state from Firebase and apply it
-    if (Firebase.get(firebaseData, "/relayControl/relay1"))
+    // Read all 8 relay states from Firebase
+    for (int i = 1; i <= 8; i++)
     {
-        int firebaseValue = firebaseData.intData();
-        bool newState = (firebaseValue == 1);
+        String relayPath = "/relayControl/relay" + String(i);
 
-        if (newState != relay1State)
+        if (Firebase.get(firebaseData, relayPath))
         {
-            setRelay1(newState);
-            Serial.println("Relay1 changed to: " + String(newState ? "ON" : "OFF"));
+            int firebaseValue = firebaseData.intData();
+            bool newState = (firebaseValue == 1);
+            bool *currentState;
+
+            // Get current state reference based on relay number
+            switch (i)
+            {
+            case 1:
+                currentState = &relay1State;
+                break;
+            case 2:
+                currentState = &relay2State;
+                break;
+            case 3:
+                currentState = &relay3State;
+                break;
+            case 4:
+                currentState = &relay4State;
+                break;
+            case 5:
+                currentState = &relay5State;
+                break;
+            case 6:
+                currentState = &relay6State;
+                break;
+            case 7:
+                currentState = &relay7State;
+                break;
+            case 8:
+                currentState = &relay8State;
+                break;
+            }
+
+            if (newState != *currentState)
+            {
+                setRelay(i, newState);
+                Serial.println("Relay" + String(i) + " changed to: " + String(newState ? "ON" : "OFF"));
+            }
+        }
+        else
+        {
+            Serial.println("Failed to read Firebase relay" + String(i) + " value");
         }
     }
-    else
+}
+
+void setRelay(int relayNum, bool state)
+{
+    int pin;
+    bool *currentState;
+
+    // Map relay number to pin and state variable
+    switch (relayNum)
     {
-        Serial.println("Failed to read Firebase relay1 value");
+    case 1:
+        pin = RELAY1_PIN;
+        currentState = &relay1State;
+        break;
+    case 2:
+        pin = RELAY2_PIN;
+        currentState = &relay2State;
+        break;
+    case 3:
+        pin = RELAY3_PIN;
+        currentState = &relay3State;
+        break;
+    case 4:
+        pin = RELAY4_PIN;
+        currentState = &relay4State;
+        break;
+    case 5:
+        pin = RELAY5_PIN;
+        currentState = &relay5State;
+        break;
+    case 6:
+        pin = RELAY6_PIN;
+        currentState = &relay6State;
+        break;
+    case 7:
+        pin = RELAY7_PIN;
+        currentState = &relay7State;
+        break;
+    case 8:
+        pin = RELAY8_PIN;
+        currentState = &relay8State;
+        break;
+    default:
+        return; // Invalid relay number
     }
 
-    // Simply read relay2 state from Firebase and apply it
-    if (Firebase.get(firebaseData, "/relayControl/relay2"))
-    {
-        int firebaseValue = firebaseData.intData();
-        bool newState = (firebaseValue == 1);
+    *currentState = state;
+    digitalWrite(pin, state ? HIGH : LOW);
 
-        if (newState != relay2State)
-        {
-            setRelay2(newState);
-            Serial.println("Relay2 changed to: " + String(newState ? "ON" : "OFF"));
-        }
-    }
-    else
+    // Use LED indicator for relay 1 only
+    if (relayNum == 1)
     {
-        Serial.println("Failed to read Firebase relay2 value");
+        digitalWrite(STATUS_LED, state ? HIGH : LOW);
     }
+
+    Serial.println("Relay" + String(relayNum) + " physically set to: " + String(state ? "ON" : "OFF"));
 }
 
 void setRelay1(bool state)
 {
-    relay1State = state;
-    digitalWrite(RELAY1_PIN, state ? HIGH : LOW);
-    digitalWrite(STATUS_LED, state ? HIGH : LOW); // Visual indicator
-    Serial.println("Relay1 physically set to: " + String(state ? "ON" : "OFF"));
+    setRelay(1, state);
 }
 
 void setRelay2(bool state)
 {
-    relay2State = state;
-    digitalWrite(RELAY2_PIN, state ? HIGH : LOW);
-    Serial.println("Relay2 physically set to: " + String(state ? "ON" : "OFF"));
+    setRelay(2, state);
 }
 
 String getTimestamp()

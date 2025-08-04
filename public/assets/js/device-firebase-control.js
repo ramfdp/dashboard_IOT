@@ -19,6 +19,12 @@ const db = getDatabase(app);
 let deviceManualMode = false;
 let relay1State = null;
 let relay2State = null;
+let relay3State = null;
+let relay4State = null;
+let relay5State = null;
+let relay6State = null;
+let relay7State = null;
+let relay8State = null;
 let manualModeTimer = null;
 let lastManualActivity = null;
 
@@ -92,84 +98,51 @@ function initializeDeviceControls() {
 function setupDeviceSwitchListeners() {
     console.log('Setting up device switch listeners...');
 
-    // ITMS 1 (Relay 1) control
-    const relay1Switch = document.querySelector('input[name="relay1"][type="checkbox"].device-switch');
-    if (relay1Switch) {
-        // Remove existing listeners and clone to prevent conflicts
-        const newRelay1Switch = relay1Switch.cloneNode(true);
-        relay1Switch.parentNode.replaceChild(newRelay1Switch, relay1Switch);
+    // Function to create switch listener
+    function createSwitchListener(relayNum) {
+        const relaySwitch = document.querySelector(`input[name="relay${relayNum}"][type="checkbox"].device-switch`);
+        if (relaySwitch) {
+            // Remove existing listeners and clone to prevent conflicts
+            const newRelaySwitch = relaySwitch.cloneNode(true);
+            relaySwitch.parentNode.replaceChild(newRelaySwitch, relaySwitch);
 
-        newRelay1Switch.addEventListener('change', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
+            newRelaySwitch.addEventListener('change', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
 
-            const value = this.checked ? 1 : 0;
-            console.log('ITMS 1 (Relay1) manually switched to:', value);
+                const value = this.checked ? 1 : 0;
+                console.log(`Relay ${relayNum} manually switched to:`, value);
 
-            // Set manual mode and start timeout
-            deviceManualMode = true;
-            set(ref(db, "/relayControl/manualMode"), true);
-            startManualModeTimeout();
+                // Set manual mode and start timeout
+                deviceManualMode = true;
+                set(ref(db, "/relayControl/manualMode"), true);
+                startManualModeTimeout();
 
-            // Update Firebase
-            set(ref(db, "/relayControl/relay1"), value).then(() => {
-                console.log('Relay1 updated in Firebase successfully');
-            }).catch((error) => {
-                console.error('Error updating Relay1 in Firebase:', error);
+                // Update Firebase
+                set(ref(db, `/relayControl/relay${relayNum}`), value).then(() => {
+                    console.log(`Relay${relayNum} updated in Firebase successfully`);
+                }).catch((error) => {
+                    console.error(`Error updating Relay${relayNum} in Firebase:`, error);
+                });
+
+                // Update local state
+                window[`relay${relayNum}State`] = value;
+
+                // Update visual indicator
+                updateDeviceIndicator(this, value === 1 ? 'success' : 'grey');
+
+                console.log(`Device now in manual mode due to Relay ${relayNum} switch`);
             });
 
-            // Update local state
-            relay1State = value;
-
-            // Update visual indicator
-            updateDeviceIndicator(this, value === 1 ? 'success' : 'grey');
-
-            console.log('Device now in manual mode due to ITMS 1 switch');
-        });
-
-        console.log('ITMS 1 switch listener attached');
-    } else {
-        console.warn('ITMS 1 switch not found');
+            console.log(`Relay ${relayNum} switch listener attached`);
+        } else {
+            console.warn(`Relay ${relayNum} switch not found`);
+        }
     }
 
-    // ITMS 2 (Relay 2) control
-    const relay2Switch = document.querySelector('input[name="relay2"][type="checkbox"].device-switch');
-    if (relay2Switch) {
-        // Remove existing listeners and clone to prevent conflicts
-        const newRelay2Switch = relay2Switch.cloneNode(true);
-        relay2Switch.parentNode.replaceChild(newRelay2Switch, relay2Switch);
-
-        newRelay2Switch.addEventListener('change', function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const value = this.checked ? 1 : 0;
-            console.log('ITMS 2 (Relay2) manually switched to:', value);
-
-            // Set manual mode and start timeout
-            deviceManualMode = true;
-            set(ref(db, "/relayControl/manualMode"), true);
-            startManualModeTimeout();
-
-            // Update Firebase
-            set(ref(db, "/relayControl/relay2"), value).then(() => {
-                console.log('Relay2 updated in Firebase successfully');
-            }).catch((error) => {
-                console.error('Error updating Relay2 in Firebase:', error);
-            });
-
-            // Update local state
-            relay2State = value;
-
-            // Update visual indicator
-            updateDeviceIndicator(this, value === 1 ? 'success' : 'grey');
-
-            console.log('Device now in manual mode due to ITMS 2 switch');
-        });
-
-        console.log('ITMS 2 switch listener attached');
-    } else {
-        console.warn('ITMS 2 switch not found');
+    // Create listeners for all 8 relays
+    for (let i = 1; i <= 8; i++) {
+        createSwitchListener(i);
     }
 }
 
@@ -177,41 +150,31 @@ function setupDeviceSwitchListeners() {
 function listenToFirebaseDeviceChanges() {
     console.log('Setting up Firebase listeners...');
 
-    // Listen to Relay1 changes
-    onValue(ref(db, "/relayControl/relay1"), (snapshot) => {
-        const value = snapshot.val();
+    // Function to create Firebase listener for each relay
+    function createFirebaseListener(relayNum) {
+        onValue(ref(db, `/relayControl/relay${relayNum}`), (snapshot) => {
+            const value = snapshot.val();
+            const currentState = window[`relay${relayNum}State`];
 
-        // Only process if value actually changed
-        if (value !== null && value !== relay1State) {
-            console.log('Firebase Relay1 changed to:', value);
+            // Only process if value actually changed
+            if (value !== null && value !== currentState) {
+                console.log(`Firebase Relay${relayNum} changed to:`, value);
 
-            const relay1Switch = document.querySelector('input[name="relay1"][type="checkbox"].device-switch');
-            if (relay1Switch) {
-                relay1Switch.checked = (value === 1);
-                relay1State = value;
-                updateDeviceIndicator(relay1Switch, value === 1 ? 'success' : 'grey');
-                console.log('UI updated for Relay1:', value);
+                const relaySwitch = document.querySelector(`input[name="relay${relayNum}"][type="checkbox"].device-switch`);
+                if (relaySwitch) {
+                    relaySwitch.checked = (value === 1);
+                    window[`relay${relayNum}State`] = value;
+                    updateDeviceIndicator(relaySwitch, value === 1 ? 'success' : 'grey');
+                    console.log(`UI updated for Relay${relayNum}:`, value);
+                }
             }
-        }
-    });
+        });
+    }
 
-    // Listen to Relay2 changes
-    onValue(ref(db, "/relayControl/relay2"), (snapshot) => {
-        const value = snapshot.val();
-
-        // Only process if value actually changed
-        if (value !== null && value !== relay2State) {
-            console.log('Firebase Relay2 changed to:', value);
-
-            const relay2Switch = document.querySelector('input[name="relay2"][type="checkbox"].device-switch');
-            if (relay2Switch) {
-                relay2Switch.checked = (value === 1);
-                relay2State = value;
-                updateDeviceIndicator(relay2Switch, value === 1 ? 'success' : 'grey');
-                console.log('UI updated for Relay2:', value);
-            }
-        }
-    });
+    // Create Firebase listeners for all 8 relays
+    for (let i = 1; i <= 8; i++) {
+        createFirebaseListener(i);
+    }
 
     // Listen to manual mode changes to provide better logging
     onValue(ref(db, "/relayControl/manualMode"), (snapshot) => {
@@ -242,33 +205,26 @@ function listenToFirebaseDeviceChanges() {
 function syncInitialDeviceState() {
     console.log('Syncing initial device state...');
 
-    // Get initial Relay1 state
-    onValue(ref(db, "/relayControl/relay1"), (snapshot) => {
-        const value = snapshot.val();
-        if (value !== null) {
-            const relay1Switch = document.querySelector('input[name="relay1"][type="checkbox"].device-switch');
-            if (relay1Switch) {
-                relay1Switch.checked = (value === 1);
-                relay1State = value;
-                updateDeviceIndicator(relay1Switch, value === 1 ? 'success' : 'grey');
-                console.log('Initial Relay1 state:', value);
+    // Function to sync initial state for each relay
+    function syncRelayState(relayNum) {
+        onValue(ref(db, `/relayControl/relay${relayNum}`), (snapshot) => {
+            const value = snapshot.val();
+            if (value !== null) {
+                const relaySwitch = document.querySelector(`input[name="relay${relayNum}"][type="checkbox"].device-switch`);
+                if (relaySwitch) {
+                    relaySwitch.checked = (value === 1);
+                    window[`relay${relayNum}State`] = value;
+                    updateDeviceIndicator(relaySwitch, value === 1 ? 'success' : 'grey');
+                    console.log(`Initial Relay${relayNum} state:`, value);
+                }
             }
-        }
-    }, { once: true });
+        }, { once: true });
+    }
 
-    // Get initial Relay2 state
-    onValue(ref(db, "/relayControl/relay2"), (snapshot) => {
-        const value = snapshot.val();
-        if (value !== null) {
-            const relay2Switch = document.querySelector('input[name="relay2"][type="checkbox"].device-switch');
-            if (relay2Switch) {
-                relay2Switch.checked = (value === 1);
-                relay2State = value;
-                updateDeviceIndicator(relay2Switch, value === 1 ? 'success' : 'grey');
-                console.log('Initial Relay2 state:', value);
-            }
-        }
-    }, { once: true });
+    // Sync initial state for all 8 relays
+    for (let i = 1; i <= 8; i++) {
+        syncRelayState(i);
+    }
 }
 
 // Update visual indicator for a switch
@@ -314,12 +270,11 @@ function manualDeviceControl(device, value) {
     set(ref(db, "/relayControl/manualMode"), true);
     startManualModeTimeout();
 
-    if (device === 'relay1') {
-        set(ref(db, "/relayControl/relay1"), value);
-        relay1State = value;
-    } else if (device === 'relay2') {
-        set(ref(db, "/relayControl/relay2"), value);
-        relay2State = value;
+    // Support all 8 relays
+    if (device.match(/^relay[1-8]$/)) {
+        set(ref(db, `/relayControl/${device}`), value);
+        const relayNum = device.replace('relay', '');
+        window[`relay${relayNum}State`] = value;
     }
 }
 
@@ -328,6 +283,12 @@ function getDeviceStates() {
     return {
         relay1: relay1State,
         relay2: relay2State,
+        relay3: relay3State,
+        relay4: relay4State,
+        relay5: relay5State,
+        relay6: relay6State,
+        relay7: relay7State,
+        relay8: relay8State,
         manualMode: deviceManualMode,
         lastManualActivity: lastManualActivity,
         manualModeTimeoutActive: manualModeTimer !== null

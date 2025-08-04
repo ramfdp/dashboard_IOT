@@ -24,8 +24,14 @@
 
 // ===== Hardware Pin Configuration =====
 // Relay Control Pins
-#define RELAY1_PIN 26 // GPIO 26 - Lampu ITMS 1
-#define RELAY2_PIN 27 // GPIO 27 - Lampu ITMS 2
+#define RELAY1_PIN 26 // GPIO 26 - Relay 1
+#define RELAY2_PIN 27 // GPIO 27 - Relay 2
+#define RELAY3_PIN 14 // GPIO 14 - Relay 3
+#define RELAY4_PIN 12 // GPIO 12 - Relay 4
+#define RELAY5_PIN 13 // GPIO 13 - Relay 5
+#define RELAY6_PIN 25 // GPIO 25 - Relay 6
+#define RELAY7_PIN 33 // GPIO 33 - Relay 7
+#define RELAY8_PIN 32 // GPIO 32 - Relay 8
 
 // PZEM-004T Sensor Pins (Software Serial)
 #define PZEM1_RX 16 // GPIO 16 - PZEM 1 RX

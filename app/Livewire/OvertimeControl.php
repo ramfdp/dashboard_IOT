@@ -46,8 +46,18 @@ class OvertimeControl extends Component
         'start_time' => 'required|date_format:H:i',
         'end_time' => 'nullable|date_format:H:i|after:start_time',
         'notes' => 'nullable|string|max:500',
-        'light_selection' => 'required|in:itms1,itms2,all',
+        'light_selection' => 'required|in:relay1,relay2,relay3,relay4,relay5,relay6,relay7,relay8,all',
     ];
+
+    public function updatedLightSelection($value)
+    {
+        // Debug: Track when light_selection changes
+        file_put_contents(
+            storage_path('logs/debug_overtime.log'),
+            date('Y-m-d H:i:s') . " - LIVEWIRE UPDATED: light_selection changed to '{$value}'\n",
+            FILE_APPEND | LOCK_EX
+        );
+    }
 
     protected $messages = [
         'division_name.required' => 'Divisi harus diisi.',
@@ -68,8 +78,9 @@ class OvertimeControl extends Component
 
     public function hydrate()
     {
-        // This method runs on every request to refresh the component
-        $this->updateOvertimeStatuses();
+        // Temporarily disable automatic status updates on every hydration
+        // This was causing light_selection to be overridden
+        // $this->updateOvertimeStatuses();
         $this->checkOvertimeAvailability();
     }
 
@@ -163,6 +174,16 @@ class OvertimeControl extends Component
 
     public function store()
     {
+        // CRITICAL DEBUG: Log form submission
+        file_put_contents(
+            storage_path('logs/debug_overtime.log'),
+            date('Y-m-d H:i:s') . " - STORE METHOD CALLED: light_selection='{$this->light_selection}'\n",
+            FILE_APPEND | LOCK_EX
+        );
+
+        // Add a session flash to confirm the method is called
+        session()->flash('debug_message', 'Store method called with light_selection: ' . $this->light_selection);
+
         // Check if overtime system is available
         if (!$this->overtimeAvailable) {
             $message = 'Sistem lembur tidak tersedia. ';
@@ -177,6 +198,19 @@ class OvertimeControl extends Component
         }
 
         $this->validate();
+
+        // Add debugging to track the light_selection value
+        Log::info('OvertimeControl store method - after validation', [
+            'light_selection' => $this->light_selection,
+            'form_data' => [
+                'employee_name' => $this->employee_name,
+                'division_name' => $this->division_name,
+                'overtime_date' => $this->overtime_date,
+                'start_time' => $this->start_time,
+                'end_time' => $this->end_time,
+                'notes' => $this->notes
+            ]
+        ]);
 
         $startTime = Carbon::createFromFormat('Y-m-d H:i', $this->overtime_date . ' ' . $this->start_time);
         $now = Carbon::now('Asia/Jakarta');
@@ -221,7 +255,28 @@ class OvertimeControl extends Component
             session()->flash('success_overtime', 'Data lembur berhasil diupdate!');
             $this->cancelEdit();
         } else {
-            Overtime::create([
+            // Debug: Log before creating overtime record
+            Log::info('Creating new overtime record', [
+                'light_selection_before_create' => $this->light_selection,
+                'all_form_data' => [
+                    'employee_name' => $this->employee_name,
+                    'division_name' => $this->division_name,
+                    'overtime_date' => $this->overtime_date,
+                    'start_time' => $this->start_time,
+                    'end_time' => $this->end_time,
+                    'notes' => $this->notes,
+                    'light_selection' => $this->light_selection
+                ]
+            ]);
+
+            // Ensure light_selection is not empty or null
+            $lightSelection = $this->light_selection;
+            if (empty($lightSelection)) {
+                $lightSelection = 'all'; // Fallback if empty
+                Log::warning('Light selection was empty, using fallback value: all');
+            }
+
+            $createdOvertime = Overtime::create([
                 'employee_name' => $this->employee_name,
                 'division_name' => $this->division_name,
                 'overtime_date' => $this->overtime_date,
@@ -230,7 +285,24 @@ class OvertimeControl extends Component
                 'duration' => $duration,
                 'status' => $status,
                 'notes' => $this->notes,
-                'light_selection' => $this->light_selection,
+                'light_selection' => $lightSelection,
+            ]);
+
+            // CRITICAL DEBUG: Force write to debug log file
+            file_put_contents(
+                storage_path('logs/debug_overtime.log'),
+                date('Y-m-d H:i:s') . " - CREATED: ID={$createdOvertime->id}, light_selection_before={$lightSelection}, light_selection_after={$createdOvertime->light_selection}\n",
+                FILE_APPEND | LOCK_EX
+            );
+
+            // Debug: Log after creating overtime record and immediately fetch to verify
+            $freshRecord = Overtime::find($createdOvertime->id);
+            Log::info('Overtime record created and verified', [
+                'created_id' => $createdOvertime->id,
+                'light_selection_after_create' => $createdOvertime->light_selection,
+                'light_selection_fresh_fetch' => $freshRecord->light_selection,
+                'original_light_selection' => $this->light_selection,
+                'used_light_selection' => $lightSelection
             ]);
 
             session()->flash('success_overtime', 'Lembur berhasil disimpan!');
@@ -373,29 +445,49 @@ class OvertimeControl extends Component
                 return $now->gte($startTime) && (!$endTime || $now->lt($endTime));
             });
 
-        $relay1ShouldBeOn = false;
-        $relay2ShouldBeOn = false;
+        // Initialize all relay states to false
+        $relayStates = [
+            'relay1' => false,
+            'relay2' => false,
+            'relay3' => false,
+            'relay4' => false,
+            'relay5' => false,
+            'relay6' => false,
+            'relay7' => false,
+            'relay8' => false,
+        ];
 
         // Determine which relays should be ON based on active overtimes' light selections
         foreach ($activeOvertimes as $overtime) {
             $lightSelection = $overtime->light_selection ?? 'all';
 
-            if ($lightSelection === 'itms1' || $lightSelection === 'all') {
-                $relay1ShouldBeOn = true;
-            }
-            if ($lightSelection === 'itms2' || $lightSelection === 'all') {
-                $relay2ShouldBeOn = true;
+            // Handle legacy ITMS selections for backward compatibility
+            if ($lightSelection === 'itms1') {
+                $relayStates['relay1'] = true;
+            } elseif ($lightSelection === 'itms2') {
+                $relayStates['relay2'] = true;
+            } elseif ($lightSelection === 'all') {
+                // Turn on all relays when "all" is selected
+                foreach ($relayStates as $relay => $state) {
+                    $relayStates[$relay] = true;
+                }
+            } elseif (in_array($lightSelection, ['relay1', 'relay2', 'relay3', 'relay4', 'relay5', 'relay6', 'relay7', 'relay8'])) {
+                // Handle individual relay selections
+                $relayStates[$lightSelection] = true;
             }
         }
 
-        // Update Firebase with the calculated relay states
-        Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', [
-            'relay1' => $relay1ShouldBeOn ? 1 : 0,
-            'relay2' => $relay2ShouldBeOn ? 1 : 0,
-            'manualMode' => false
-        ]);
+        // Prepare Firebase update data
+        $firebaseData = ['manualMode' => false];
+        foreach ($relayStates as $relay => $shouldBeOn) {
+            $firebaseData[$relay] = $shouldBeOn ? 1 : 0;
+        }
 
-        Log::info("Smart relay control updated: Relay1={$relay1ShouldBeOn}, Relay2={$relay2ShouldBeOn}, Active overtimes: {$activeOvertimes->count()}");
+        // Update Firebase with the calculated relay states
+        Http::timeout(3)->put('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json', $firebaseData);
+
+        $activeRelays = array_keys(array_filter($relayStates));
+        Log::info("Smart relay control updated: Active relays: " . implode(', ', $activeRelays) . ", Active overtimes: {$activeOvertimes->count()}");
     }
 
     private function resetForm()
@@ -438,9 +530,13 @@ class OvertimeControl extends Component
             }
 
             if ($overtime->status != $newStatus) {
-                $overtime->status = $newStatus;
-                $overtime->save();
+                // Only update the status field, not the entire model
+                // This prevents the light_selection from being overridden by model mutators
+                Overtime::where('id', $overtime->id)->update(['status' => $newStatus]);
                 $updated = true;
+                Log::info("Livewire: Overtime {$overtime->id} status changed from {$overtime->status} to {$newStatus}", [
+                    'light_selection_preserved' => $overtime->light_selection
+                ]);
             }
         }
 
@@ -464,18 +560,15 @@ class OvertimeControl extends Component
         foreach ($runningOvertimes as $overtime) {
             if ($overtime->end_time) {
                 $endTime = Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->end_time);
-
                 // If overtime end time has passed, it should be completed
                 if ($now->gte($endTime)) {
                     Log::info("Backend auto-completing overtime {$overtime->id} - end time reached");
-
-                    // Update overtime status to completed
-                    $overtime->update([
+                    // Only update status, end_time, and duration
+                    Overtime::where('id', $overtime->id)->update([
                         'status' => 2,
                         'end_time' => $endTime->format('H:i:s'),
                         'duration' => Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->start_time)->diffInMinutes($endTime)
                     ]);
-
                     $hasChanges = true;
                 }
             }
@@ -488,23 +581,19 @@ class OvertimeControl extends Component
             // If start time has passed and it's still today, auto-start it
             if ($now->gte($startTime) && $now->isSameDay($startTime)) {
                 $endTime = $overtime->end_time ? Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->end_time) : null;
-
                 // Only auto-start if we haven't passed the end time (if it exists)
                 if (!$endTime || $now->lt($endTime)) {
                     Log::info("Backend auto-starting overtime {$overtime->id} - start time reached");
-
-                    $overtime->update(['status' => 1]);
+                    Overtime::where('id', $overtime->id)->update(['status' => 1]);
                     $hasChanges = true;
                 } else {
                     // If both start and end time have passed, mark as completed
                     Log::info("Backend auto-completing overtime {$overtime->id} - period has passed");
-
-                    $overtime->update([
+                    Overtime::where('id', $overtime->id)->update([
                         'status' => 2,
                         'end_time' => $endTime->format('H:i:s'),
                         'duration' => Carbon::parse($overtime->overtime_date)->setTimeFromTimeString($overtime->start_time)->diffInMinutes($endTime)
                     ]);
-
                     $hasChanges = true;
                 }
             }
