@@ -145,15 +145,13 @@ mix.copy('node_modules/x-editable-bs4', 'public/assets/plugins/x-editable-bs4');
 
 // Performance optimization: Minify custom JS files
 mix.scripts([
-	'public/assets/js/LightSchedule.js',
+	'public/assets/js/LightScheduleManager.js',
 	'public/assets/js/performance-optimizer.js'
 ], 'public/assets/js/app-optimized.min.js');
 
-// Minify monitoring scripts
+// Minify monitoring scripts (excluding ES6 modules)
 mix.scripts([
 	'public/assets/js/fetch-api-monitoring.js',
-	'public/assets/js/overtime-control-fetch.js',
-	'public/assets/js/random-gen-moni.js',
 	'public/assets/js/CCTV-logic.js'
 ], 'public/assets/js/monitoring-optimized.min.js');
 
