@@ -26,7 +26,6 @@
               <div class="col-lg-6">
                 <ul class="nav d-block fw-bold">
                   <li><a href="javascript:;" class="text-ellipsis text-dark text-decoration-none"><i class="fa fa-chevron-right fa-fw text-gray-500"></i> Unlimited Nav Tabs</a></li>
-                  <li><a href="javascript:;" class="text-ellipsis text-dark text-decoration-none"><i class="fa fa-chevron-right fa-fw text-gray-500"></i> Modal & Notification</a></li>
                   <li><a href="javascript:;" class="text-ellipsis text-dark text-decoration-none"><i class="fa fa-chevron-right fa-fw text-gray-500"></i> Buttons</a></li>
                 </ul>
               </div>

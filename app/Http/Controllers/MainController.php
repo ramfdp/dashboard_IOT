@@ -1,337 +1,440 @@
 <?php
+
 namespace App\Http\Controllers;
 
 
-class MainController extends Controller {
-    public function dashboardV1() {
+class MainController extends Controller
+{
+    public function dashboardV1()
+    {
         return view('pages/dashboard-v1');
     }
-    public function dashboardV2() {
+    public function dashboardV2()
+    {
         return view('pages/dashboard-v2');
     }
-    public function dashboardV3() {
+    public function dashboardV3()
+    {
         return view('pages/dashboard-v3');
     }
-    public function dashboardDetailCm2() {
+    public function dashboardDetailCm2()
+    {
         return view('pages/dashboard-detail-wisma');
     }
-    
-    public function emailInbox() {
+
+    public function emailInbox()
+    {
         return view('pages/email-inbox');
     }
-    public function emailCompose() {
+    public function emailCompose()
+    {
         return view('pages/email-compose');
     }
-    public function emailDetail() {
+    public function emailDetail()
+    {
         return view('pages/email-detail');
     }
-    
-    public function widget() {
+
+    public function widget()
+    {
         return view('pages/widget');
     }
-    
-    public function uiGeneral() {
+
+    public function uiGeneral()
+    {
         return view('pages/ui-general');
     }
-    public function uiTypography() {
+    public function uiTypography()
+    {
         return view('pages/ui-typography');
     }
-    public function uiTabsAccordions() {
+    public function uiTabsAccordions()
+    {
         return view('pages/ui-tabs-accordions');
     }
-    public function uiUnlimitedNavTabs() {
+    public function uiUnlimitedNavTabs()
+    {
         return view('pages/ui-unlimited-nav-tabs');
     }
-    public function uiModalNotification() {
-        return view('pages/ui-modal-notification');
-    }
-    public function uiWidgetBoxes() {
+    public function uiWidgetBoxes()
+    {
         return view('pages/ui-widget-boxes');
     }
-    public function uiMediaObject() {
+    public function uiMediaObject()
+    {
         return view('pages/ui-media-object');
     }
-    public function uiButtons() {
+    public function uiButtons()
+    {
         return view('pages/ui-buttons');
     }
-    public function uiIconFontAwesome() {
+    public function uiIconFontAwesome()
+    {
         return view('pages/ui-icon-fontawesome');
     }
-    public function uiIconBootstrapIcons() {
+    public function uiIconBootstrapIcons()
+    {
         return view('pages/ui-icon-bootstrap-icons');
     }
-    public function uiIconDuotone() {
+    public function uiIconDuotone()
+    {
         return view('pages/ui-icon-duotone');
     }
-    public function uiIconSimpleLineIcons() {
+    public function uiIconSimpleLineIcons()
+    {
         return view('pages/ui-icon-simple-line-icons');
     }
-    public function uiIconIonicons() {
+    public function uiIconIonicons()
+    {
         return view('pages/ui-icon-ionicons');
     }
-    public function uiTreeView() {
+    public function uiTreeView()
+    {
         return view('pages/ui-tree-view');
     }
-    public function uiLanguageBarIcon() {
+    public function uiLanguageBarIcon()
+    {
         return view('pages/ui-language-bar-icon');
     }
-    public function uiSocialButtons() {
+    public function uiSocialButtons()
+    {
         return view('pages/ui-social-buttons');
     }
-    public function uiIntroJs() {
+    public function uiIntroJs()
+    {
         return view('pages/ui-intro-js');
     }
-    public function uiOffcanvasToasts() {
+    public function uiOffcanvasToasts()
+    {
         return view('pages/ui-offcanvas-toasts');
     }
-    
-    public function bootstrap5() {
+
+    public function bootstrap5()
+    {
         return view('pages/bootstrap-5');
     }
-    
-    public function formElements() {
+
+    public function formElements()
+    {
         return view('pages/form-elements');
     }
-    public function formPlugins() {
+    public function formPlugins()
+    {
         return view('pages/form-plugins');
     }
-    public function formSliderSwitcher() {
+    public function formSliderSwitcher()
+    {
         return view('pages/form-slider-switcher');
     }
-    public function formValidation() {
+    public function formValidation()
+    {
         return view('pages/form-validation');
     }
-    public function formWizards() {
+    public function formWizards()
+    {
         return view('pages/form-wizards');
     }
-    public function formWysiwyg() {
+    public function formWysiwyg()
+    {
         return view('pages/form-wysiwyg');
     }
-    public function formXEditable() {
+    public function formXEditable()
+    {
         return view('pages/form-x-editable');
     }
-    public function formMultipleFileUpload() {
+    public function formMultipleFileUpload()
+    {
         return view('pages/form-multiple-file-upload');
     }
-    public function formSummernote() {
+    public function formSummernote()
+    {
         return view('pages/form-summernote');
     }
-    public function formDropzone() {
+    public function formDropzone()
+    {
         return view('pages/form-dropzone');
     }
-    
-    public function tableBasic() {
+
+    public function tableBasic()
+    {
         return view('pages/table-basic');
     }
-    public function tableManageDefault() {
+    public function tableManageDefault()
+    {
         return view('pages/table-manage-default');
     }
-    public function tableManageButtons() {
+    public function tableManageButtons()
+    {
         return view('pages/table-manage-buttons');
     }
-    public function tableManageColreorder() {
+    public function tableManageColreorder()
+    {
         return view('pages/table-manage-colreorder');
     }
-    public function tableManageFixedColumn() {
+    public function tableManageFixedColumn()
+    {
         return view('pages/table-manage-fixed-column');
     }
-    public function tableManageFixedHeader() {
+    public function tableManageFixedHeader()
+    {
         return view('pages/table-manage-fixed-header');
     }
-    public function tableManageKeytable() {
+    public function tableManageKeytable()
+    {
         return view('pages/table-manage-keytable');
     }
-    public function tableManageResponsive() {
+    public function tableManageResponsive()
+    {
         return view('pages/table-manage-responsive');
     }
-    public function tableManageRowreorder() {
+    public function tableManageRowreorder()
+    {
         return view('pages/table-manage-rowreorder');
     }
-    public function tableManageScroller() {
+    public function tableManageScroller()
+    {
         return view('pages/table-manage-scroller');
     }
-    public function tableManageSelect() {
+    public function tableManageSelect()
+    {
         return view('pages/table-manage-select');
     }
-    public function tableManageCombine() {
+    public function tableManageCombine()
+    {
         return view('pages/table-manage-combine');
     }
-    
-    public function posCustomerOrder() {
+
+    public function posCustomerOrder()
+    {
         return view('pages/pos-customer-order');
     }
-    public function posKitchenOrder() {
+    public function posKitchenOrder()
+    {
         return view('pages/pos-kitchen-order');
     }
-    public function posCounterCheckout() {
+    public function posCounterCheckout()
+    {
         return view('pages/pos-counter-checkout');
     }
-    public function posTableBooking() {
+    public function posTableBooking()
+    {
         return view('pages/pos-table-booking');
     }
-    public function posMenuStock() {
+    public function posMenuStock()
+    {
         return view('pages/pos-menu-stock');
     }
-    
-    public function emailTemplateSystem() {
+
+    public function emailTemplateSystem()
+    {
         return view('pages/email-template-system');
     }
-    public function emailTemplateNewsletter() {
+    public function emailTemplateNewsletter()
+    {
         return view('pages/email-template-newsletter');
     }
-    
-    public function chartFlot() {
+
+    public function chartFlot()
+    {
         return view('pages/chart-flot');
     }
-    public function chartJs() {
+    public function chartJs()
+    {
         return view('pages/chart-js');
     }
-    public function chartD3() {
+    public function chartD3()
+    {
         return view('pages/chart-d3');
     }
-    public function chartApex() {
+    public function chartApex()
+    {
         return view('pages/chart-apex');
     }
-    
-    public function calendar() {
+
+    public function calendar()
+    {
         return view('pages/calendar');
     }
-    
-    public function mapVector() {
+
+    public function mapVector()
+    {
         return view('pages/map-vector');
     }
-    public function mapGoogle() {
+    public function mapGoogle()
+    {
         return view('pages/map-google');
     }
-    
-    public function galleryV1() {
+
+    public function galleryV1()
+    {
         return view('pages/gallery-v1');
     }
-    public function galleryV2() {
+    public function galleryV2()
+    {
         return view('pages/gallery-v2');
     }
-    
-    public function pageBlank() {
+
+    public function pageBlank()
+    {
         return view('pages/page-blank');
     }
-    public function pageWithFooter() {
+    public function pageWithFooter()
+    {
         return view('pages/page-with-footer');
     }
-    public function pageWithFixedFooter() {
+    public function pageWithFixedFooter()
+    {
         return view('pages/page-with-fixed-footer');
     }
-    public function pageWithoutSidebar() {
+    public function pageWithoutSidebar()
+    {
         return view('pages/page-without-sidebar');
     }
-    public function pageWithRightSidebar() {
+    public function pageWithRightSidebar()
+    {
         return view('pages/page-with-right-sidebar');
     }
-    public function pageWithMinifiedSidebar() {
+    public function pageWithMinifiedSidebar()
+    {
         return view('pages/page-with-minified-sidebar');
     }
-    public function pageWithTwoSidebar() {
+    public function pageWithTwoSidebar()
+    {
         return view('pages/page-with-two-sidebar');
     }
-    public function pageFullHeight() {
+    public function pageFullHeight()
+    {
         return view('pages/page-full-height');
     }
-    public function pageWithWideSidebar() {
+    public function pageWithWideSidebar()
+    {
         return view('pages/page-with-wide-sidebar');
     }
-    public function pageWithLightSidebar() {
+    public function pageWithLightSidebar()
+    {
         return view('pages/page-with-light-sidebar');
     }
-    public function pageWithMegaMenu() {
+    public function pageWithMegaMenu()
+    {
         return view('pages/page-with-mega-menu');
     }
-    public function pageWithTopMenu() {
+    public function pageWithTopMenu()
+    {
         return view('pages/page-with-top-menu');
     }
-    public function pageWithBoxedLayout() {
+    public function pageWithBoxedLayout()
+    {
         return view('pages/page-with-boxed-layout');
     }
-    public function pageWithMixedMenu() {
+    public function pageWithMixedMenu()
+    {
         return view('pages/page-with-mixed-menu');
     }
-    public function boxedLayoutWithMixedMenu() {
+    public function boxedLayoutWithMixedMenu()
+    {
         return view('pages/page-boxed-layout-with-mixed-menu');
     }
-    public function pageWithTransparentSidebar() {
+    public function pageWithTransparentSidebar()
+    {
         return view('pages/page-with-transparent-sidebar');
     }
-    public function pageWithSearchSidebar() {
+    public function pageWithSearchSidebar()
+    {
         return view('pages/page-with-search-sidebar');
     }
-    public function pageWithHoverSidebar() {
+    public function pageWithHoverSidebar()
+    {
         return view('pages/page-with-hover-sidebar');
     }
-    
-    public function extraTimeline() {
+
+    public function extraTimeline()
+    {
         return view('pages/extra-timeline');
     }
-    public function extraComingSoon() {
+    public function extraComingSoon()
+    {
         return view('pages/extra-coming-soon');
     }
-    public function extraSearchResult() {
+    public function extraSearchResult()
+    {
         return view('pages/extra-search-result');
     }
-    public function extraInvoice() {
+    public function extraInvoice()
+    {
         return view('pages/extra-invoice');
     }
-    public function extraErrorPage() {
+    public function extraErrorPage()
+    {
         return view('pages/extra-error-page');
     }
-    public function extraProfile() {
+    public function extraProfile()
+    {
         return view('pages/extra-profile');
     }
-    public function extraScrumBoard() {
+    public function extraScrumBoard()
+    {
         return view('pages/extra-scrum-board');
     }
-    public function extraCookieAcceptanceBanner() {
+    public function extraCookieAcceptanceBanner()
+    {
         return view('pages/extra-cookie-acceptance-banner');
     }
-    public function extraOrders() {
+    public function extraOrders()
+    {
         return view('pages/extra-orders');
     }
-    public function extraOrderDetails() {
+    public function extraOrderDetails()
+    {
         return view('pages/extra-order-details');
     }
-    public function extraProducts() {
+    public function extraProducts()
+    {
         return view('pages/extra-products');
     }
-    public function extraProductDetails() {
+    public function extraProductDetails()
+    {
         return view('pages/extra-product-details');
     }
-    public function extraFileManager() {
+    public function extraFileManager()
+    {
         return view('pages/extra-file-manager');
     }
-    public function extraPricingPage() {
+    public function extraPricingPage()
+    {
         return view('pages/extra-pricing-page');
     }
-    public function extraMessengerPage() {
+    public function extraMessengerPage()
+    {
         return view('pages/extra-messenger-page');
     }
-    public function extraDataManagement() {
+    public function extraDataManagement()
+    {
         return view('pages/extra-data-management');
     }
-    public function extraSettingsPage() {
+    public function extraSettingsPage()
+    {
         return view('pages/extra-settings-page');
     }
-    
-    public function loginV1() {
+
+    public function loginV1()
+    {
         return view('pages/login-v1');
     }
-    public function loginV2() {
+    public function loginV2()
+    {
         return view('pages/login-v2');
     }
-    public function loginV3() {
+    public function loginV3()
+    {
         return view('pages/login-v3');
     }
-    public function registerV3() {
+    public function registerV3()
+    {
         return view('pages/register-v3');
     }
-    
-    public function helperCss() {
+
+    public function helperCss()
+    {
         return view('pages/helper-css');
     }
 }
