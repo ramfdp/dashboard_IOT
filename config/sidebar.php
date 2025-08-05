@@ -16,13 +16,13 @@ return [
             'route-name' => 'table-manage-buttons'
         ],
         [
-            'icon' => 'fa fa-table',
+            'icon' => 'fa fa-users',
             'title' => 'Karyawan',
             'url' => '/karyawan',
             'route-name' => 'karyawan'
         ],
         [
-            'icon' => 'fa fa-table',
+            'icon' => 'fa fa-camera',
             'title' => 'CCTV',
             'url' => '/cctv',
             'route-name' => 'cctv'

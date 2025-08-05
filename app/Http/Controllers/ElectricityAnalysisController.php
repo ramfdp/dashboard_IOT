@@ -258,7 +258,7 @@ class ElectricityAnalysisController extends Controller
     {
         try {
             $location = $request->get('location');
-            $format = $request->get('format', 'json'); // json, csv, pdf
+            $format = $request->get('format', 'json');
 
             $fullAnalysis = $this->predictionService->getUsageAnalysis($location, 30);
 
@@ -384,7 +384,7 @@ class ElectricityAnalysisController extends Controller
     private function findOffPeakHours($hourlyPatterns)
     {
         $averagePower = collect($hourlyPatterns)->avg('average_power');
-        $threshold = $averagePower * 0.7; // 30% below average
+        $threshold = $averagePower * 0.7; 
 
         return collect($hourlyPatterns)
             ->filter(fn($pattern) => $pattern['average_power'] < $threshold)
