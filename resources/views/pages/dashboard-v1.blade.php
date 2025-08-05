@@ -8,6 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet" />
     <link href="/assets/css/indikator.css" rel="stylesheet" />
     <link href="/assets/css/dashboard-v1.css" rel="stylesheet" />
+    <link href="/assets/css/advanced-electricity-calculator.css" rel="stylesheet" />
 @endpush
 
 @push('scripts')
@@ -35,7 +36,16 @@
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     <script src="/assets/js/demo/dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/assets/js/perhitung-grafik-moni.js"></script>
+    
+    {{-- TensorFlow.js - Only core modules for optimized loading --}}
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.15.0/dist/tf-core.min.js" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.15.0/dist/tf-converter.min.js" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.15.0/dist/tf-backend-cpu.min.js" async defer></script>
+    
+    {{-- Electricity prediction with TensorFlow.js KNN --}}
+    <script src="/assets/js/tensorflow-knn-predictor.js" async defer></script>
+    <script src="/assets/js/electricity-knn-calculator.js" async defer></script>
+    
     <script src="/assets/js/logika-form-lembur.js"></script>
     <script src="/assets/js/fetch-api-monitoring.js"></script>
     {{-- Firebase scripts for device and overtime control --}}
@@ -138,84 +148,155 @@
 
     <!-- Modal untuk Perhitungan Listrik -->
     <div class="modal fade" id="modalPerhitunganListrik" tabindex="-1" aria-labelledby="modalPerhitunganListrikLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content bg-dark text-white">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="modalPerhitunganListrikLabel">Perhitungan Penggunaan Listrik</h5>
+                    <h5 class="modal-title" id="modalPerhitunganListrikLabel">
+                        <i class="fa fa-chart-line me-2"></i>Analisis Penggunaan Listrik Lanjutan
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <!-- Analysis Summary -->
                     <div class="alert alert-info">
-                        <h6>Ringkasan Penggunaan</h6>
+                        <h6><i class="fa fa-info-circle me-2"></i>Ringkasan Analisis</h6>
                         <div id="perhitunganSummary"></div>
                     </div>
 
-                    <div class="form-group mb-3">
-                        <label for="periodePerhitungan">Pilih Periode Perhitungan:</label>
-                        <select class="form-control" id="periodePerhitungan">
-                            <option value="harian" selected>Harian</option>
-                            <option value="mingguan">Mingguan</option>
-                            <option value="bulanan">Bulanan</option>
-                        </select>
+                    <!-- Period Selection -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="periodePerhitungan">Periode Analisis:</label>
+                            <select class="form-control" id="periodePerhitungan">
+                                <option value="harian" selected>Harian (24 jam)</option>
+                                <option value="mingguan">Mingguan (7 hari)</option>
+                                <option value="bulanan">Bulanan (30 hari)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="algorithmSelect">Algoritma Prediksi:</label>
+                            <select class="form-control" id="algorithmSelect">
+                                <option value="knn" selected>K-Nearest Neighbors (KNN)</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div class="card bg-primary text-white mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">Total Penggunaan Listrik</h5>
-                            <div class="row text-center">
-                                <div class="col-6">
-                                    <h3 id="totalWatt">0 Watt</h3>
-                                    <p>Daya Rata-rata</p>
+                    <!-- Statistics Cards -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fa fa-bolt me-2"></i>Penggunaan Saat Ini</h6>
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <h4 id="totalWatt">0 W</h4>
+                                            <small>Rata-rata Daya</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <h4 id="totalKwh">0 kWh</h4>
+                                            <small id="periodeLabel">per hari</small>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-6">
-                                    <h3 id="totalKwh">0 kWh</h3>
-                                    <p id="periodeLabel">per hari</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-info text-white">
+                                <div class="card-body">
+                                    <h6 class="card-title"><i class="fa fa-chart-bar me-2"></i>Metrik Efisiensi</h6>
+                                    <div id="efficiencyMetrics">
+                                        <div class="text-center">
+                                            <small>Calculating...</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    <!-- Detailed Statistics -->
                     <div class="card bg-secondary text-white mb-3">
                         <div class="card-body">
-                            <h6 class="card-title">Informasi Detail</h6>
-                            <table class="table table-dark table-sm">
-                                <tbody>
-                                    <tr><td>Daya Tertinggi</td><td id="dayaTertinggi">0 Watt</td></tr>
-                                    <tr><td>Daya Terendah</td><td id="dayaTerendah">0 Watt</td></tr>
-                                    <tr><td>Total Data</td><td id="totalData">0 titik data</td></tr>
-                                    <tr><td>Energi (Harian)</td><td id="kwhHarian">0 kWh</td></tr>
-                                    <tr><td>Energi (Mingguan)</td><td id="kwhMingguan">0 kWh</td></tr>
-                                    <tr><td>Energi (Bulanan)</td><td id="kwhBulanan">0 kWh</td></tr>
-                                </tbody>
-                            </table>
+                            <h6 class="card-title"><i class="fa fa-table me-2"></i>Statistik Detail</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-dark table-sm">
+                                        <tbody>
+                                            <tr><td>Daya Puncak</td><td id="dayaTertinggi">0 W</td></tr>
+                                            <tr><td>Daya Minimum</td><td id="dayaTerendah">0 W</td></tr>
+                                            <tr><td>Titik Data</td><td id="totalData">0</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-dark table-sm">
+                                        <tbody>
+                                            <tr><td>Energi Harian</td><td id="kwhHarian">0 kWh</td></tr>
+                                            <tr><td>Energi Mingguan</td><td id="kwhMingguan">0 kWh</td></tr>
+                                            <tr><td>Energi Bulanan</td><td id="kwhBulanan">0 kWh</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="card bg-success text-white">
+                    <!-- Predictions -->
+                    <div class="card bg-success text-white mb-3">
                         <div class="card-body">
-                            <h6 class="card-title mb-2">Prediksi Konsumsi Berikutnya</h6>
-
-                            <!-- Dropdown Pilih Prediksi -->
-                            <div class="form-group mb-2">
-                                <label for="periodePrediksi">Pilih Periode Prediksi:</label>
-                                <select class="form-control" id="periodePrediksi">
-                                    <option value="harian" selected>Harian</option>
-                                    <option value="mingguan">Mingguan</option>
-                                    <option value="bulanan">Bulanan</option>
-                                </select>
+                            <h6 class="card-title"><i class="fa fa-crystal-ball me-2"></i>Prediksi Cerdas</h6>
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group mb-2">
+                                        <label for="periodePrediksi">Horizon Prediksi:</label>
+                                        <select class="form-control" id="periodePrediksi">
+                                            <option value="1">Jam Berikutnya</option>
+                                            <option value="6">6 Jam Berikutnya</option>
+                                            <option value="24" selected>24 Jam Berikutnya</option>
+                                            <option value="72">3 Hari Berikutnya</option>
+                                        </select>
+                                    </div>
+                                    <div class="prediction-results">
+                                        <p>Jam Berikutnya: <strong id="prediksiWatt">-</strong></p>
+                                        <p>Total Energi: <strong id="prediksiKwhHarian">-</strong></p>
+                                        <p>Confidence: <span id="confidenceLevel" class="badge">-</span></p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <div class="prediction-gauge">
+                                        <div class="confidence-indicator" id="confidenceIndicator">
+                                            <div class="confidence-circle">
+                                                <span id="confidencePercentage">--%</span>
+                                            </div>
+                                            <small>Confidence Prediksi</small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <!-- Hasil Prediksi -->
-                            <div class="text-center">
-                                <p>Prediksi daya selanjutnya: <strong id="prediksiWatt">-</strong></p>
-                                <p>Estimasi energi: <strong id="prediksiKwhHarian">-</strong></p>
+                    <!-- Recommendations -->
+                    <div class="card bg-warning text-dark mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fa fa-lightbulb me-2"></i>Rekomendasi Cerdas</h6>
+                            <div id="recommendations">
+                                <div class="text-center">
+                                    <small>Analyzing patterns...</small>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-info" id="exportAnalysis">
+                        <i class="fa fa-download me-2"></i>Export Analysis
+                    </button>
+                    <button type="button" class="btn btn-success" id="refreshAnalysis">
+                        <i class="fa fa-refresh me-2"></i>Refresh
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

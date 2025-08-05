@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PowerUsageController;
 use App\Http\Controllers\ListrikController;
 use App\Http\Controllers\HistoryKwhController;
+use App\Http\Controllers\ElectricityAnalysisController;
 
 
 /*
@@ -36,3 +37,14 @@ Route::get('/fetch-store-pzem', [HistoryKwhController::class, 'fetchFromFirebase
 // Schedule checking routes
 Route::post('/check-schedules', [\App\Http\Controllers\DashboardController::class, 'checkSchedules']);
 Route::get('/test/schedule-check', [\App\Http\Controllers\DashboardController::class, 'checkSchedules']);
+
+// Advanced Electricity Analysis Routes
+Route::prefix('electricity')->group(function () {
+    Route::get('/analysis', [ElectricityAnalysisController::class, 'getUsageAnalysis']);
+    Route::get('/predictions', [ElectricityAnalysisController::class, 'getPredictions']);
+    Route::get('/efficiency', [ElectricityAnalysisController::class, 'getEfficiencyMetrics']);
+    Route::get('/load-patterns', [ElectricityAnalysisController::class, 'getLoadPatterns']);
+    Route::get('/recommendations', [ElectricityAnalysisController::class, 'getRecommendations']);
+    Route::get('/compare-algorithms', [ElectricityAnalysisController::class, 'compareAlgorithms']);
+    Route::get('/export-report', [ElectricityAnalysisController::class, 'exportAnalysisReport']);
+});
