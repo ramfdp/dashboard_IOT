@@ -10,7 +10,7 @@
 @section('content')
     <div class="login login-with-news-feed">
         <div class="news-feed">
-            <div class="news-image" style="background-image: url(/assets/img/login-bg/login-bg-11.jpg)"></div>
+            <div class="news-image" style="background-image: url('{{ asset('assets/img/login-bg/wisma krakatau background.png') }}'); background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
             <div class="news-caption">
                 <h4 class="caption-title"><b>IOT</b> Control Panel</h4>
                 <p>Tempat Untuk Mengkontrol Penggunaan Listrik</p>
