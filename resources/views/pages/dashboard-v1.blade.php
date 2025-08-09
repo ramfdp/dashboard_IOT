@@ -42,8 +42,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.15.0/dist/tf-converter.min.js" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.15.0/dist/tf-backend-cpu.min.js" async defer></script>
     
+    {{-- KNN-based electricity calculation system --}}
+    <script src="/assets/js/tensorflow-knn-predictor.js" async defer></script>
+    <script src="/assets/js/electricity-knn-calculator.js" async defer></script>
+    
     {{-- Advanced electricity calculator for analysis and export functionality --}}
     <script src="/assets/js/advanced-electricity-calculator.js" async defer></script>
+    
+    {{-- KNN Test Script for debugging --}}
+    <script src="/assets/js/knn-test.js" async defer></script>
     
     <script src="/assets/js/logika-form-lembur.js"></script>
     <script src="/assets/js/fetch-api-monitoring.js"></script>
@@ -86,6 +93,8 @@
                 // Get data from canvas attributes
                 const labels = JSON.parse(canvas.dataset.labels || '[]');
                 const values = JSON.parse(canvas.dataset.values || '[]').map(parseFloat);
+
+                console.log('Chart data:', { labels: labels.length, values: values.length });
 
                 // If no data, create sample data for demonstration
                 if (labels.length === 0 || values.length === 0) {
@@ -225,10 +234,81 @@
 
             // Initialize when modal is opened
             document.getElementById('btnLihatPerhitungan')?.addEventListener('click', function() {
+                console.log('Lihat Perhitungan button clicked');
+                
+                // Show modal immediately (Bootstrap should handle this with data attributes)
                 setTimeout(() => {
+                    // Try to use KNN calculator if available
+                    if (window.knnCalculator && typeof window.knnCalculator.displayEnhancedCalculations === 'function') {
+                        console.log('Using KNN Calculator');
+                        try {
+                            const periode = document.getElementById('periodePerhitungan')?.value || 'harian';
+                            window.knnCalculator.displayEnhancedCalculations(periode);
+                        } catch (error) {
+                            console.error('KNN Calculator error:', error);
+                            fallbackCalculation();
+                        }
+                    } else if (window.electricityCalculator && typeof window.electricityCalculator.displayEnhancedCalculations === 'function') {
+                        console.log('Using fallback Electricity Calculator');
+                        try {
+                            const periode = document.getElementById('periodePerhitungan')?.value || 'harian';
+                            window.electricityCalculator.displayEnhancedCalculations(periode);
+                        } catch (error) {
+                            console.error('Fallback Calculator error:', error);
+                            fallbackCalculation();
+                        }
+                    } else {
+                        console.log('Using basic fallback calculation');
+                        fallbackCalculation();
+                    }
+                    
                     updatePredictionDisplay();
                 }, 500); // Small delay to ensure modal is fully loaded
             });
+
+            // Fallback calculation for when KNN is not available
+            function fallbackCalculation() {
+                const canvas = document.getElementById('wattChart');
+                if (!canvas) return;
+
+                const values = JSON.parse(canvas.dataset.values || '[]').map(parseFloat);
+                if (values.length === 0) return;
+
+                // Basic statistics
+                const sum = values.reduce((a, b) => a + b, 0);
+                const mean = sum / values.length;
+                const max = Math.max(...values);
+                const min = Math.min(...values);
+
+                // Update basic display
+                document.getElementById('totalWatt').textContent = `${mean.toFixed(2)} W`;
+                document.getElementById('totalKwh').textContent = `${(mean * 24 / 1000).toFixed(2)} kWh`;
+                document.getElementById('dayaTertinggi').textContent = `${max} W`;
+                document.getElementById('dayaTerendah').textContent = `${min} W`;
+                document.getElementById('totalData').textContent = `${values.length} points`;
+
+                // Basic prediction (simple moving average)
+                if (values.length >= 3) {
+                    const lastValues = values.slice(-3);
+                    const prediction = lastValues.reduce((a, b) => a + b, 0) / lastValues.length;
+                    document.getElementById('prediksiWatt').textContent = `${prediction.toFixed(2)} W`;
+                    document.getElementById('prediksiKwhHarian').textContent = `${(prediction * 24 / 1000).toFixed(2)} kWh`;
+                    document.getElementById('confidenceLevel').textContent = 'Basic';
+                    document.getElementById('confidencePercentage').textContent = '50%';
+                }
+
+                // Update summary
+                const summaryElement = document.getElementById('perhitunganSummary');
+                if (summaryElement) {
+                    summaryElement.innerHTML = `
+                        <p><strong>Basic Statistical Analysis:</strong></p>
+                        <p>Average Power: <strong>${mean.toFixed(2)} W</strong></p>
+                        <p>Data Points: <strong>${values.length}</strong></p>
+                        <p>Range: ${min}W - ${max}W</p>
+                        <p><em>Note: Advanced KNN prediction not available. Using basic calculation.</em></p>
+                    `;
+                }
+            }
 
             // Export Analysis functionality
             document.getElementById('exportAnalysis')?.addEventListener('click', function() {
@@ -374,7 +454,7 @@
                             width="1450" height="300" style="background-color: #1e1e1e;"></canvas>
                         </div>
                         <div class="row col-md-12 text-center mt-3 mb-2">
-                            <button class="btn btn-primary" id="btnLihatPerhitungan">Lihat Perhitungan</button>
+                            <button class="btn btn-primary" id="btnLihatPerhitungan" data-bs-toggle="modal" data-bs-target="#modalPerhitunganListrik">Lihat Perhitungan</button>
                         </div>
                     </div>
                 </div>
