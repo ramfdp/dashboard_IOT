@@ -28,6 +28,8 @@ class Overtime extends Model
 
     protected $casts = [
         'overtime_date' => 'date',
+        'start_time' => 'datetime:H:i:s',
+        'end_time' => 'datetime:H:i:s',
         'approved_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
@@ -84,12 +86,12 @@ class Overtime extends Model
     const STATUS_COMPLETED = 2;
 
     /**
-     * Relationship with Employee
+     * Relationship with Employee (REMOVED - model doesn't exist)
      */
-    public function employee()
-    {
-        return $this->belongsTo(Employee::class);
-    }
+    // public function employee()
+    // {
+    //     return $this->belongsTo(Employee::class);
+    // }
 
     /**
      * Relationship with User (approved by)

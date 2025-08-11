@@ -16,12 +16,6 @@ return [
             'route-name' => 'table-manage-buttons'
         ],
         [
-            'icon' => 'fa fa-users',
-            'title' => 'Karyawan',
-            'url' => '/karyawan',
-            'route-name' => 'karyawan'
-        ],
-        [
             'icon' => 'fa fa-camera',
             'title' => 'CCTV',
             'url' => '/cctv',

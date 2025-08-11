@@ -12,8 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('overtimes', function (Blueprint $table) {
-            // Remove default value from light_selection column to prevent automatic fallback to 'all'
-            $table->string('light_selection')->nullable()->default(null)->change();
+            // Change start_time and end_time from dateTime to time
+            $table->time('start_time')->change();
+            $table->time('end_time')->nullable()->change();
         });
     }
 
@@ -23,8 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('overtimes', function (Blueprint $table) {
-            // Restore the default value
-            $table->string('light_selection')->nullable()->default(null)->change();
+            // Revert back to dateTime
+            $table->dateTime('start_time')->change();
+            $table->dateTime('end_time')->nullable()->change();
         });
     }
 };

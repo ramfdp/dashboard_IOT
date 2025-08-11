@@ -20,11 +20,8 @@
     use App\Http\Controllers\DashboardController;
     use App\Http\Controllers\UserController;
     use App\Http\Controllers\UserManagementController;
-    use App\Http\Controllers\KaryawanController;
     use App\Http\Controllers\RelayController;
     use App\Http\Controllers\CCTVController;
-
-
 
 
     Route::get('/', function () {
@@ -50,15 +47,6 @@
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
     });
 
-    Route::prefix('karyawan')->name('karyawan.')->group(function () {
-        Route::get('/', [KaryawanController::class, 'index'])->name('index');
-        Route::get('/data', [KaryawanController::class, 'getData'])->name('getData');
-        Route::post('/store', [KaryawanController::class, 'store'])->name('store');
-        Route::delete('/{id}', [KaryawanController::class, 'destroy'])->name('destroy');
-    });
-
-    Route::get('/get-karyawan-by-division/{divisionId}', [DashboardController::class, 'getKaryawanByDivision']);
-    Route::get('/get-karyawan/{division_id}', [KaryawanController::class, 'getKaryawanByDivisi']);
     Route::get('/sensor/summary', [SensorController::class, 'summary']);
 
     Route::prefix('relay')->name('relay.')->group(function () {

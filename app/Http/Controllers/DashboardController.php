@@ -6,8 +6,6 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\Department;
-use App\Models\Karyawan;
 use App\Models\Divisi;
 use App\Models\LightSchedule;
 use App\Models\HistoryKwh;
@@ -28,8 +26,6 @@ class DashboardController extends Controller
     {
         $roles = Role::all();
         $users = User::with('role')->get();
-        $departments = Department::all();
-        $karyawans = Karyawan::all();
         $divisions = Divisi::all();
 
         // Get data KWH
@@ -75,8 +71,6 @@ class DashboardController extends Controller
         return view('pages.dashboard-v1', compact(
             'roles',
             'users',
-            'departments',
-            'karyawans',
             'divisions',
             'dataKwh',
             'lightSchedules',

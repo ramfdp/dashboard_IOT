@@ -29,20 +29,20 @@ class Divisi extends Model
     ];
 
     /**
-     * Relationship with Department
+     * Relationship with Department (REMOVED - table doesn't exist)
      */
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
+    // public function department()
+    // {
+    //     return $this->belongsTo(Department::class);
+    // }
 
     /**
-     * Relationship with Employees
+     * Relationship with Employees (REMOVED - table doesn't exist)
      */
-    public function employees()
-    {
-        return $this->hasMany(Employee::class, 'division_id');
-    }
+    // public function employees()
+    // {
+    //     return $this->hasMany(Employee::class, 'division_id');
+    // }
 
     /**
      * Scope for active divisions
@@ -61,12 +61,12 @@ class Divisi extends Model
     }
 
     /**
-     * Get employees count
+     * Get employees count (REMOVED - relationship doesn't exist)
      */
-    public function getEmployeesCountAttribute()
-    {
-        return $this->employees()->count();
-    }
+    // public function getEmployeesCountAttribute()
+    // {
+    //     return $this->employees()->count();
+    // }
 
     /**
      * Check if division is active

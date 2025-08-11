@@ -279,8 +279,8 @@ class OvertimeController extends Controller
             'employee_name' => $request->employee_name,
             'division_name' => $request->division_name,
             'overtime_date' => $request->overtime_date,
-            'start_time' => $startTime,
-            'end_time' => $endTime,
+            'start_time' => $startTime->format('H:i:s'),
+            'end_time' => $endTime ? $endTime->format('H:i:s') : null,
             'duration' => $duration,
             'status' => $status,
             'notes' => $request->notes,
@@ -315,11 +315,11 @@ class OvertimeController extends Controller
 
         $now = Carbon::now('Asia/Jakarta');
         $startTime = Carbon::createFromFormat('Y-m-d H:i', $request->overtime_date . ' ' . $request->start_time);
-        $data['start_time'] = $startTime;
+        $data['start_time'] = $startTime->format('H:i:s');
 
         if ($request->end_time) {
             $endTime = Carbon::createFromFormat('Y-m-d H:i', $request->overtime_date . ' ' . $request->end_time);
-            $data['end_time'] = $endTime;
+            $data['end_time'] = $endTime->format('H:i:s');
             $data['duration'] = $startTime->diffInMinutes($endTime);
 
             if ($now->gte($endTime)) {
