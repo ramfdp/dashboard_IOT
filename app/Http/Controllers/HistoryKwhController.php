@@ -8,6 +8,7 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class HistoryKwhController extends Controller
 {
@@ -183,7 +184,7 @@ class HistoryKwhController extends Controller
         $firebaseUrl = 'https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/sensor.json';
 
         try {
-            $response = \Http::get($firebaseUrl);
+            $response = Http::get($firebaseUrl);
 
             if ($response->ok()) {
                 $data = $response->json();
@@ -209,6 +210,136 @@ class HistoryKwhController extends Controller
 
             return response()->json(['success' => false, 'message' => 'Gagal ambil data dari Firebase'], 500);
         } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Mengambil data history dengan filter bulan dan tahun
+     * Method untuk History Listrik section pada dashboard
+     */
+    public function getFilteredHistory(Request $request)
+    {
+        try {
+            if (!Schema::hasTable('histori_kwh')) {
+                return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 404);
+            }
+
+            $query = HistoryKwh::query();
+
+            // Filter berdasarkan bulan
+            if ($request->filled('bulan')) {
+                $query->whereMonth('created_at', $request->bulan);
+            }
+
+            // Filter berdasarkan tahun
+            if ($request->filled('tahun')) {
+                $query->whereYear('created_at', $request->tahun);
+            }
+
+            // Jika tidak ada filter, gunakan bulan dan tahun saat ini
+            if (!$request->filled('bulan') && !$request->filled('tahun')) {
+                $query->whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year);
+            }
+
+            // Pagination
+            $perPage = $request->get('per_page', 100);
+            $page = $request->get('page', 1);
+
+            // Order by timestamp descending
+            $query->orderBy('created_at', 'desc');
+
+            // Get paginated results
+            $paginatedData = $query->paginate($perPage, ['*'], 'page', $page);
+
+            // Transform data untuk frontend manually
+            $items = [];
+            foreach ($paginatedData->items() as $item) {
+                $items[] = [
+                    'id' => $item->id,
+                    'timestamp' => $item->created_at,
+                    'voltage' => $item->voltage ?? $item->tegangan ?? 0,
+                    'current' => $item->current ?? $item->arus ?? 0,
+                    'power' => $item->power ?? $item->daya ?? 0,
+                    'energy' => $item->energy ?? $item->energi ?? 0,
+                    'frequency' => $item->frequency ?? $item->frekuensi ?? 50,
+                    'pf' => $item->pf ?? $item->power_factor ?? 1,
+                    'location' => $item->location ?? 'Main Panel',
+                    'sensor_id' => $item->sensor_id ?? 1
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $items,
+                'total' => $paginatedData->total(),
+                'current_page' => $paginatedData->currentPage(),
+                'per_page' => $paginatedData->perPage(),
+                'last_page' => $paginatedData->lastPage(),
+                'from' => $paginatedData->firstItem(),
+                'to' => $paginatedData->lastItem()
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error dalam getFilteredHistory: " . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Mengambil semua data untuk download CSV (tanpa pagination)
+     */
+    public function getAllHistoryForDownload(Request $request)
+    {
+        try {
+            if (!Schema::hasTable('histori_kwh')) {
+                return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 404);
+            }
+
+            $query = HistoryKwh::query();
+
+            // Filter berdasarkan bulan
+            if ($request->filled('bulan')) {
+                $query->whereMonth('created_at', $request->bulan);
+            }
+
+            // Filter berdasarkan tahun
+            if ($request->filled('tahun')) {
+                $query->whereYear('created_at', $request->tahun);
+            }
+
+            // Jika tidak ada filter, gunakan bulan dan tahun saat ini
+            if (!$request->filled('bulan') && !$request->filled('tahun')) {
+                $query->whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year);
+            }
+
+            // Order by timestamp ascending untuk CSV
+            $data = $query->orderBy('created_at', 'asc')->get();
+
+            // Transform data untuk CSV
+            $transformedData = $data->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'timestamp' => $item->created_at,
+                    'voltage' => $item->voltage ?? $item->tegangan ?? 0,
+                    'current' => $item->current ?? $item->arus ?? 0,
+                    'power' => $item->power ?? $item->daya ?? 0,
+                    'energy' => $item->energy ?? $item->energi ?? 0,
+                    'frequency' => $item->frequency ?? $item->frekuensi ?? 50,
+                    'pf' => $item->pf ?? $item->power_factor ?? 1,
+                    'location' => $item->location ?? 'Main Panel',
+                    'sensor_id' => $item->sensor_id ?? 1
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $transformedData,
+                'total' => $data->count()
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Error dalam getAllHistoryForDownload: " . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }

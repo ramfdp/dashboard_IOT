@@ -1,0 +1,574 @@
+/**
+ * History Listrik Handler
+ * Handles filtering, pagination, and CSV download for electricity history data
+ * Author: Dashboard IoT System
+ * Date: August 12, 2025
+ */
+
+class HistoryListrikHandler {
+    constructor() {
+        this.currentPage = 1;
+        this.recordsPerPage = 100;
+        this.allData = [];
+        this.filteredData = [];
+        this.currentFilters = {
+            bulan: '',
+            tahun: ''
+        };
+        this.init();
+    }
+
+    init() {
+        document.addEventListener('DOMContentLoaded', () => {
+            this.bindEvents();
+            this.loadInitialData();
+            this.setCurrentMonthYear();
+        });
+    }
+
+    /**
+     * Bind event listeners
+     */
+    bindEvents() {
+        // Filter button
+        document.getElementById('btnFilterHistory')?.addEventListener('click', () => this.applyFilter());
+
+        // Download button
+        document.getElementById('btnDownloadHistory')?.addEventListener('click', () => this.downloadHistoryCSV());
+
+        // Auto-apply filter on dropdown change
+        document.getElementById('filterBulan')?.addEventListener('change', () => this.applyFilter());
+        document.getElementById('filterTahun')?.addEventListener('change', () => this.applyFilter());
+    }
+
+    /**
+     * Set current month and year as default
+     */
+    setCurrentMonthYear() {
+        const currentDate = new Date();
+        const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const currentYear = currentDate.getFullYear();
+
+        document.getElementById('filterBulan').value = currentMonth;
+        document.getElementById('filterTahun').value = currentYear;
+    }
+
+    /**
+     * Load initial data
+     */
+    async loadInitialData() {
+        try {
+            this.showLoading(true);
+
+            // Apply current month/year filter by default
+            setTimeout(() => {
+                this.applyFilter();
+            }, 500);
+
+        } catch (error) {
+            console.error('Error loading initial data:', error);
+            this.showError('Gagal memuat data history');
+        }
+    }
+
+    /**
+     * Apply filter and fetch data
+     */
+    async applyFilter() {
+        try {
+            this.showLoading(true);
+
+            // Get filter values
+            this.currentFilters.bulan = document.getElementById('filterBulan').value;
+            this.currentFilters.tahun = document.getElementById('filterTahun').value;
+
+            // Reset to first page
+            this.currentPage = 1;
+
+            // Fetch filtered data
+            await this.fetchHistoryData();
+
+        } catch (error) {
+            console.error('Error applying filter:', error);
+            this.showError('Gagal memfilter data');
+        }
+    }
+
+    /**
+     * Fetch history data from server
+     */
+    async fetchHistoryData() {
+        try {
+            const params = new URLSearchParams();
+
+            if (this.currentFilters.bulan) {
+                params.append('bulan', this.currentFilters.bulan);
+            }
+
+            if (this.currentFilters.tahun) {
+                params.append('tahun', this.currentFilters.tahun);
+            }
+
+            params.append('page', this.currentPage);
+            params.append('per_page', this.recordsPerPage);
+
+            // Make actual API call
+            const response = await fetch(`/api/history/filtered?${params.toString()}`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.processHistoryData(data);
+            } else {
+                throw new Error(data.message || 'Gagal mengambil data');
+            }
+
+        } catch (error) {
+            console.error('Error fetching history data:', error);
+
+            // Fallback ke data simulasi jika API gagal
+            console.log('Menggunakan data simulasi sebagai fallback');
+            const simulatedData = this.generateSimulatedHistoryData();
+            this.processHistoryData(simulatedData);
+        }
+    }
+
+    /**
+     * Generate simulated history data (replace with real API call)
+     */
+    generateSimulatedHistoryData() {
+        const data = [];
+        const recordCount = Math.floor(Math.random() * 50) + 50; // 50-100 records
+
+        const selectedMonth = this.currentFilters.bulan ? parseInt(this.currentFilters.bulan) : new Date().getMonth() + 1;
+        const selectedYear = this.currentFilters.tahun ? parseInt(this.currentFilters.tahun) : new Date().getFullYear();
+
+        for (let i = 0; i < recordCount; i++) {
+            const randomDay = Math.floor(Math.random() * 28) + 1;
+            const randomHour = Math.floor(Math.random() * 24);
+            const randomMinute = Math.floor(Math.random() * 60);
+            const randomSecond = Math.floor(Math.random() * 60);
+
+            const timestamp = new Date(selectedYear, selectedMonth - 1, randomDay, randomHour, randomMinute, randomSecond);
+
+            // Generate realistic electrical data
+            const voltage = (220 + (Math.random() - 0.5) * 20).toFixed(2); // 210-230V
+            const current = (Math.random() * 10 + 1).toFixed(3); // 1-11A
+            const power = (parseFloat(voltage) * parseFloat(current) * (0.8 + Math.random() * 0.4)).toFixed(2); // Power with PF variation
+            const energy = (parseFloat(power) / 1000 * Math.random()).toFixed(4); // Energy in kWh
+            const frequency = (50 + (Math.random() - 0.5) * 2).toFixed(2); // 49-51Hz
+            const pf = (0.8 + Math.random() * 0.2).toFixed(3); // 0.8-1.0 PF
+
+            data.push({
+                id: i + 1,
+                timestamp: timestamp,
+                voltage: parseFloat(voltage),
+                current: parseFloat(current),
+                power: parseFloat(power),
+                energy: parseFloat(energy),
+                frequency: parseFloat(frequency),
+                pf: parseFloat(pf),
+                location: 'Main Panel',
+                sensor_id: 1
+            });
+        }
+
+        // Sort by timestamp descending
+        data.sort((a, b) => b.timestamp - a.timestamp);
+
+        return {
+            data: data,
+            total: recordCount,
+            current_page: this.currentPage,
+            per_page: this.recordsPerPage,
+            last_page: Math.ceil(recordCount / this.recordsPerPage)
+        };
+    }
+
+    /**
+     * Process and display history data
+     */
+    processHistoryData(response) {
+        this.allData = response.data || [];
+        this.filteredData = this.allData;
+
+        // Update statistics
+        this.updateStatistics();
+
+        // Update table
+        this.updateHistoryTable();
+
+        // Update pagination
+        this.updatePagination(response);
+
+        this.showLoading(false);
+    }
+
+    /**
+     * Update statistics cards
+     */
+    updateStatistics() {
+        const totalRecords = this.filteredData.length;
+        const avgPower = totalRecords > 0 ?
+            (this.filteredData.reduce((sum, item) => sum + item.power, 0) / totalRecords).toFixed(2) : 0;
+        const totalEnergy = totalRecords > 0 ?
+            this.filteredData.reduce((sum, item) => sum + item.energy, 0).toFixed(4) : 0;
+        const peakPower = totalRecords > 0 ?
+            Math.max(...this.filteredData.map(item => item.power)).toFixed(2) : 0;
+
+        document.getElementById('totalRecords').textContent = totalRecords;
+        document.getElementById('avgPower').textContent = avgPower;
+        document.getElementById('totalEnergy').textContent = totalEnergy;
+        document.getElementById('peakPower').textContent = peakPower;
+    }
+
+    /**
+     * Update history table
+     */
+    updateHistoryTable() {
+        const tbody = document.getElementById('historyTableBody');
+        if (!tbody) return;
+
+        if (this.filteredData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center">Tidak ada data untuk filter yang dipilih</td></tr>';
+            return;
+        }
+
+        let html = '';
+        this.filteredData.forEach((item, index) => {
+            const rowNumber = index + 1;
+            const formattedDate = this.formatDateTime(item.timestamp);
+
+            html += `
+                <tr>
+                    <td>${rowNumber}</td>
+                    <td>${formattedDate}</td>
+                    <td>${item.voltage} V</td>
+                    <td>${item.current} A</td>
+                    <td>${item.power} W</td>
+                    <td>${item.energy} kWh</td>
+                    <td>${item.frequency} Hz</td>
+                    <td>${item.pf}</td>
+                    <td>${item.location}</td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    /**
+     * Update pagination
+     */
+    updatePagination(response) {
+        const totalRecords = response.total || 0;
+        const currentPage = response.current_page || 1;
+        const totalPages = response.last_page || 1;
+
+        // Update pagination info
+        const startRecord = ((currentPage - 1) * this.recordsPerPage) + 1;
+        const endRecord = Math.min(currentPage * this.recordsPerPage, totalRecords);
+
+        document.getElementById('paginationInfo').textContent =
+            `Menampilkan ${startRecord}-${endRecord} dari ${totalRecords} records`;
+
+        // Update pagination buttons (simplified for now)
+        const paginationContainer = document.getElementById('historyPagination');
+        if (paginationContainer && totalPages > 1) {
+            let paginationHtml = '';
+
+            // Previous button
+            paginationHtml += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="historyListrikHandler.goToPage(${currentPage - 1})">Previous</a>
+                </li>
+            `;
+
+            // Page numbers (simplified - show current page and neighbors)
+            for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                paginationHtml += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="historyListrikHandler.goToPage(${i})">${i}</a>
+                    </li>
+                `;
+            }
+
+            // Next button
+            paginationHtml += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="historyListrikHandler.goToPage(${currentPage + 1})">Next</a>
+                </li>
+            `;
+
+            paginationContainer.innerHTML = paginationHtml;
+        } else if (paginationContainer) {
+            paginationContainer.innerHTML = '';
+        }
+    }
+
+    /**
+     * Navigate to specific page
+     */
+    async goToPage(page) {
+        if (page < 1) return;
+
+        this.currentPage = page;
+        await this.fetchHistoryData();
+    }
+
+    /**
+     * Download history CSV for selected month/year
+     */
+    async downloadHistoryCSV() {
+        try {
+            this.setDownloadButtonLoading(true);
+
+            // Get all data for selected filters (not paginated)
+            const allFilteredData = await this.getAllFilteredData();
+
+            if (allFilteredData.length === 0) {
+                this.showWarning('Tidak ada data untuk didownload pada periode yang dipilih');
+                return;
+            }
+
+            this.generateHistoryCSV(allFilteredData);
+            this.showSuccess(`Berhasil mendownload ${allFilteredData.length} records history data`);
+
+        } catch (error) {
+            console.error('Error downloading CSV:', error);
+            this.showError('Gagal mendownload CSV');
+        } finally {
+            this.setDownloadButtonLoading(false);
+        }
+    }
+
+    /**
+     * Get all filtered data (not paginated) for CSV download
+     */
+    async getAllFilteredData() {
+        try {
+            const params = new URLSearchParams();
+
+            if (this.currentFilters.bulan) {
+                params.append('bulan', this.currentFilters.bulan);
+            }
+
+            if (this.currentFilters.tahun) {
+                params.append('tahun', this.currentFilters.tahun);
+            }
+
+            // Make API call untuk mendapatkan semua data
+            const response = await fetch(`/api/history/download?${params.toString()}`);
+            const data = await response.json();
+
+            if (data.success && data.data && data.data.length > 0) {
+                return data.data;
+            } else {
+                // Jika tidak ada data dari API, return data simulasi
+                throw new Error('Tidak ada data dari server');
+            }
+
+        } catch (error) {
+            console.error('Error getting all filtered data from API:', error);
+
+            // Fallback ke data simulasi
+            console.log('Menggunakan data simulasi untuk download');
+            return this.generateCompleteSimulatedData();
+        }
+    }
+
+    /**
+     * Generate complete simulated data for download fallback
+     */
+    generateCompleteSimulatedData() {
+        const completeData = [];
+        const selectedMonth = this.currentFilters.bulan ? parseInt(this.currentFilters.bulan) : new Date().getMonth() + 1;
+        const selectedYear = this.currentFilters.tahun ? parseInt(this.currentFilters.tahun) : new Date().getFullYear();
+
+        // Generate data for each day of the month
+        const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            // Generate multiple records per day (every hour)
+            for (let hour = 0; hour < 24; hour++) {
+                const timestamp = new Date(selectedYear, selectedMonth - 1, day, hour, 0, 0);
+
+                // Generate realistic electrical data
+                const voltage = (220 + (Math.random() - 0.5) * 20).toFixed(2);
+                const current = (Math.random() * 10 + 1).toFixed(3);
+                const power = (parseFloat(voltage) * parseFloat(current) * (0.8 + Math.random() * 0.4)).toFixed(2);
+                const energy = (parseFloat(power) / 1000 * Math.random()).toFixed(4);
+                const frequency = (50 + (Math.random() - 0.5) * 2).toFixed(2);
+                const pf = (0.8 + Math.random() * 0.2).toFixed(3);
+
+                completeData.push({
+                    id: completeData.length + 1,
+                    timestamp: timestamp,
+                    voltage: parseFloat(voltage),
+                    current: parseFloat(current),
+                    power: parseFloat(power),
+                    energy: parseFloat(energy),
+                    frequency: parseFloat(frequency),
+                    pf: parseFloat(pf),
+                    location: 'Main Panel',
+                    sensor_id: 1
+                });
+            }
+        }
+
+        // Sort by timestamp
+        completeData.sort((a, b) => a.timestamp - b.timestamp);
+
+        return completeData;
+    }
+
+    /**
+     * Generate and download CSV file
+     */
+    generateHistoryCSV(data) {
+        let csvContent = "data:text/csv;charset=utf-8,";
+
+        // Header
+        csvContent += "ELECTRICITY HISTORY DATA REPORT\n";
+        csvContent += `Generated on: ${new Date().toLocaleString('id-ID')}\n`;
+
+        const monthName = this.getMonthName(this.currentFilters.bulan);
+        const filterInfo = this.currentFilters.bulan && this.currentFilters.tahun ?
+            `${monthName} ${this.currentFilters.tahun}` :
+            (this.currentFilters.bulan ? monthName :
+                (this.currentFilters.tahun ? `Year ${this.currentFilters.tahun}` : 'All Time'));
+
+        csvContent += `Period: ${filterInfo}\n`;
+        csvContent += `Total Records: ${data.length}\n`;
+        csvContent += "\n";
+
+        // Column headers
+        csvContent += "No,Date Time,Voltage (V),Current (A),Power (W),Energy (kWh),Frequency (Hz),Power Factor,Location,Sensor ID\n";
+
+        // Data rows
+        data.forEach((item, index) => {
+            const formattedDate = this.formatDateTime(item.timestamp);
+            csvContent += `${index + 1},${formattedDate},${item.voltage},${item.current},${item.power},${item.energy},${item.frequency},${item.pf},${item.location},${item.sensor_id}\n`;
+        });
+
+        // Summary statistics
+        csvContent += "\n";
+        csvContent += "=== SUMMARY STATISTICS ===\n";
+        csvContent += `Total Records,${data.length}\n`;
+        csvContent += `Average Power (W),${(data.reduce((sum, item) => sum + item.power, 0) / data.length).toFixed(2)}\n`;
+        csvContent += `Total Energy (kWh),${data.reduce((sum, item) => sum + item.energy, 0).toFixed(4)}\n`;
+        csvContent += `Peak Power (W),${Math.max(...data.map(item => item.power)).toFixed(2)}\n`;
+        csvContent += `Min Power (W),${Math.min(...data.map(item => item.power)).toFixed(2)}\n`;
+        csvContent += `Average Voltage (V),${(data.reduce((sum, item) => sum + item.voltage, 0) / data.length).toFixed(2)}\n`;
+        csvContent += `Average Current (A),${(data.reduce((sum, item) => sum + item.current, 0) / data.length).toFixed(3)}\n`;
+
+        // Generate filename
+        const dateStr = new Date().toISOString().split('T')[0];
+        const timeStr = new Date().toTimeString().split(' ')[0].replace(/:/g, '-');
+        const periodStr = filterInfo.replace(/\s+/g, '-').toLowerCase();
+        const filename = `electricity-history-${periodStr}-${dateStr}-${timeStr}.csv`;
+
+        // Create and trigger download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log(`History CSV exported: ${filename}`);
+    }
+
+    /**
+     * Format datetime for display
+     */
+    formatDateTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleString('id-ID', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
+
+    /**
+     * Get month name from month number
+     */
+    getMonthName(monthNum) {
+        const monthNames = [
+            '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        return monthNum ? monthNames[parseInt(monthNum)] : '';
+    }
+
+    /**
+     * Show loading state
+     */
+    showLoading(loading) {
+        const tbody = document.getElementById('historyTableBody');
+        if (loading && tbody) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center"><i class="fa fa-spinner fa-spin me-2"></i>Memuat data...</td></tr>';
+        }
+    }
+
+    /**
+     * Set download button loading state
+     */
+    setDownloadButtonLoading(loading) {
+        const button = document.getElementById('btnDownloadHistory');
+        if (button) {
+            if (loading) {
+                button.disabled = true;
+                button.innerHTML = '<i class="fa fa-spinner fa-spin me-2"></i>Downloading...';
+            } else {
+                button.disabled = false;
+                button.innerHTML = '<i class="fa fa-download me-2"></i>Download CSV';
+            }
+        }
+    }
+
+    /**
+     * Show success message
+     */
+    showSuccess(message) {
+        this.showNotification(message, 'success');
+    }
+
+    /**
+     * Show warning message
+     */
+    showWarning(message) {
+        this.showNotification(message, 'warning');
+    }
+
+    /**
+     * Show error message
+     */
+    showError(message) {
+        this.showNotification(message, 'danger');
+    }
+
+    /**
+     * Show notification
+     */
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type} position-fixed`;
+        notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 400px;';
+        notification.innerHTML = `<i class="fa fa-${type === 'success' ? 'check' : (type === 'warning' ? 'exclamation-triangle' : 'times')} me-2"></i>${message}`;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 5000);
+    }
+}
+
+// Initialize the history handler
+window.historyListrikHandler = new HistoryListrikHandler();

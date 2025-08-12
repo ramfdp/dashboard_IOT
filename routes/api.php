@@ -34,6 +34,12 @@ Route::put('/listrik/{id}', [ListrikController::class, 'update']);
 Route::delete('/listrik/{id}', [ListrikController::class, 'destroy']);
 Route::get('/fetch-store-pzem', [HistoryKwhController::class, 'fetchFromFirebase']);
 
+// History data routes untuk dashboard
+Route::prefix('history')->group(function () {
+    Route::get('/filtered', [HistoryKwhController::class, 'getFilteredHistory']);
+    Route::get('/download', [HistoryKwhController::class, 'getAllHistoryForDownload']);
+});
+
 // Schedule checking routes
 Route::post('/check-schedules', [\App\Http\Controllers\DashboardController::class, 'checkSchedules']);
 Route::get('/test/schedule-check', [\App\Http\Controllers\DashboardController::class, 'checkSchedules']);
