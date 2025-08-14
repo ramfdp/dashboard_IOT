@@ -3,6 +3,73 @@
  * Menggantikan sistem prediksi sebelumnya dengan model KNN
  */
 
+// Global KNN Predictor class for modal integration
+class TensorFlowKNNPredictor {
+    constructor() {
+        this.model = null;
+        this.isReady = false;
+    }
+
+    /**
+     * Simple KNN prediction based on historical data
+     */
+    predict(trainingData, k = 3) {
+        try {
+            if (!trainingData || trainingData.length < k) {
+                throw new Error('Insufficient training data');
+            }
+
+            // Get the latest data point as reference
+            const latestPoint = trainingData[trainingData.length - 1];
+            const currentValue = latestPoint.output;
+
+            // Calculate distances to all training points
+            const distances = trainingData.slice(0, -1).map((point, index) => {
+                const distance = Math.abs(point.output - currentValue);
+                return { index, distance, value: point.output };
+            });
+
+            // Sort by distance and take k nearest neighbors
+            distances.sort((a, b) => a.distance - b.distance);
+            const kNearest = distances.slice(0, Math.min(k, distances.length));
+
+            // Calculate prediction as weighted average
+            let totalWeight = 0;
+            let weightedSum = 0;
+
+            kNearest.forEach(neighbor => {
+                const weight = neighbor.distance === 0 ? 1 : 1 / (neighbor.distance + 0.1);
+                totalWeight += weight;
+                weightedSum += neighbor.value * weight;
+            });
+
+            const prediction = weightedSum / totalWeight;
+
+            // Calculate confidence based on variance of k-nearest neighbors
+            const variance = kNearest.reduce((sum, neighbor) =>
+                sum + Math.pow(neighbor.value - prediction, 2), 0) / kNearest.length;
+            const confidence = Math.max(60, Math.min(95, 90 - Math.sqrt(variance) / 10));
+
+            return {
+                value: Math.round(prediction),
+                confidence: confidence,
+                neighbors: kNearest.length
+            };
+
+        } catch (error) {
+            console.warn('KNN prediction failed:', error.message);
+            return {
+                value: null,
+                confidence: 50,
+                error: error.message
+            };
+        }
+    }
+}
+
+// Make KNN predictor available globally
+window.TensorFlowKNNPredictor = TensorFlowKNNPredictor;
+
 class ElectricityKNNCalculator {
     constructor(chartCanvas) {
         this.canvas = chartCanvas;
@@ -25,7 +92,30 @@ class ElectricityKNNCalculator {
             trainingThreshold: 24 // Minimum data points for training
         };
 
+        // Use ChartManager for safer chart handling
+        if (window.ChartManager && this.canvas) {
+            window.ChartManager.destroyChartsOnCanvas(this.canvas);
+            console.log('ChartManager used for KNN calculator initialization');
+        } else {
+            // Fallback to manual destruction
+            this.destroyExistingChart();
+        }
+
         this.initializeComponents();
+    }
+
+    /**
+     * Destroy existing chart instances on this canvas
+     */
+    destroyExistingChart() {
+        if (this.canvas) {
+            // Check for existing Chart.js instances
+            const existingChart = Chart.getChart(this.canvas);
+            if (existingChart) {
+                existingChart.destroy();
+                console.log('Existing Chart.js instance destroyed before creating new KNN calculator');
+            }
+        }
     }
 
     /**
@@ -86,10 +176,23 @@ class ElectricityKNNCalculator {
         this.data.values = JSON.parse(this.canvas.dataset.values || '[]').map(parseFloat);
         this.data.timestamps = this.generateTimestamps();
 
+        console.log('[KNN Chart] Data loaded:', {
+            labels: this.data.labels,
+            values: this.data.values,
+            labelsCount: this.data.labels.length,
+            valuesCount: this.data.values.length
+        });
+
+        // If no data available, create demo data
+        if (this.data.labels.length === 0 || this.data.values.length === 0) {
+            console.log('[KNN Chart] No data found, creating demo data...');
+            this.createDemoData();
+        }
+
         const ctx = this.canvas.getContext('2d');
         const gradient = this.createGradient(ctx);
 
-        this.chart = new Chart(ctx, {
+        const chartConfig = {
             type: 'line',
             data: {
                 labels: this.data.labels,
@@ -151,6 +254,59 @@ class ElectricityKNNCalculator {
                     easing: 'easeInOutQuart'
                 }
             }
+        };
+
+        // Use ChartManager for safer chart creation
+        if (window.ChartManager) {
+            this.chart = window.ChartManager.createChart(this.canvas, chartConfig);
+            console.log('KNN Calculator chart created with ChartManager');
+        } else {
+            // Fallback to direct Chart.js creation
+            this.chart = new Chart(ctx, chartConfig);
+            console.log('KNN Calculator chart created directly');
+        }
+    }
+
+    /**
+     * Create demo data when no real data is available
+     */
+    createDemoData() {
+        const now = new Date();
+        const demoLabels = [];
+        const demoValues = [];
+
+        for (let i = 0; i < 24; i++) {
+            const time = new Date(now);
+            time.setHours(i, 0, 0, 0);
+            demoLabels.push(time.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
+
+            // Create realistic power consumption pattern
+            let power;
+            if (i >= 6 && i <= 8) {
+                // Morning peak
+                power = 150 + Math.random() * 100;
+            } else if (i >= 9 && i <= 17) {
+                // Office hours
+                power = 200 + Math.random() * 100;
+            } else if (i >= 18 && i <= 22) {
+                // Evening
+                power = 100 + Math.random() * 80;
+            } else {
+                // Night/early morning
+                power = 50 + Math.random() * 70;
+            }
+
+            demoValues.push(Math.round(power));
+        }
+
+        this.data.labels = demoLabels;
+        this.data.values = demoValues;
+        this.data.timestamps = this.generateTimestamps();
+
+        console.log('[KNN Chart] Demo data created:', {
+            labels: demoLabels.length,
+            values: demoValues.length,
+            sampleValues: demoValues.slice(0, 5)
         });
     }
 
@@ -638,11 +794,60 @@ document.addEventListener('DOMContentLoaded', () => {
     // Wait for all scripts to load
     setTimeout(() => {
         const canvas = document.getElementById('wattChart');
+        console.log('[KNN Calculator] Canvas found:', !!canvas);
         if (canvas) {
+            console.log('[KNN Calculator] Canvas data attributes:', {
+                labels: canvas.dataset.labels,
+                values: canvas.dataset.values,
+                labelsLength: canvas.dataset.labels ? JSON.parse(canvas.dataset.labels).length : 0,
+                valuesLength: canvas.dataset.values ? JSON.parse(canvas.dataset.values).length : 0
+            });
+
+            // Destroy existing chart if it exists - comprehensive cleanup
+            const canvasContext = canvas.getContext('2d');
+
+            // Check for existing Chart.js instances
+            if (Chart.getChart(canvas)) {
+                Chart.getChart(canvas).destroy();
+                console.log('Existing Chart.js instance destroyed');
+            }
+
+            // Clear any global chart references
+            if (window.electricityChart) {
+                if (typeof window.electricityChart.destroy === 'function') {
+                    window.electricityChart.destroy();
+                }
+                window.electricityChart = null;
+                console.log('Previous electricity chart destroyed');
+            }
+
+            if (window.electricityCalculator && window.electricityCalculator.chart) {
+                if (typeof window.electricityCalculator.chart.destroy === 'function') {
+                    window.electricityCalculator.chart.destroy();
+                }
+                window.electricityCalculator.chart = null;
+                console.log('Previous electricity calculator chart destroyed');
+            }
+
+            if (window.electricityKNNCalculator && window.electricityKNNCalculator.chart) {
+                if (typeof window.electricityKNNCalculator.chart.destroy === 'function') {
+                    window.electricityKNNCalculator.chart.destroy();
+                }
+                window.electricityKNNCalculator.chart = null;
+                console.log('Previous KNN calculator chart destroyed');
+            }
+
+            // Clear the canvas manually
+            canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Reset canvas size to trigger re-initialization
+            canvas.style.width = '';
+            canvas.style.height = '';
+
             window.electricityKNNCalculator = new ElectricityKNNCalculator(canvas);
             console.log('Electricity KNN Calculator initialized');
         }
-    }, 500);
+    }, 1000); // Increased timeout to ensure other scripts load first
 });
 
 // Export for module systems

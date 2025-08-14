@@ -33,11 +33,37 @@ class DashboardController extends Controller
             ->orderBy('waktu', 'asc')
             ->get();
 
-        // If no data exists, create empty collection with default structure
+        // If no data exists, create demo data with realistic electricity usage pattern
         if ($dataKwh->isEmpty()) {
-            $dataKwh = collect([
-                (object)['waktu' => date('H:i:s'), 'daya' => 0]
-            ]);
+            $currentHour = date('H');
+            $baseTime = date('Y-m-d ');
+
+            $demoData = [];
+            for ($i = 0; $i < 24; $i++) {
+                $time = $baseTime . sprintf('%02d:00:00', $i);
+
+                // Create realistic power consumption pattern
+                if ($i >= 6 && $i <= 8) {
+                    // Morning peak (office start)
+                    $power = rand(150, 250);
+                } elseif ($i >= 9 && $i <= 17) {
+                    // Office hours
+                    $power = rand(200, 300);
+                } elseif ($i >= 18 && $i <= 22) {
+                    // Evening
+                    $power = rand(100, 180);
+                } else {
+                    // Night/early morning
+                    $power = rand(50, 120);
+                }
+
+                $demoData[] = (object)[
+                    'waktu' => sprintf('%02d:%02d:%02d', $i, rand(0, 59), rand(0, 59)),
+                    'daya' => $power
+                ];
+            }
+
+            $dataKwh = collect($demoData);
         }
 
         // Get light schedules

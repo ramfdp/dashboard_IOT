@@ -7,6 +7,7 @@ use App\Http\Controllers\PowerUsageController;
 use App\Http\Controllers\ListrikController;
 use App\Http\Controllers\HistoryKwhController;
 use App\Http\Controllers\ElectricityAnalysisController;
+use App\Http\Controllers\ElectricityDataController;
 
 
 /*
@@ -53,4 +54,8 @@ Route::prefix('electricity')->group(function () {
     Route::get('/recommendations', [ElectricityAnalysisController::class, 'getRecommendations']);
     Route::get('/compare-algorithms', [ElectricityAnalysisController::class, 'compareAlgorithms']);
     Route::get('/export-report', [ElectricityAnalysisController::class, 'exportAnalysisReport']);
+
+    // Real database data endpoints
+    Route::get('/data/{period}', [ElectricityDataController::class, 'getDataByPeriod']);
+    Route::get('/data', [ElectricityDataController::class, 'getDataByPeriod']);
 });

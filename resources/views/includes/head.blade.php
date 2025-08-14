@@ -8,6 +8,9 @@
 <link href="/assets/css/vendor.min.css" rel="stylesheet" />
 <link href="/assets/css/app.min.css" rel="stylesheet" />
 <!-- ================== END BASE CSS STYLE ================== -->
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
  
 <img src="public\assets\css\images\logo.png" alt="New Logo" class="logo">
 @stack('css')
