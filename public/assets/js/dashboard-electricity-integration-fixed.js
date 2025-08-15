@@ -1,9 +1,3 @@
-/**
- * Dashboard Electricity Integration - FIXED VERSION
- * Menggabungkan Chart.js dengan KNN prediction dan modal calculator
- * Dipindahkan dari dashboard-v1.blade.php untuk clean separation
- */
-
 // Wait for Chart.js to be fully loaded
 function waitForChart(callback, maxRetries = 50) {
     if (typeof Chart !== 'undefined') {

@@ -288,6 +288,58 @@ window.diagnosticChart = function () {
 
 // Ensure modal calculator can access data
 document.addEventListener('DOMContentLoaded', function () {
+
+    /**
+     * Fungsi helper untuk menghitung prediksi dengan konteks periode yang benar
+     */
+    function calculateSmartPrediction(data, analysisPeriod, predictionHours) {
+        if (!data || data.length === 0) {
+            return { prediction: 0, kwh: 0, confidence: 0 };
+        }
+
+        const avgPower = data.reduce((a, b) => a + b, 0) / data.length;
+        const recentTrend = data.slice(-Math.min(5, data.length));
+        const trendAvg = recentTrend.reduce((a, b) => a + b, 0) / recentTrend.length;
+
+        // Hitung variance untuk confidence level
+        const variance = recentTrend.reduce((sum, val) => sum + Math.pow(val - trendAvg, 2), 0) / recentTrend.length;
+        const confidence = Math.max(65, Math.min(95, 90 - Math.sqrt(variance) / 15));
+
+        // Prediksi berdasarkan konteks periode analisis
+        let prediction;
+        switch (analysisPeriod) {
+            case 'harian':
+                // Untuk analisis harian: gunakan trend terkini dengan sedikit variasi
+                const dailyTrendMultiplier = trendAvg > avgPower ? 1.03 : 0.97;
+                prediction = Math.round(trendAvg * dailyTrendMultiplier);
+                break;
+            case 'mingguan':
+                // Untuk analisis mingguan: gunakan rata-rata yang lebih stabil
+                prediction = Math.round((avgPower + trendAvg) / 2);
+                break;
+            case 'bulanan':
+                // Untuk analisis bulanan: gunakan rata-rata dengan smoothing
+                prediction = Math.round(avgPower * 1.01); // Slight growth assumption
+                break;
+            default:
+                prediction = Math.round(trendAvg);
+        }
+
+        // Pastikan prediksi dalam rentang yang masuk akal
+        const minPrediction = Math.min(...data) * 0.8;
+        const maxPrediction = Math.max(...data) * 1.2;
+        prediction = Math.max(minPrediction, Math.min(maxPrediction, prediction));
+
+        // Hitung energi berdasarkan horizon prediksi
+        const predictedKwh = (prediction * predictionHours) / 1000;
+
+        return {
+            prediction: prediction,
+            kwh: predictedKwh,
+            confidence: Math.round(confidence)
+        };
+    }
+
     // Function to fetch real data from database API
     async function fetchRealDataFromAPI(period = 'harian') {
         try {
@@ -385,6 +437,26 @@ document.addEventListener('DOMContentLoaded', function () {
             periodKwh: periodKwh.toFixed(2)
         });
 
+        // Store/update global electricity data for prediction use
+        window.globalElectricityData = {
+            currentPower: avgPower,
+            dailyData: data,
+            labels: labels,
+            source: 'modal_data',
+            period: period,
+            periodKwh: periodKwh,
+            predictionHours: predictionHours, // Store current prediction horizon
+            lastUpdated: new Date().getTime()
+        };
+
+        console.log('[Modal] Global data updated:', {
+            dataPoints: data.length,
+            avgPower: avgPower.toFixed(1),
+            period: period,
+            predictionHours: predictionHours,
+            source: window.globalElectricityData.source
+        });
+
         // Update current usage display
         const totalWattEl = document.getElementById('totalWatt');
         const totalKwhEl = document.getElementById('totalKwh');
@@ -409,62 +481,46 @@ document.addEventListener('DOMContentLoaded', function () {
         if (kwhMingguanEl) kwhMingguanEl.textContent = weeklyKwh.toFixed(2) + ' kWh';
         if (kwhBulananEl) kwhBulananEl.textContent = monthlyKwh.toFixed(2) + ' kWh';
 
-        // Update predictions based on REAL trend analysis from 30 data points
+        // Update predictions based on REAL trend analysis and CURRENT PERIOD CONTEXT
         const prediksiWattEl = document.getElementById('prediksiWatt');
         const prediksiKwhHarianEl = document.getElementById('prediksiKwhHarian');
         const confidenceLevelEl = document.getElementById('confidenceLevel');
         const confidencePercentageEl = document.getElementById('confidencePercentage');
 
-        // Try to use KNN predictor if available
-        let nextPrediction, confidenceLevel;
+        // Get current prediction horizon (default to 1 hour if not set)
+        const periodePrediksiEl = document.getElementById('periodePrediksi');
+        const predictionHours = periodePrediksiEl ? parseInt(periodePrediksiEl.value) || 1 : 1;
 
-        if (window.TensorFlowKNNPredictor && typeof window.TensorFlowKNNPredictor === 'function') {
-            try {
-                console.log('[Modal] Initializing KNN predictor...');
-                const knnPredictor = new window.TensorFlowKNNPredictor();
+        // Use smart prediction calculation
+        const smartPrediction = calculateSmartPrediction(data, period, predictionHours);
 
-                // Prepare data for KNN
-                const trainingData = data.map((value, index) => ({
-                    input: [index, value, avgPower], // [time_index, current_value, average]
-                    output: value
-                }));
-
-                // Train and predict with KNN
-                const prediction = knnPredictor.predict(trainingData, 3); // k=3
-                nextPrediction = Math.round(prediction.value || avgPower);
-                confidenceLevel = Math.round(prediction.confidence || 75);
-
-                console.log('[Modal] KNN prediction:', { nextPrediction, confidenceLevel });
-
-            } catch (error) {
-                console.log('[Modal] KNN failed, using fallback:', error.message);
-                // Fallback to statistical prediction
-                nextPrediction = Math.round(avgPower);
-                confidenceLevel = Math.round(75);
-            }
-        } else {
-            // Advanced trend analysis using last 5 data points from 30 records
-            const recentTrend = data.slice(-5); // Last 5 of 30 records
-            const trendAvg = recentTrend.reduce((a, b) => a + b, 0) / recentTrend.length;
-            const trendVariance = recentTrend.reduce((sum, val) => sum + Math.pow(val - trendAvg, 2), 0) / recentTrend.length;
-            confidenceLevel = Math.max(70, Math.min(95, 90 - Math.sqrt(trendVariance) / 10));
-
-            // Prediction based on trend analysis
-            if (period === 'harian') {
-                nextPrediction = Math.round(trendAvg); // Next hour prediction
-            } else if (period === 'mingguan') {
-                nextPrediction = Math.round(avgPower); // Weekly average prediction
+        // Update prediction display with proper context
+        if (prediksiWattEl) {
+            if (predictionHours === 1) {
+                prediksiWattEl.textContent = smartPrediction.prediction + ' W';
             } else {
-                nextPrediction = Math.round(avgPower); // Monthly average prediction
+                prediksiWattEl.textContent = smartPrediction.prediction + ' W (rata-rata)';
             }
         }
 
-        const nextPeriodKwh = (nextPrediction * 24) / 1000;
+        if (prediksiKwhHarianEl) {
+            if (predictionHours === 1) {
+                prediksiKwhHarianEl.textContent = smartPrediction.kwh.toFixed(3) + ' kWh (1 jam)';
+            } else {
+                prediksiKwhHarianEl.textContent = smartPrediction.kwh.toFixed(2) + ` kWh (${predictionHours} jam)`;
+            }
+        }
 
-        if (prediksiWattEl) prediksiWattEl.textContent = nextPrediction + ' W';
-        if (prediksiKwhHarianEl) prediksiKwhHarianEl.textContent = nextPeriodKwh.toFixed(2) + ' kWh';
-        if (confidenceLevelEl) confidenceLevelEl.textContent = Math.round(confidenceLevel) + '%';
-        if (confidencePercentageEl) confidencePercentageEl.textContent = Math.round(confidenceLevel) + '%';
+        if (confidenceLevelEl) confidenceLevelEl.textContent = smartPrediction.confidence + '%';
+        if (confidencePercentageEl) confidencePercentageEl.textContent = smartPrediction.confidence + '%';
+
+        console.log('[Modal] ✅ Prediction updated with smart calculation:', {
+            analysisPeriod: period,
+            predictionHours: predictionHours,
+            prediction: smartPrediction.prediction,
+            predictedKwh: smartPrediction.kwh.toFixed(3),
+            confidence: smartPrediction.confidence + '%'
+        });
 
         console.log('[Modal] ✅ Modal updated with SAME database data, different period interpretation');
         console.log('[Modal] Data integrity:', {
@@ -479,46 +535,62 @@ document.addEventListener('DOMContentLoaded', function () {
     if (periodePerhitunganEl) {
         periodePerhitunganEl.addEventListener('change', function () {
             const selectedPeriod = this.value;
-            console.log('[Modal] Period changed to:', selectedPeriod);
+            console.log('[Modal] Analysis period changed to:', selectedPeriod);
+
+            // Update modal data with new analysis period
+            // The updateModalData function will now handle prediction context properly
             updateModalData(selectedPeriod);
         });
     }
 
-    // Handle periode prediksi change
+    // Handle periode prediksi change - IMPROVED LOGIC
     const periodePrediksiEl = document.getElementById('periodePrediksi');
     if (periodePrediksiEl) {
         periodePrediksiEl.addEventListener('change', function () {
             const selectedHours = parseInt(this.value);
             console.log('[Modal] Prediction period changed to:', selectedHours, 'hours');
 
-            // Recalculate predictions based on selected hours
+            // Get current analysis period to maintain context
+            const currentAnalysisPeriod = periodePerhitunganEl ? periodePerhitunganEl.value : 'harian';
+
+            // Recalculate predictions using smart prediction function
             if (window.globalElectricityData && window.globalElectricityData.dailyData.length > 0) {
                 const data = window.globalElectricityData.dailyData;
-                const avgPower = data.reduce((a, b) => a + b, 0) / data.length;
 
-                // Simple prediction with some variation
-                const baseVariation = (Math.random() - 0.5) * 30;
-                const nextPeriodPrediction = Math.round(avgPower + baseVariation);
-                const nextPeriodKwh = (nextPeriodPrediction * selectedHours) / 1000;
+                // Use consistent smart prediction logic
+                const smartPrediction = calculateSmartPrediction(data, currentAnalysisPeriod, selectedHours);
 
-                // Update prediction elements
+                // Update prediction elements with proper context
                 const prediksiWattEl = document.getElementById('prediksiWatt');
                 const prediksiKwhHarianEl = document.getElementById('prediksiKwhHarian');
 
                 if (prediksiWattEl) {
                     if (selectedHours === 1) {
-                        prediksiWattEl.textContent = nextPeriodPrediction + ' W';
+                        prediksiWattEl.textContent = smartPrediction.prediction + ' W';
                     } else {
-                        prediksiWattEl.textContent = nextPeriodPrediction + ' W (rata-rata)';
+                        prediksiWattEl.textContent = smartPrediction.prediction + ' W (rata-rata)';
                     }
                 }
-                if (prediksiKwhHarianEl) prediksiKwhHarianEl.textContent = nextPeriodKwh.toFixed(2) + ' kWh';
 
-                console.log('[Modal] Updated prediction:', {
-                    hours: selectedHours,
-                    avgWatt: nextPeriodPrediction,
-                    kwh: nextPeriodKwh.toFixed(2)
+                if (prediksiKwhHarianEl) {
+                    if (selectedHours === 1) {
+                        prediksiKwhHarianEl.textContent = smartPrediction.kwh.toFixed(3) + ' kWh (1 jam)';
+                    } else {
+                        prediksiKwhHarianEl.textContent = smartPrediction.kwh.toFixed(2) + ` kWh (${selectedHours} jam)`;
+                    }
+                }
+
+                console.log('[Modal] Updated prediction with consistent logic:', {
+                    analysisPeriod: currentAnalysisPeriod,
+                    predictionHours: selectedHours,
+                    prediction: smartPrediction.prediction,
+                    predictedKwh: smartPrediction.kwh.toFixed(3),
+                    confidence: smartPrediction.confidence
                 });
+            } else {
+                console.log('[Modal] No global data available, refreshing modal...');
+                // If no data available, refresh modal with current analysis period
+                updateModalData(currentAnalysisPeriod);
             }
         });
     }

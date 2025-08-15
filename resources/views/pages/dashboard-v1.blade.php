@@ -299,8 +299,45 @@
                                 <i class="fa fa-info-circle me-2"></i>
                                 <small class="text-dark">
                                     <strong>Perhitungan Otomatis:</strong> Data diambil langsung dari sistem monitoring. 
-                                    Tarif: <strong>B-2/TM (Bisnis Menengah)</strong> - Rp 1.467,28/kWh + Beban Tetap Rp 48.000/bulan.
+                                    Tarif: <strong>B-2/TM (Bisnis Menengah)</strong> + Beban Tetap Rp 48.000/bulan.
                                 </small>
+                                
+                                <!-- Dynamic Price Input -->
+                                <div class="row mt-2 mb-2">
+                                    <div class="col-md-6">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-primary text-white">
+                                                <i class="fas fa-calculator"></i> Tarif kWh
+                                            </span>
+                                            <input type="number" 
+                                                   id="dynamicKwhRate" 
+                                                   class="form-control" 
+                                                   value="1467.28" 
+                                                   step="0.01" 
+                                                   min="0"
+                                                   placeholder="Masukkan harga per kWh">
+                                            <span class="input-group-text">Rp/kWh</span>
+                                            <button class="btn btn-success btn-sm" 
+                                                    id="updateRateBtn" 
+                                                    type="button"
+                                                    title="Update perhitungan dengan tarif baru">
+                                                <i class="fas fa-sync-alt"></i> Update
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i> 
+                                            Default: Rp 1.467,28/kWh (B-2/TM). Anda bisa mengubah sesuai tarif terbaru.
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6 d-flex align-items-center">
+                                        <div class="alert alert-info mb-0 py-1 px-2 flex-fill">
+                                            <small class="mb-0">
+                                                <i class="fas fa-bolt text-warning"></i>
+                                                <span class="current-rate-display">Tarif saat ini: Rp 1.467,28/kWh</span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Cost Summary Cards -->

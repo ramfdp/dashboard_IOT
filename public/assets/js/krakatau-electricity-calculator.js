@@ -10,10 +10,25 @@
 const KRAKATAU_TARIFF = {
     name: 'B-2/TM - Krakatau Sarana Property',
     description: 'Tarif Bisnis Menengah untuk Gedung Kantor',
-    ratePerKwh: 1467.28,  // Rupiah per kWh
+    ratePerKwh: 1467.28,  // Default Rupiah per kWh (akan dioverride oleh input user)
     fixedMonthlyCharge: 48000,  // Biaya beban tetap per bulan
     category: 'office_building'
 };
+
+/**
+ * Get current dynamic rate from user input or use default
+ * @returns {number} Current kWh rate in Rupiah
+ */
+function getCurrentKwhRate() {
+    const rateInput = document.getElementById('dynamicKwhRate');
+    if (rateInput && rateInput.value && !isNaN(rateInput.value)) {
+        const rate = parseFloat(rateInput.value);
+        if (rate > 0) {
+            return rate;
+        }
+    }
+    return KRAKATAU_TARIFF.ratePerKwh; // fallback to default
+}
 
 /**
  * Ekstrak data kWh dari sistem monitoring yang sudah ada
@@ -112,11 +127,14 @@ function calculateKrakatauCost(dailyKwh) {
         };
     }
 
+    // Get current dynamic rate
+    const currentRate = getCurrentKwhRate();
+
     // Estimasi konsumsi bulanan (30 hari)
     const monthlyKwh = dailyKwh * 30;
 
-    // Hitung biaya berdasarkan tarif Krakatau
-    const usageCost = monthlyKwh * KRAKATAU_TARIFF.ratePerKwh;
+    // Hitung biaya berdasarkan tarif dinamis
+    const usageCost = monthlyKwh * currentRate;
     const totalMonthlyCost = usageCost + KRAKATAU_TARIFF.fixedMonthlyCharge;
     const dailyCost = totalMonthlyCost / 30;
 
@@ -133,13 +151,13 @@ function calculateKrakatauCost(dailyKwh) {
 
         // Tarif info
         tariffName: KRAKATAU_TARIFF.name,
-        ratePerKwh: KRAKATAU_TARIFF.ratePerKwh,
+        ratePerKwh: currentRate,  // Use current dynamic rate
 
         // Breakdown untuk display
         breakdown: [
             {
                 component: 'Biaya Pemakaian',
-                detail: `${monthlyKwh.toFixed(2)} kWh × Rp ${KRAKATAU_TARIFF.ratePerKwh.toLocaleString('id-ID')}`,
+                detail: `${monthlyKwh.toFixed(2)} kWh × Rp ${currentRate.toLocaleString('id-ID')}`,
                 amount: usageCost
             },
             {
@@ -405,4 +423,87 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     console.log('[Krakatau Calculator] Initialized successfully');
+
+    // Event handler for dynamic rate updates
+    const updateRateBtn = document.getElementById('updateRateBtn');
+    const rateInput = document.getElementById('dynamicKwhRate');
+
+    if (updateRateBtn && rateInput) {
+        // Update calculation when button is clicked
+        updateRateBtn.addEventListener('click', function () {
+            const newRate = parseFloat(rateInput.value);
+
+            if (isNaN(newRate) || newRate <= 0) {
+                // Add error styling
+                rateInput.classList.add('is-invalid');
+                setTimeout(() => rateInput.classList.remove('is-invalid'), 3000);
+
+                alert('Masukkan tarif kWh yang valid (angka positif)');
+                rateInput.focus();
+                return;
+            }
+
+            // Add success styling
+            rateInput.classList.remove('is-invalid');
+            rateInput.classList.add('is-valid');
+            setTimeout(() => rateInput.classList.remove('is-valid'), 2000);
+
+            console.log('[Krakatau Calculator] Rate updated to:', newRate);
+
+            // Add visual feedback
+            updateRateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            updateRateBtn.disabled = true;
+
+            // Trigger recalculation
+            setTimeout(() => {
+                if (typeof window.krakatauCalculator !== 'undefined') {
+                    window.krakatauCalculator.updateCalculation();
+                }
+
+                // Update display texts
+                updateRateDisplay();
+
+                // Restore button
+                updateRateBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Update';
+                updateRateBtn.disabled = false;
+            }, 300);
+        });
+
+        // Update on Enter key press
+        rateInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                updateRateBtn.click();
+            }
+        });
+
+        // Auto-save to localStorage for persistence
+        rateInput.addEventListener('change', function () {
+            const rate = parseFloat(rateInput.value);
+            if (!isNaN(rate) && rate > 0) {
+                localStorage.setItem('krakatau_custom_rate', rate);
+            }
+        });
+
+        // Load saved rate on page load
+        const savedRate = localStorage.getItem('krakatau_custom_rate');
+        if (savedRate && !isNaN(savedRate)) {
+            rateInput.value = parseFloat(savedRate);
+        }
+    }
 });
+
+/**
+ * Update rate display text in the dashboard
+ */
+function updateRateDisplay() {
+    const currentRate = getCurrentKwhRate();
+    const displayText = `Tarif saat ini: Rp ${currentRate.toLocaleString('id-ID')}/kWh`;
+
+    // Update any rate display elements
+    const rateDisplays = document.querySelectorAll('.current-rate-display');
+    rateDisplays.forEach(element => {
+        element.textContent = displayText;
+    });
+
+    console.log('[Krakatau Calculator] Display updated with rate:', currentRate);
+}
