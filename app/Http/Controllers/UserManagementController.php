@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class UserManagementController extends Controller
@@ -24,7 +25,7 @@ class UserManagementController extends Controller
 
         $cacheBuster = time();
 
-        return view('pages.dashboard-v1', compact('users', 'roles', 'overtimes', 'cacheBuster'));
+        return view('pages.management-user', compact('users', 'roles', 'overtimes', 'cacheBuster'));
     }
 
     public function store(Request $request)
@@ -91,15 +92,46 @@ class UserManagementController extends Controller
     }
 
 
-    public function destroy(User $user)
+    public function destroy($id)
     {
-        // Prevent deleting yourself
-        if ($user->id === auth()->id()) {
-            return redirect()->route('dashboard-v1')->with('error', 'Anda tidak dapat menghapus akun yang sedang digunakan');
+        try {
+            $user = User::findOrFail($id);
+
+            // Prevent deleting yourself
+            if ($user->id === auth()->id()) {
+                return redirect()->route('management-user')->with('error', 'Anda tidak dapat menghapus akun yang sedang digunakan');
+            }
+
+            // Check for related records that might prevent deletion
+            $relatedOvertimes = $user->overtimes()->count();
+
+            if ($relatedOvertimes > 0) {
+                // Option 1: Prevent deletion if there are related records
+                return redirect()->route('management-user')->with('error', 'User tidak dapat dihapus karena memiliki data lembur terkait (' . $relatedOvertimes . ' record)');
+
+                // Option 2: Delete related records first (uncomment if you want this behavior)
+                // $user->overtimes()->delete();
+            }
+
+            // Remove roles before deleting user (Spatie Permission)
+            $user->syncRoles([]);
+            $user->syncPermissions([]);
+
+            // Delete the user
+            $user->delete();
+
+            return redirect()->route('management-user')->with('success', 'User berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle SQL constraint violations
+            if ($e->getCode() === '23000') {
+                return redirect()->route('management-user')->with('error', 'User tidak dapat dihapus karena masih memiliki data terkait di sistem');
+            }
+
+            Log::error('Error deleting user: ' . $e->getMessage());
+            return redirect()->route('management-user')->with('error', 'Terjadi kesalahan saat menghapus user: ' . $e->getMessage());
+        } catch (\Exception $e) {
+            Log::error('Unexpected error deleting user: ' . $e->getMessage());
+            return redirect()->route('management-user')->with('error', 'Terjadi kesalahan tidak terduga: ' . $e->getMessage());
         }
-
-        $user->delete();
-
-        return redirect()->route('dashboard-v1')->with('error_user', 'User berhasil dihapus');
     }
 }

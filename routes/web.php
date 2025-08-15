@@ -76,6 +76,14 @@
         Route::put('/{id}', [UserController::class, 'update'])->name('update');
         Route::resource('/', UserController::class)->except(['index', 'store', 'update']);
     });
+
+    // Management User Routes
+    Route::middleware(['auth', 'admin'])->group(function () {
+        Route::get('/management-user', [UserManagementController::class, 'index'])->name('management-user');
+        Route::post('/management-user', [UserManagementController::class, 'store'])->name('management-user.store');
+        Route::put('/management-user/{id}', [UserManagementController::class, 'update'])->name('management-user.update');
+        Route::delete('/management-user/{id}', [UserManagementController::class, 'destroy'])->name('management-user.destroy');
+    });
     Route::get('/form/elements', 'MainController@formElements')->name('form-elements');
     Route::get('/form/plugins', 'MainController@formPlugins')->name('form-plugins');
     Route::get('/form/slider-switcher', 'MainController@formSliderSwitcher')->name('form-slider-switcher');

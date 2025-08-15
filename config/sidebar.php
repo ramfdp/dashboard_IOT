@@ -16,6 +16,12 @@ return [
             'route-name' => 'table-manage-buttons'
         ],
         [
+            'icon' => 'fa fa-users',
+            'title' => 'Management User',
+            'url' => '/management-user',
+            'route-name' => 'management-user'
+        ],
+        [
             'icon' => 'fa fa-camera',
             'title' => 'CCTV',
             'url' => '/cctv',

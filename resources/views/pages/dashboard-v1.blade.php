@@ -735,10 +735,4 @@
     @if(class_exists('App\Livewire\OvertimeControl'))
         @livewire('overtime-control')
     @endif
-
-<!-- User Management Section -->
-@if(auth()->check() && auth()->user()->getRoleNames()->first() && auth()->user()->getRoleNames()->first() != 'user')
-    @livewire('user-management')
-@endif
-
 @endsection

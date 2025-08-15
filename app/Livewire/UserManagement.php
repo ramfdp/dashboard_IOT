@@ -214,13 +214,61 @@ class UserManagement extends Component
             }
 
             $user = User::findOrFail($this->deleteUserId);
+
+            // Check for related records that might prevent deletion
+            // Using try-catch in case the column doesn't exist yet
+            try {
+                $relatedOvertimes = $user->overtimes()->count();
+
+                if ($relatedOvertimes > 0) {
+                    session()->flash('error_user', 'User tidak dapat dihapus karena memiliki data lembur terkait (' . $relatedOvertimes . ' record).');
+                    $this->closeDeleteModal();
+                    return;
+                }
+            } catch (\Exception $relationError) {
+                // If overtime relationship fails, check by employee_name
+                Log::info('Overtime relationship check failed, checking by name: ' . $relationError->getMessage());
+                $overtimesByName = \App\Models\Overtime::where('employee_name', $user->name)->count();
+
+                if ($overtimesByName > 0) {
+                    session()->flash('error_user', 'User tidak dapat dihapus karena memiliki data lembur terkait (' . $overtimesByName . ' record berdasarkan nama).');
+                    $this->closeDeleteModal();
+                    return;
+                }
+            }
+
+            // Remove roles and permissions before deleting user (Spatie Permission)
+            // Wrap in try-catch to handle missing permission tables gracefully
+            try {
+                $user->syncRoles([]);
+                $user->syncPermissions([]);
+            } catch (\Exception $permissionError) {
+                // Log the error but continue with deletion
+                Log::warning('Could not sync roles/permissions during user deletion: ' . $permissionError->getMessage());
+            }
+
+            // Delete the user
             $user->delete();
 
             session()->flash('success_user', 'User berhasil dihapus.');
 
             $this->closeDeleteModal();
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle SQL constraint violations
+            if ($e->getCode() === '23000') {
+                session()->flash('error_user', 'User tidak dapat dihapus karena masih memiliki data terkait di sistem.');
+            } elseif ($e->getCode() === '42S02') {
+                session()->flash('error_user', 'Terjadi kesalahan konfigurasi database. Silahkan hubungi administrator.');
+                Log::error('Missing table error during user deletion: ' . $e->getMessage());
+            } else {
+                Log::error('SQL error deleting user: ' . $e->getMessage());
+                session()->flash('error_user', 'Terjadi kesalahan database saat menghapus user. Error: ' . $e->getCode());
+            }
+            $this->closeDeleteModal();
         } catch (\Exception $e) {
+            Log::error('Unexpected error deleting user: ' . $e->getMessage());
             session()->flash('error_user', 'Gagal menghapus user: ' . $e->getMessage());
+            $this->closeDeleteModal();
         }
     }
 
