@@ -20,7 +20,16 @@ class Listrik extends Model
         'frequency',
         'pf',
         'timestamp',
-        'status'
+        'status',
+        // Indonesian field names for compatibility
+        'tegangan',
+        'arus', 
+        'daya',
+        'energi',
+        'frekuensi',
+        'power_factor',
+        'source',
+        'metadata'
     ];
 
     protected $casts = [

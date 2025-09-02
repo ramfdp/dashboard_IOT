@@ -156,4 +156,52 @@ class FirebaseService
             return [];
         }
     }
+
+    /**
+     * Get sensor data from Firebase
+     */
+    public function getSensorData()
+    {
+        try {
+            $sensorData = $this->database
+                ->getReference("sensor")
+                ->getValue();
+            
+            return [
+                'temperature' => $sensorData['temperature'] ?? 25.0,
+                'humidity' => $sensorData['humidity'] ?? 60.0,
+                'voltage' => $sensorData['voltage'] ?? 220.0,
+                'current' => $sensorData['current'] ?? 0.0,
+                'power' => $sensorData['power'] ?? 0.0,
+                'timestamp' => $sensorData['timestamp'] ?? now()->toISOString(),
+                'lastUpdated' => $sensorData['lastUpdated'] ?? now()->toISOString()
+            ];
+        } catch (\Exception $e) {
+            Log::error("Failed to get sensor data: " . $e->getMessage());
+            return [
+                'temperature' => 25.0,
+                'humidity' => 60.0,
+                'voltage' => 220.0,
+                'current' => 0.0,
+                'power' => 0.0,
+                'timestamp' => now()->toISOString(),
+                'lastUpdated' => now()->toISOString()
+            ];
+        }
+    }
+
+    /**
+     * Set sensor data to Firebase
+     */
+    public function setSensorData($data)
+    {
+        try {
+            return $this->database
+                ->getReference("sensor")
+                ->set($data);
+        } catch (\Exception $e) {
+            Log::error("Failed to set sensor data: " . $e->getMessage());
+            return false;
+        }
+    }
 }

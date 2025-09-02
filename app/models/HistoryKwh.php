@@ -12,52 +12,36 @@ class HistoryKwh extends Model
     protected $table = 'histori_kwh';
 
     protected $fillable = [
-        'voltage',
-        'current',
-        'power',
-        'energy',
-        'frequency',
-        'pf',
-        'location',
-        'sensor_id',
-        'timestamp',
+        'tegangan',
+        'arus', 
+        'daya',
+        'energi',
+        'frekuensi',
+        'power_factor',
+        'tanggal_input',
+        'waktu',
         'created_at'
     ];
 
     protected $casts = [
-        'voltage' => 'float',
-        'current' => 'float',
-        'power' => 'float',
-        'energy' => 'float',
-        'frequency' => 'float',
-        'pf' => 'float',
-        'timestamp' => 'datetime',
+        'tegangan' => 'float',
+        'arus' => 'float',
+        'daya' => 'float',
+        'energi' => 'float',
+        'frekuensi' => 'float',
+        'power_factor' => 'float',
+        'tanggal_input' => 'date',
+        'waktu' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
-
-    /**
-     * Relationship with Sensor
-     */
-    public function sensor()
-    {
-        return $this->belongsTo(Sensor::class);
-    }
 
     /**
      * Scope for latest records
      */
     public function scopeLatest($query, $limit = 10)
     {
-        return $query->orderBy('timestamp', 'desc')->limit($limit);
-    }
-
-    /**
-     * Scope by location
-     */
-    public function scopeByLocation($query, $location)
-    {
-        return $query->where('location', $location);
+        return $query->orderBy('waktu', 'desc')->limit($limit);
     }
 
     /**
@@ -65,7 +49,7 @@ class HistoryKwh extends Model
      */
     public function scopeDateRange($query, $startDate, $endDate)
     {
-        return $query->whereBetween('timestamp', [$startDate, $endDate]);
+        return $query->whereBetween('waktu', [$startDate, $endDate]);
     }
 
     /**
@@ -73,7 +57,7 @@ class HistoryKwh extends Model
      */
     public function scopeToday($query)
     {
-        return $query->whereDate('timestamp', today());
+        return $query->whereDate('waktu', today());
     }
 
     /**

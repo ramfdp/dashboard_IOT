@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Models\Role;
-use App\Models\User;
-use App\Models\Divisi;
-use App\Models\LightSchedule;
-use App\Models\HistoryKwh;
-use App\Models\Overtime;
+use App\models\Role;
+use App\models\User;
+use App\models\Divisi;
+use App\models\LightSchedule;
+use App\models\HistoryKwh;
+use App\models\Overtime;
 use App\Services\FirebaseService;
 use Illuminate\Support\Facades\Log;
 
@@ -28,19 +28,28 @@ class DashboardController extends Controller
         $users = User::with('role')->get();
         $divisions = Divisi::all();
 
-        // Get data KWH
+        // Get data KWH with formatted time in Indonesia timezone
         $dataKwh = HistoryKwh::select('waktu', 'daya')
             ->orderBy('waktu', 'asc')
-            ->get();
+            ->get()
+            ->map(function($item) {
+                // Format waktu menjadi HH:MM dengan timezone Indonesia
+                $item->waktu_formatted = Carbon::parse($item->waktu)
+                    ->setTimezone('Asia/Jakarta')
+                    ->format('H:i');
+                return $item;
+            });
 
         // If no data exists, create demo data with realistic electricity usage pattern
         if ($dataKwh->isEmpty()) {
-            $currentHour = date('H');
-            $baseTime = date('Y-m-d ');
+            // Gunakan waktu Indonesia saat ini
+            $now = Carbon::now('Asia/Jakarta');
+            $baseTime = $now->format('Y-m-d ');
 
             $demoData = [];
             for ($i = 0; $i < 24; $i++) {
-                $time = $baseTime . sprintf('%02d:00:00', $i);
+                $timeString = $baseTime . sprintf('%02d:00:00', $i);
+                $timeCarbon = Carbon::parse($timeString, 'Asia/Jakarta');
 
                 // Create realistic power consumption pattern
                 if ($i >= 6 && $i <= 8) {
@@ -58,7 +67,8 @@ class DashboardController extends Controller
                 }
 
                 $demoData[] = (object)[
-                    'waktu' => sprintf('%02d:%02d:%02d', $i, rand(0, 59), rand(0, 59)),
+                    'waktu' => $timeString,
+                    'waktu_formatted' => $timeCarbon->format('H:i'),
                     'daya' => $power
                 ];
             }
@@ -78,328 +88,139 @@ class DashboardController extends Controller
             $relay3 = $this->firebase->getRelayState('relay3') ?? 0;
             $relay4 = $this->firebase->getRelayState('relay4') ?? 0;
             $relay5 = $this->firebase->getRelayState('relay5') ?? 0;
-            $relay6 = $this->firebase->getRelayState('relay6') ?? 0;
-            $relay7 = $this->firebase->getRelayState('relay7') ?? 0;
-            $relay8 = $this->firebase->getRelayState('relay8') ?? 0;
         } catch (\Exception $e) {
-            // If Firebase fails, set default values
-            $relay1 = 0;
-            $relay2 = 0;
-            $relay3 = 0;
-            $relay4 = 0;
-            $relay5 = 0;
-            $relay6 = 0;
-            $relay7 = 0;
-            $relay8 = 0;
+            Log::warning('Firebase relay state fetch failed', ['error' => $e->getMessage()]);
+            // Set default values if Firebase connection fails
+            $relay1 = $relay2 = $relay3 = $relay4 = $relay5 = 0;
         }
 
-        // Kirim semua data ke view
+        // Get sensor data with default fallback values
+        try {
+            $sensorData = $this->firebase->getSensorData();
+            $temperature = $sensorData['temperature'] ?? 25.0;
+            $humidity = $sensorData['humidity'] ?? 60.0;
+        } catch (\Exception $e) {
+            Log::warning('Firebase sensor data fetch failed', ['error' => $e->getMessage()]);
+            $temperature = 25.0;
+            $humidity = 60.0;
+        }
+
+        // Get overtime data
+        $overtimes = Overtime::orderBy('created_at', 'desc')
+            ->take(10)
+            ->get();
+
         return view('pages.dashboard-v1', compact(
             'roles',
             'users',
             'divisions',
-            'dataKwh',
             'lightSchedules',
+            'dataKwh',
             'relay1',
             'relay2',
             'relay3',
             'relay4',
             'relay5',
-            'relay6',
-            'relay7',
-            'relay8'
+            'temperature',
+            'humidity',
+            'overtimes'
         ));
     }
 
     public function update(Request $request)
     {
-        $relay1 = $request->input('relay1', 0);
-        $relay2 = $request->input('relay2', 0);
-        $relay3 = $request->input('relay3', 0);
-        $relay4 = $request->input('relay4', 0);
-        $relay5 = $request->input('relay5', 0);
-        $relay6 = $request->input('relay6', 0);
-        $relay7 = $request->input('relay7', 0);
-        $relay8 = $request->input('relay8', 0);
-
-        // Use batch update for better performance
-        $this->firebase->setBatchRelayStates([
-            'relay1' => $relay1,
-            'relay2' => $relay2,
-            'relay3' => $relay3,
-            'relay4' => $relay4,
-            'relay5' => $relay5,
-            'relay6' => $relay6,
-            'relay7' => $relay7,
-            'relay8' => $relay8,
-            'manualMode' => true
-        ]);
-
-        // Log manual control action
-        Log::info("Manual device control - relay1: {$relay1}, relay2: {$relay2}");
-
-        return back()->with('success_device', 'Perangkat diperbarui secara manual.');
-    }
-
-    public function setAutoMode()
-    {
         try {
-            // Set auto mode in Firebase (clear manual mode)
-            $this->firebase->setAutoMode();
+            $action = $request->input('action');
+            $relayId = $request->input('relay_id');
+            $state = $request->input('state');
 
-            // Also clear any current relay manual states for clean transition
-            $this->firebase->setBatchRelayStates([
-                'manualMode' => false
+            Log::info('Dashboard update request', [
+                'action' => $action,
+                'relay_id' => $relayId,
+                'state' => $state
             ]);
 
-            Log::info("Device switched to automatic mode - manual mode cleared");
+            switch ($action) {
+                case 'toggle_relay':
+                    if (!$relayId) {
+                        return response()->json(['success' => false, 'message' => 'Relay ID diperlukan']);
+                    }
 
-            // Check if this is an AJAX request
-            if (request()->expectsJson() || request()->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Mode otomatis berhasil diaktifkan! Jadwal akan mengontrol perangkat secara otomatis.',
-                    'mode' => 'auto',
-                    'timestamp' => now()->toISOString()
-                ]);
+                    $success = $this->firebase->setRelayState($relayId, $state);
+                    
+                    if ($success) {
+                        Log::info("Relay {$relayId} berhasil diubah ke state: {$state}");
+                        return response()->json([
+                            'success' => true,
+                            'message' => "Relay {$relayId} berhasil " . ($state ? 'dinyalakan' : 'dimatikan')
+                        ]);
+                    } else {
+                        Log::error("Gagal mengubah relay {$relayId}");
+                        return response()->json(['success' => false, 'message' => 'Gagal mengubah relay']);
+                    }
+
+                case 'get_sensor_data':
+                    $sensorData = $this->firebase->getSensorData();
+                    return response()->json(['success' => true, 'data' => $sensorData]);
+
+                default:
+                    return response()->json(['success' => false, 'message' => 'Action tidak dikenal']);
             }
-
-            return back()->with('success_device', 'Mode otomatis berhasil diaktifkan! Jadwal akan mengontrol perangkat secara otomatis.');
         } catch (\Exception $e) {
-            Log::error('Failed to set auto mode: ' . $e->getMessage());
-
-            // Check if this is an AJAX request
-            if (request()->expectsJson() || request()->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal mengaktifkan mode otomatis: ' . $e->getMessage(),
-                    'error' => $e->getMessage()
-                ], 500);
-            }
-
-            return back()->with('error_device', 'Gagal mengaktifkan mode otomatis: ' . $e->getMessage());
+            Log::error('Dashboard update error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
         }
     }
 
-    public function setManualMode()
+    public function controlRelay(Request $request)
     {
         try {
-            // Set manual mode in Firebase
-            $this->firebase->setManualMode(true);
+            $relayId = $request->input('relay_id');
+            $state = $request->input('state');
 
-            Log::info("Device switched to manual mode - automatic schedules suspended");
+            if (!$relayId) {
+                return response()->json(['success' => false, 'message' => 'Relay ID diperlukan']);
+            }
 
-            // Check if this is an AJAX request
-            if (request()->expectsJson() || request()->ajax()) {
+            $success = $this->firebase->setRelayState($relayId, $state);
+            
+            if ($success) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Mode manual berhasil diaktifkan! Anda dapat mengontrol perangkat secara manual.',
-                    'mode' => 'manual',
-                    'timestamp' => now()->toISOString()
+                    'message' => "Relay {$relayId} berhasil " . ($state ? 'dinyalakan' : 'dimatikan')
                 ]);
-            }
-
-            return back()->with('success_device', 'Mode manual berhasil diaktifkan! Anda dapat mengontrol perangkat secara manual.');
-        } catch (\Exception $e) {
-            Log::error('Failed to set manual mode: ' . $e->getMessage());
-
-            // Check if this is an AJAX request
-            if (request()->expectsJson() || request()->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal mengaktifkan mode manual: ' . $e->getMessage(),
-                    'error' => $e->getMessage()
-                ], 500);
-            }
-
-            return back()->with('error_device', 'Gagal mengaktifkan mode manual: ' . $e->getMessage());
-        }
-    }
-
-    public function checkSchedules()
-    {
-        try {
-            // Check if device is in manual mode
-            $isManualMode = $this->firebase->getManualMode();
-
-            if ($isManualMode) {
-                Log::info("Skipping schedule check - device is in manual mode");
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Schedule check skipped - device in manual mode',
-                    'manual_mode' => true
-                ]);
-            }
-
-            // Check for active overtime - if any exists, skip schedule control
-            $activeOvertimes = Overtime::where(function ($query) {
-                $query->where('status', Overtime::STATUS_RUNNING)
-                    ->orWhere(function ($subQuery) {
-                        $subQuery->where('status', Overtime::STATUS_PENDING)
-                            ->whereDate('overtime_date', Carbon::today())
-                            ->whereTime('start_time', '<=', Carbon::now()->format('H:i:s'));
-                    });
-            })->exists();
-
-            if ($activeOvertimes) {
-                Log::info("Skipping schedule check - active overtime detected");
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Schedule check skipped - active overtime in progress',
-                    'active_devices' => ['relay1', 'relay2', 'relay3', 'relay4', 'relay5', 'relay6', 'relay7', 'relay8'], // Overtime keeps all lights on
-                    'inactive_devices' => [],
-                    'manual_mode' => false,
-                    'overtime_active' => true
-                ]);
-            }
-
-            $now = Carbon::now();
-            $currentDay = strtolower($now->format('l')); // monday, tuesday, etc.
-            $currentTime = $now->format('H:i:s');
-
-            Log::info("Checking schedules for {$currentDay} at {$currentTime}");
-
-            // Get all active schedules for today
-            $todaySchedules = LightSchedule::where('is_active', true)
-                ->where('day_of_week', $currentDay)
-                ->get();
-
-            // Default: all lights off
-            $shouldLightsBeOn = false;
-
-            foreach ($todaySchedules as $schedule) {
-                // Handle overnight schedules (end_time < start_time)
-                if ($schedule->end_time < $schedule->start_time) {
-                    $shouldBeOn = ($currentTime >= $schedule->start_time || $currentTime <= $schedule->end_time);
-                } else {
-                    // Normal schedule (same day)
-                    $shouldBeOn = ($currentTime >= $schedule->start_time && $currentTime <= $schedule->end_time);
-                }
-
-                if ($shouldBeOn) {
-                    $shouldLightsBeOn = true;
-                    Log::info("Schedule '{$schedule->name}' is active - turning ON all lights");
-                    break; // One active schedule is enough to turn on all lights
-                }
-            }
-
-            // Control both relays together using batch update for better performance
-            // Don't override manual mode when in auto mode
-            $relayState = $shouldLightsBeOn ? 1 : 0;
-
-            Log::info("Attempting to set Firebase relays - all 8 relays: {$relayState}");
-
-            $firebaseResult = $this->firebase->setBatchRelayStates([
-                'relay1' => $relayState,
-                'relay2' => $relayState,
-                'relay3' => $relayState,
-                'relay4' => $relayState,
-                'relay5' => $relayState,
-                'relay6' => $relayState,
-                'relay7' => $relayState,
-                'relay8' => $relayState
-            ]);
-
-            if ($firebaseResult === false) {
-                Log::error("Failed to update Firebase relay states!");
             } else {
-                Log::info("Successfully updated Firebase relay states");
+                return response()->json(['success' => false, 'message' => 'Gagal mengubah relay']);
             }
-
-            $activeDevices = $shouldLightsBeOn ? ['relay1', 'relay2', 'relay3', 'relay4', 'relay5', 'relay6', 'relay7', 'relay8'] : [];
-            $inactiveDevices = $shouldLightsBeOn ? [] : ['relay1', 'relay2', 'relay3', 'relay4', 'relay5', 'relay6', 'relay7', 'relay8'];
-
-            Log::info("Schedule check completed. All lights: " . ($shouldLightsBeOn ? 'ON' : 'OFF'));
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Schedules checked successfully',
-                'active_devices' => $activeDevices,
-                'inactive_devices' => $inactiveDevices,
-                'manual_mode' => false
-            ]);
         } catch (\Exception $e) {
-            Log::error('Error checking schedules: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error checking schedules: ' . $e->getMessage()
-            ], 500);
+            Log::error('Control relay error', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
         }
     }
 
-    // Traditional schedule management methods
-
-    public function storeSchedule(Request $request)
+    public function getSensorData()
     {
         try {
-            $request->validate([
-                'name' => 'required|max:255',
-                'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-                'start_time' => 'required|date_format:H:i',
-                'end_time' => 'required|date_format:H:i|after:start_time',
-            ]);
-
-            LightSchedule::create($request->only(['name', 'day_of_week', 'start_time', 'end_time']));
-
-            return back()->with('success_schedule', 'Jadwal lampu berhasil ditambahkan. Semua lampu akan dikontrol bersamaan.');
+            $data = $this->firebase->getSensorData();
+            return response()->json(['success' => true, 'data' => $data]);
         } catch (\Exception $e) {
-            Log::error('Error creating schedule: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Gagal menambahkan jadwal: ' . $e->getMessage()]);
+            Log::error('Get sensor data error', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil data sensor']);
         }
     }
 
-    public function updateSchedule(Request $request, LightSchedule $schedule)
+    public function getRelayStates()
     {
         try {
-            $request->validate([
-                'name' => 'required|max:255',
-                'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-                'start_time' => 'required|date_format:H:i',
-                'end_time' => 'required|date_format:H:i|after:start_time',
-            ]);
-
-            $schedule->update($request->only(['name', 'day_of_week', 'start_time', 'end_time']));
-
-            return back()->with('success_schedule', 'Jadwal berhasil diperbarui');
+            $relayStates = [];
+            for ($i = 1; $i <= 5; $i++) {
+                $relayStates["relay{$i}"] = $this->firebase->getRelayState("relay{$i}") ?? 0;
+            }
+            
+            return response()->json(['success' => true, 'data' => $relayStates]);
         } catch (\Exception $e) {
-            Log::error('Error updating schedule: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Gagal memperbarui jadwal: ' . $e->getMessage()]);
-        }
-    }
-
-    public function destroySchedule(LightSchedule $schedule)
-    {
-        try {
-            $schedule->delete();
-            return back()->with('success_schedule', 'Jadwal berhasil dihapus');
-        } catch (\Exception $e) {
-            Log::error('Error deleting schedule: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Gagal menghapus jadwal: ' . $e->getMessage()]);
-        }
-    }
-
-    public function toggleSchedule(LightSchedule $schedule)
-    {
-        try {
-            $schedule->update(['is_active' => !$schedule->is_active]);
-            return back()->with('success_schedule', 'Status jadwal berhasil diubah');
-        } catch (\Exception $e) {
-            Log::error('Error toggling schedule: ' . $e->getMessage());
-            return back()->withErrors(['error' => 'Gagal mengubah status jadwal: ' . $e->getMessage()]);
-        }
-    }
-
-    private function controlDevice($deviceType, $action)
-    {
-        try {
-            $value = ($action === 'on') ? 1 : 0;
-
-            // Use Firebase service to control the device
-            $this->firebase->setRelayState($deviceType, $value);
-
-            Log::info("Device {$deviceType} turned {$action} by schedule");
-        } catch (\Exception $e) {
-            Log::error('Device control error: ' . $e->getMessage());
+            Log::error('Get relay states error', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Gagal mengambil status relay']);
         }
     }
 }

@@ -59,3 +59,16 @@ Route::prefix('electricity')->group(function () {
     Route::get('/data/{period}', [ElectricityDataController::class, 'getDataByPeriod']);
     Route::get('/data', [ElectricityDataController::class, 'getDataByPeriod']);
 });
+
+// Real-time Power API for auto-generated data
+Route::post('/real-time-power', [App\Http\Controllers\RealTimePowerController::class, 'store']);
+Route::get('/real-time-power/latest', [App\Http\Controllers\RealTimePowerController::class, 'getLatest']);
+
+// Real-time Power Generation Routes for PT Krakatau Sarana Property
+Route::prefix('realtime-power')->group(function () {
+    Route::post('/store', [App\Http\Controllers\RealTimePowerController::class, 'store']);
+    Route::get('/latest', [App\Http\Controllers\RealTimePowerController::class, 'getLatest']);
+    Route::get('/range', [App\Http\Controllers\RealTimePowerController::class, 'getDataRange']);
+    Route::get('/krakatau-stats', [App\Http\Controllers\RealTimePowerController::class, 'getKrakatauStats']);
+    Route::post('/reset-energy', [App\Http\Controllers\RealTimePowerController::class, 'resetEnergyCounter']);
+});

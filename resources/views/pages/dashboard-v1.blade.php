@@ -57,6 +57,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="/assets/js/export-analysis.js"></script>
     
+    {{-- Firebase Integration --}}
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" defer></script>
+    <script src="/assets/js/firebase-integration.js" defer></script>
+    
+    {{-- Auto PZEM Values Generator for PT Krakatau Sarana Property --}}
+    <script src="/assets/js/auto-pzem-values.js" defer></script>
+    
     {{-- Real-time monitoring - loaded last --}}
     <script src="/assets/js/fetch-api-monitoring.js"></script>
 @endpush
@@ -70,7 +78,19 @@
     <!-- END breadcrumb -->
     
     <!-- BEGIN page-header -->
-    <h1 class="page-header">Dashboard <small>Selamat Datang di IOT Smart Building Controller</small></h1>
+    <h1 class="page-header">
+        Dashboard <small>Selamat Datang di IOT Smart Building Controller</small>
+        
+        <!-- Sync Status Indicators -->
+        <div class="float-end">
+            <small class="badge bg-secondary me-2" id="dbSyncStatus">
+                <i class="fa fa-database"></i> DB: Waiting
+            </small>
+            <small class="badge bg-secondary" id="firebaseSyncStatus">
+                <i class="fa fa-cloud"></i> Firebase: Waiting
+            </small>
+        </div>
+    </h1>
     <!-- END page-header -->
     <!-- PZEM Monitoring (1 Row, 4 Kolom) -->
     <div class="row">
@@ -130,7 +150,7 @@
                     <div class="panel-body p-4 bg-dark text-white rounded-bottom">
                         <div class="row" style="overflow-x: auto; background-color: #1e1e1e; border-radius: 8px;">
                             <canvas id="wattChart" 
-                            data-labels='@json(isset($dataKwh) ? $dataKwh->pluck('waktu')->toArray() : [])'
+                            data-labels='@json(isset($dataKwh) ? $dataKwh->pluck('waktu_formatted')->toArray() : [])'
                             data-values='@json(isset($dataKwh) ? $dataKwh->pluck('daya')->toArray() : [])'
                             width="1450" height="300" style="background-color: #1e1e1e;"></canvas>
                             

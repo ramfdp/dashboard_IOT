@@ -231,7 +231,17 @@ class ElectricityKNNCalculator {
                 },
                 scales: {
                     x: {
-                        ticks: { color: '#ffffff' },
+                        ticks: { 
+                            color: '#ffffff',
+                            maxTicksLimit: 12, // Limit jumlah label yang ditampilkan
+                            callback: function(value, index, values) {
+                                // Tampilkan setiap 2 label untuk mengurangi kesesakan
+                                if (index % 2 === 0 || index === values.length - 1) {
+                                    return this.getLabelForValue(value);
+                                }
+                                return '';
+                            }
+                        },
                         grid: { color: 'rgba(255,255,255,0.1)' },
                         title: {
                             display: true,

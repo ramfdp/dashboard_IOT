@@ -10,21 +10,13 @@ class Sensor extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'type',
-        'location',
-        'description',
-        'status',
-        'last_reading',
-        'unit',
-        'min_value',
-        'max_value'
+        'temperature',
+        'humidity'
     ];
 
     protected $casts = [
-        'last_reading' => 'float',
-        'min_value' => 'float',
-        'max_value' => 'float',
+        'temperature' => 'float',
+        'humidity' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

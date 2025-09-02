@@ -716,6 +716,59 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize data when page loads
     initializeData();
 
+    // Initialize real-time power generator if available
+    if (window.powerGenerator) {
+        console.log('[Dashboard] Real-time power generator available, integrating...');
+
+        // Override the power generator's updateUI method to also update our global data
+        const originalUpdateUI = window.powerGenerator.updateUI;
+        window.powerGenerator.updateUI = function (data) {
+            // Call original updateUI
+            originalUpdateUI.call(this, data);
+
+            // Update our global data
+            if (window.globalElectricityData) {
+                window.globalElectricityData.currentPower = data.power;
+                window.latestPowerValue = data.power;
+
+                // Add to daily data array (keep last 30 points)
+                if (!window.globalElectricityData.dailyData) {
+                    window.globalElectricityData.dailyData = [];
+                }
+                window.globalElectricityData.dailyData.push(data.power);
+                if (window.globalElectricityData.dailyData.length > 30) {
+                    window.globalElectricityData.dailyData.shift();
+                }
+
+                // Update labels
+                const now = new Date();
+                const timeLabel = now.getHours().toString().padStart(2, '0') + ':' +
+                    now.getMinutes().toString().padStart(2, '0');
+                if (!window.globalElectricityData.labels) {
+                    window.globalElectricityData.labels = [];
+                }
+                window.globalElectricityData.labels.push(timeLabel);
+                if (window.globalElectricityData.labels.length > 30) {
+                    window.globalElectricityData.labels.shift();
+                }
+
+                // Update chart if available
+                if (window.myChart && window.myChart.data) {
+                    window.myChart.data.labels = [...window.globalElectricityData.labels];
+                    window.myChart.data.datasets[0].data = [...window.globalElectricityData.dailyData];
+                    window.myChart.update('none'); // Update without animation for real-time
+                }
+            }
+
+            console.log('[Dashboard] Real-time data integrated:', {
+                power: data.power,
+                voltage: data.voltage,
+                current: data.current,
+                time: new Date().toLocaleTimeString()
+            });
+        };
+    }
+
     // Initialize modal data if modal is already open
     if (modal && modal.classList.contains('show')) {
         const currentPeriod = periodePerhitunganEl ? periodePerhitunganEl.value : 'harian';

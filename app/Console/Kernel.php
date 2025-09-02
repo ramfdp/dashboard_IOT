@@ -14,6 +14,12 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         Commands\CheckLightSchedules::class,
+        Commands\DebugRoles::class,
+        Commands\AssignAdminRole::class,
+        Commands\AssignUserRole::class,
+        Commands\EnsureDefaultSensor::class,
+        Commands\TestDatabaseSync::class,
+        Commands\CheckTimezone::class,
     ];
 
     /**
