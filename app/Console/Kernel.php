@@ -14,12 +14,10 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         Commands\CheckLightSchedules::class,
-        Commands\DebugRoles::class,
         Commands\AssignAdminRole::class,
         Commands\AssignUserRole::class,
         Commands\EnsureDefaultSensor::class,
-        Commands\TestDatabaseSync::class,
-        Commands\CheckTimezone::class,
+        Commands\CleanupSessions::class,
     ];
 
     /**
@@ -35,6 +33,9 @@ class Kernel extends ConsoleKernel
 
         // Check light schedules every 5 minutes to reduce conflicts
         $schedule->command('schedule:check')->everyFiveMinutes();
+
+        // Clean up old session files every hour
+        $schedule->command('session:cleanup')->hourly();
     }
     /**
      * Register the Closure based commands for the application.

@@ -23,7 +23,7 @@ class Listrik extends Model
         'status',
         // Indonesian field names for compatibility
         'tegangan',
-        'arus', 
+        'arus',
         'daya',
         'energi',
         'frekuensi',

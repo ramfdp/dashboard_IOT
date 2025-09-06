@@ -15,7 +15,20 @@ class AutoPZEMGenerator {
             power: 0,
             totalPower: 0
         };
-        
+
+        // Night mode simulation - menurunkan daya setiap 1 jam selama 30 menit
+        this.nightModeSimulation = {
+            enabled: true,
+            intervalHours: 1,           // Setiap 1 jam
+            durationMinutes: 30,        // Selama 30 menit
+            powerReduction: 0.3,        // Kurangi daya menjadi 30% dari normal
+            currentReduction: 0.3,      // Kurangi arus menjadi 30% dari normal
+            lastTriggerTime: null,      // Waktu terakhir night mode aktif
+            isActive: false,            // Status night mode saat ini
+            startTime: null,            // Waktu mulai night mode
+            nextTriggerTime: null       // Waktu trigger berikutnya
+        };
+
         // PT Krakatau Sarana Property building profile
         this.buildingProfile = {
             basePowerConsumption: 8000,    // 8kW base load
@@ -23,8 +36,9 @@ class AutoPZEMGenerator {
             operatingHours: { start: 7, end: 19 },
             weekendReduction: 0.3          // 30% of normal consumption on weekends
         };
-        
-        console.log('[AutoPZEM] Auto PZEM Generator initialized');
+
+        console.log('[AutoPZEM] Auto PZEM Generator initialized with Night Mode Simulation');
+        this.initializeNightMode();
         this.start();
     }
 
@@ -37,7 +51,7 @@ class AutoPZEMGenerator {
         const minute = now.getMinutes();
         const dayOfWeek = now.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        
+
         const isWorkingHour = hour >= this.buildingProfile.operatingHours.start &&
             hour <= this.buildingProfile.operatingHours.end;
 
@@ -104,13 +118,22 @@ class AutoPZEMGenerator {
         const lightingPower = Math.random() > 0.7 ? Math.random() * 100 + 50 : Math.random() * 40;
         const totalPower = finalPower + lightingPower;
 
-        return {
+        // Generate base data
+        let generatedData = {
             voltage: Math.round(voltage * 10) / 10,     // 1 decimal place
             current: Math.round(current * 100) / 100,  // 2 decimal places
             power: Math.round(finalPower),              // Whole number
             totalPower: Math.round(totalPower),         // Total including lighting
             timestamp: this.getIndonesiaTimestamp()
         };
+
+        // Update night mode status
+        this.updateNightModeStatus();
+
+        // Apply night mode reduction jika sedang aktif
+        generatedData = this.applyNightModeReduction(generatedData);
+
+        return generatedData;
     }
 
     /**
@@ -172,12 +195,12 @@ class AutoPZEMGenerator {
     async sendToDatabase(data) {
         try {
             console.log('[AutoPZEM] Sending to database:', data);
-            
+
             const payload = {
                 tegangan: data.voltage,
                 arus: data.current,
                 daya: data.power,
-                energi: (data.power / 1000) * (1/60), // Convert to kWh for 1 minute interval
+                energi: (data.power / 1000) * (1 / 60), // Convert to kWh for 1 minute interval
                 frekuensi: 50.0,
                 power_factor: 0.85,
                 lokasi: 'PT Krakatau Sarana Property',
@@ -198,20 +221,20 @@ class AutoPZEMGenerator {
             if (response.ok) {
                 const result = await response.json();
                 console.log('[AutoPZEM] ✅ Data sent to database successfully:', result);
-                
+
                 // Update status indicator
                 const dbStatus = document.getElementById('dbSyncStatus');
                 if (dbStatus) {
                     dbStatus.className = 'badge bg-success me-2';
                     dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Connected';
-                    
+
                     // Reset to normal after 5 seconds
                     setTimeout(() => {
                         dbStatus.className = 'badge bg-secondary me-2';
                         dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Synced';
                     }, 5000);
                 }
-                
+
                 // Visual feedback
                 document.body.style.borderLeft = '3px solid green';
                 setTimeout(() => {
@@ -220,14 +243,14 @@ class AutoPZEMGenerator {
             } else {
                 const errorText = await response.text();
                 console.warn('[AutoPZEM] ❌ Database sync failed:', response.statusText, errorText);
-                
+
                 // Update status indicator for error
                 const dbStatus = document.getElementById('dbSyncStatus');
                 if (dbStatus) {
                     dbStatus.className = 'badge bg-danger me-2';
                     dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Error';
                 }
-                
+
                 // Visual feedback for error
                 document.body.style.borderLeft = '3px solid red';
                 setTimeout(() => {
@@ -248,7 +271,7 @@ class AutoPZEMGenerator {
 
             // Use direct REST API to Firebase (more reliable)
             const firebaseUrl = 'https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app';
-            
+
             // Send to sensor path (overwrites existing data)
             const sensorResponse = await fetch(`${firebaseUrl}/sensor.json`, {
                 method: 'PUT',
@@ -266,20 +289,20 @@ class AutoPZEMGenerator {
 
             if (sensorResponse.ok) {
                 console.log('[AutoPZEM] ✅ Data sent to Firebase sensor successfully');
-                
+
                 // Update Firebase status indicator
                 const firebaseStatus = document.getElementById('firebaseSyncStatus');
                 if (firebaseStatus) {
                     firebaseStatus.className = 'badge bg-info';
                     firebaseStatus.innerHTML = '<i class="fa fa-cloud"></i> Firebase: Connected';
-                    
+
                     // Reset to normal after 3 seconds
                     setTimeout(() => {
                         firebaseStatus.className = 'badge bg-secondary';
                         firebaseStatus.innerHTML = '<i class="fa fa-cloud"></i> Firebase: Synced';
                     }, 3000);
                 }
-                
+
                 // Visual feedback - blue border for Firebase sync
                 document.body.style.borderRight = '3px solid blue';
                 setTimeout(() => {
@@ -287,7 +310,7 @@ class AutoPZEMGenerator {
                 }, 500);
             } else {
                 console.warn('[AutoPZEM] ❌ Firebase sensor sync failed:', sensorResponse.statusText);
-                
+
                 // Update Firebase status for error
                 const firebaseStatus = document.getElementById('firebaseSyncStatus');
                 if (firebaseStatus) {
@@ -312,7 +335,7 @@ class AutoPZEMGenerator {
                         timestamp: data.timestamp
                     })
                 });
-                
+
                 console.log('[AutoPZEM] ✅ Data also saved to Firebase history');
             }
 
@@ -365,36 +388,165 @@ class AutoPZEMGenerator {
     }
 
     /**
-     * Get current status
+     * Initialize night mode simulation
+     * Set waktu trigger pertama dari sekarang
+     */
+    initializeNightMode() {
+        const now = new Date();
+        this.nightModeSimulation.nextTriggerTime = new Date(now.getTime() + (this.nightModeSimulation.intervalHours * 60 * 60 * 1000));
+
+        console.log(`[AutoPZEM] Night Mode Simulation initialized`);
+        console.log(`[AutoPZEM] Next night mode trigger: ${this.nightModeSimulation.nextTriggerTime.toLocaleString('id-ID')}`);
+        console.log(`[AutoPZEM] Night mode akan aktif setiap ${this.nightModeSimulation.intervalHours} jam selama ${this.nightModeSimulation.durationMinutes} menit`);
+        console.log(`[AutoPZEM] Saat night mode: Daya akan turun ke ${this.nightModeSimulation.powerReduction * 100}% dan arus ke ${this.nightModeSimulation.currentReduction * 100}%`);
+    }
+
+    /**
+     * Check dan update status night mode
+     */
+    updateNightModeStatus() {
+        if (!this.nightModeSimulation.enabled) return;
+
+        const now = new Date();
+
+        // Cek apakah sudah waktunya untuk memulai night mode
+        if (!this.nightModeSimulation.isActive &&
+            this.nightModeSimulation.nextTriggerTime &&
+            now >= this.nightModeSimulation.nextTriggerTime) {
+
+            // Mulai night mode
+            this.nightModeSimulation.isActive = true;
+            this.nightModeSimulation.startTime = new Date();
+            this.nightModeSimulation.lastTriggerTime = new Date();
+
+            console.log(`[AutoPZEM] 🌙 NIGHT MODE STARTED - Daya dan arus akan turun selama ${this.nightModeSimulation.durationMinutes} menit`);
+
+            // Set waktu berakhir night mode
+            const endTime = new Date(now.getTime() + (this.nightModeSimulation.durationMinutes * 60 * 1000));
+            console.log(`[AutoPZEM] 🌙 Night mode akan berakhir pada: ${endTime.toLocaleString('id-ID')}`);
+
+            // Set next trigger time (1 jam dari sekarang)
+            this.nightModeSimulation.nextTriggerTime = new Date(now.getTime() + (this.nightModeSimulation.intervalHours * 60 * 60 * 1000));
+            console.log(`[AutoPZEM] 🌙 Next night mode: ${this.nightModeSimulation.nextTriggerTime.toLocaleString('id-ID')}`);
+        }
+
+        // Cek apakah night mode sudah selesai
+        if (this.nightModeSimulation.isActive && this.nightModeSimulation.startTime) {
+            const elapsedMinutes = (now - this.nightModeSimulation.startTime) / (60 * 1000);
+
+            if (elapsedMinutes >= this.nightModeSimulation.durationMinutes) {
+                // Akhiri night mode
+                this.nightModeSimulation.isActive = false;
+                this.nightModeSimulation.startTime = null;
+
+                console.log(`[AutoPZEM] ☀️ NIGHT MODE ENDED - Daya dan arus kembali ke normal`);
+                console.log(`[AutoPZEM] ☀️ Next night mode dalam ${this.nightModeSimulation.intervalHours} jam`);
+            }
+        }
+    }
+
+    /**
+     * Apply night mode reduction jika sedang aktif
+     */
+    applyNightModeReduction(data) {
+        if (!this.nightModeSimulation.enabled || !this.nightModeSimulation.isActive) {
+            return data; // Tidak ada perubahan jika night mode tidak aktif
+        }
+
+        // Aplikasikan pengurangan daya dan arus
+        const reducedData = {
+            ...data,
+            power: Math.round(data.power * this.nightModeSimulation.powerReduction),
+            totalPower: Math.round(data.totalPower * this.nightModeSimulation.powerReduction),
+            current: Math.round(data.current * this.nightModeSimulation.currentReduction * 100) / 100,
+        };
+
+        // Recalculate total power berdasarkan reduced power + reduced lighting
+        reducedData.totalPower = reducedData.power + Math.round(Math.random() * 20 + 10); // Minimal lighting
+
+        return reducedData;
+    }
+
+    /**
+     * Get current status termasuk night mode information
      */
     getStatus() {
+        const now = new Date();
+        const nightModeInfo = {
+            enabled: this.nightModeSimulation.enabled,
+            isActive: this.nightModeSimulation.isActive,
+            nextTrigger: this.nightModeSimulation.nextTriggerTime,
+            durationMinutes: this.nightModeSimulation.durationMinutes,
+            intervalHours: this.nightModeSimulation.intervalHours,
+            powerReduction: `${this.nightModeSimulation.powerReduction * 100}%`,
+            currentReduction: `${this.nightModeSimulation.currentReduction * 100}%`
+        };
+
+        if (this.nightModeSimulation.isActive && this.nightModeSimulation.startTime) {
+            const elapsedMinutes = (now - this.nightModeSimulation.startTime) / (60 * 1000);
+            const remainingMinutes = this.nightModeSimulation.durationMinutes - elapsedMinutes;
+            nightModeInfo.remainingMinutes = Math.max(0, Math.round(remainingMinutes));
+        }
+
         return {
             isRunning: this.isRunning,
             currentData: this.currentData,
-            buildingProfile: this.buildingProfile
+            buildingProfile: this.buildingProfile,
+            nightMode: nightModeInfo
         };
     }
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('[AutoPZEM] DOM ready, initializing auto PZEM generator...');
-    
+
     // Wait a bit for other scripts to load
     setTimeout(() => {
         window.autoPZEMGenerator = new AutoPZEMGenerator();
-        
+
         // Global functions for console control
         window.startAutoPZEM = () => window.autoPZEMGenerator.start();
         window.stopAutoPZEM = () => window.autoPZEMGenerator.stop();
         window.autoPZEMStatus = () => console.log(window.autoPZEMGenerator.getStatus());
-        
-        console.log('[AutoPZEM] Available console commands: startAutoPZEM(), stopAutoPZEM(), autoPZEMStatus()');
+
+        // Night mode control functions
+        window.triggerNightMode = () => {
+            window.autoPZEMGenerator.nightModeSimulation.nextTriggerTime = new Date();
+            console.log('[AutoPZEM] 🌙 Night mode will trigger on next update cycle');
+        };
+
+        window.disableNightMode = () => {
+            window.autoPZEMGenerator.nightModeSimulation.enabled = false;
+            window.autoPZEMGenerator.nightModeSimulation.isActive = false;
+            console.log('[AutoPZEM] 🌙 Night mode simulation disabled');
+        };
+
+        window.enableNightMode = () => {
+            window.autoPZEMGenerator.nightModeSimulation.enabled = true;
+            window.autoPZEMGenerator.initializeNightMode();
+            console.log('[AutoPZEM] 🌙 Night mode simulation enabled');
+        };
+
+        window.nightModeStatus = () => {
+            const status = window.autoPZEMGenerator.getStatus();
+            console.log('[AutoPZEM] 🌙 Night Mode Status:', status.nightMode);
+            return status.nightMode;
+        };
+
+        console.log('[AutoPZEM] Available console commands:');
+        console.log('  startAutoPZEM() - Start generator');
+        console.log('  stopAutoPZEM() - Stop generator');
+        console.log('  autoPZEMStatus() - Show complete status');
+        console.log('  triggerNightMode() - Force trigger night mode');
+        console.log('  disableNightMode() - Disable night mode simulation');
+        console.log('  enableNightMode() - Enable night mode simulation');
+        console.log('  nightModeStatus() - Show night mode status only');
     }, 1000);
 });
 
 // Also handle window load as fallback
-window.addEventListener('load', function() {
+window.addEventListener('load', function () {
     if (!window.autoPZEMGenerator) {
         console.log('[AutoPZEM] Window loaded, initializing as fallback...');
         setTimeout(() => {

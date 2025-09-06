@@ -32,7 +32,7 @@ class DashboardController extends Controller
         $dataKwh = HistoryKwh::select('waktu', 'daya')
             ->orderBy('waktu', 'asc')
             ->get()
-            ->map(function($item) {
+            ->map(function ($item) {
                 // Format waktu menjadi HH:MM dengan timezone Indonesia
                 $item->waktu_formatted = Carbon::parse($item->waktu)
                     ->setTimezone('Asia/Jakarta')
@@ -147,7 +147,7 @@ class DashboardController extends Controller
                     }
 
                     $success = $this->firebase->setRelayState($relayId, $state);
-                    
+
                     if ($success) {
                         Log::info("Relay {$relayId} berhasil diubah ke state: {$state}");
                         return response()->json([
@@ -183,7 +183,7 @@ class DashboardController extends Controller
             }
 
             $success = $this->firebase->setRelayState($relayId, $state);
-            
+
             if ($success) {
                 return response()->json([
                     'success' => true,
@@ -216,7 +216,7 @@ class DashboardController extends Controller
             for ($i = 1; $i <= 5; $i++) {
                 $relayStates["relay{$i}"] = $this->firebase->getRelayState("relay{$i}") ?? 0;
             }
-            
+
             return response()->json(['success' => true, 'data' => $relayStates]);
         } catch (\Exception $e) {
             Log::error('Get relay states error', ['error' => $e->getMessage()]);

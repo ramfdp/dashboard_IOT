@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLN Calculator API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>PLN Calculator API Test</h1>
+    <p>Test halaman untuk memverifikasi API PLN Calculator bekerja dengan benar.</p>
+    
+    <div id="test-controls">
+        <button onclick="testLatestKwhData()">Test Latest kWh Data API</button>
+        <button onclick="testHourlyConsumption()">Test Hourly Consumption API</button>
+        <button onclick="testDailySummary()">Test Daily Summary API</button>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const apiBaseUrl = 'http://127.0.0.1:8000/api/pln';
+        
+        function addResult(type, title, message, data = null) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            
+            let content = `<h3>${title}</h3><p>${message}</p>`;
+            if (data) {
+                content += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            resultDiv.innerHTML = content;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        async function testLatestKwhData() {
+            try {
+                addResult('info', 'Latest kWh Data API', 'Testing /api/pln/latest-kwh-data...');
+                
+                const response = await fetch(`${apiBaseUrl}/latest-kwh-data`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addResult('success', 'Latest kWh Data API - SUCCESS', 
+                        `✅ API response successful! kWh: ${data.kwh}, Source: ${data.source}`, data);
+                } else {
+                    addResult('error', 'Latest kWh Data API - FAILED', 
+                        `❌ API failed: ${data.message || 'Unknown error'}`, data);
+                }
+                
+            } catch (error) {
+                addResult('error', 'Latest kWh Data API - ERROR', 
+                    `❌ Network error: ${error.message}`);
+            }
+        }
+        
+        async function testHourlyConsumption() {
+            try {
+                addResult('info', 'Hourly Consumption API', 'Testing /api/pln/hourly-consumption...');
+                
+                const response = await fetch(`${apiBaseUrl}/hourly-consumption`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addResult('success', 'Hourly Consumption API - SUCCESS', 
+                        `✅ API response successful! Total kWh: ${data.total_kwh}`, data);
+                } else {
+                    addResult('error', 'Hourly Consumption API - FAILED', 
+                        `❌ API failed: ${data.message || 'Unknown error'}`, data);
+                }
+                
+            } catch (error) {
+                addResult('error', 'Hourly Consumption API - ERROR', 
+                    `❌ Network error: ${error.message}`);
+            }
+        }
+        
+        async function testDailySummary() {
+            try {
+                addResult('info', 'Daily Summary API', 'Testing /api/pln/daily-summary...');
+                
+                const response = await fetch(`${apiBaseUrl}/daily-summary`);
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    addResult('success', 'Daily Summary API - SUCCESS', 
+                        `✅ API response successful! Total kWh: ${data.total_kwh}`, data);
+                } else {
+                    addResult('error', 'Daily Summary API - FAILED', 
+                        `❌ API failed: ${data.message || 'Unknown error'}`, data);
+                }
+                
+            } catch (error) {
+                addResult('error', 'Daily Summary API - ERROR', 
+                    `❌ Network error: ${error.message}`);
+            }
+        }
+        
+        async function runAllTests() {
+            clearResults();
+            addResult('info', 'Running All Tests', 'Starting comprehensive API tests...');
+            
+            await testLatestKwhData();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testHourlyConsumption();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDailySummary();
+            
+            addResult('success', 'All Tests Completed', 'All API tests have been executed.');
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        // Auto-run initial test
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                testLatestKwhData();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

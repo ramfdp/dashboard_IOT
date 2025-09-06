@@ -437,10 +437,10 @@ class RealTimePowerGenerator {
         // Auto-start on page load (optional)
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[PowerGen] DOM loaded, initializing auto-start...');
-            
+
             // Initial UI update for stopped state
             this.updateStoppedUI();
-            
+
             // Auto-start after 2 seconds
             setTimeout(() => {
                 console.log('[PowerGen] Auto-starting power generator...');

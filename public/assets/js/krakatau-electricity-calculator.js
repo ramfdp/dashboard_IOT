@@ -1,25 +1,40 @@
 /**
  * Krakatau Sarana Property - Electricity Cost Calculator
  * Sistem perhitungan biaya listrik otomatis untuk gedung kantor
- * Mengintegrasikan dengan data monitoring existing tanpa input manual
+ * Terintegrasi dengan PLN Tariff Calculator resmi
  * Author: Dashboard IoT System
- * Date: August 14, 2025
+ * Date: September 6, 2025
  */
 
-// Tarif PLN 2025 khusus untuk Krakatau Sarana Property (Gedung Kantor)
+/**
+ * Krakatau Sarana Property Default Tariff Configuration
+ * Sesuai dengan golongan tarif PLN untuk industri
+ */
 const KRAKATAU_TARIFF = {
-    name: 'B-2/TM - Krakatau Sarana Property',
-    description: 'Tarif Bisnis Menengah untuk Gedung Kantor',
-    ratePerKwh: 1467.28,  // Default Rupiah per kWh (akan dioverride oleh input user)
-    fixedMonthlyCharge: 48000,  // Biaya beban tetap per bulan
-    category: 'office_building'
+    name: 'PT Krakatau Sarana Property - Industri',
+    code: 'I-3/TM',
+    description: 'Industri dengan daya di atas 200 kVA',
+    ratePerKwh: 1035.76, // Default PLN I-3/TM rate
+    fixedMonthlyCharge: 50000, // Biaya tetap bulanan
+    category: 'Industri',
+    powerLimit: '> 200 kVA',
+    serviceType: 'Tegangan Menengah'
 };
 
 /**
- * Get current dynamic rate from user input or use default
+ * Get current dynamic rate from PLN Calculator or fallback
  * @returns {number} Current kWh rate in Rupiah
  */
 function getCurrentKwhRate() {
+    // Prioritas 1: PLN Calculator rate jika tersedia
+    if (window.plnCalculator) {
+        const rate = window.plnCalculator.getCurrentRate();
+        if (rate && rate > 0) {
+            return rate;
+        }
+    }
+
+    // Prioritas 2: Manual input rate
     const rateInput = document.getElementById('dynamicKwhRate');
     if (rateInput && rateInput.value && !isNaN(rateInput.value)) {
         const rate = parseFloat(rateInput.value);
@@ -27,7 +42,30 @@ function getCurrentKwhRate() {
             return rate;
         }
     }
-    return KRAKATAU_TARIFF.ratePerKwh; // fallback to default
+
+    // Fallback: Default rate untuk industri
+    return 1035.76; // I-3/TM rate
+}
+
+/**
+ * Get current tariff information
+ * @returns {object} Tariff info object
+ */
+function getCurrentTariffInfo() {
+    if (window.plnCalculator) {
+        const tariff = window.plnCalculator.getCurrentTariff();
+        return {
+            name: tariff.name,
+            code: window.plnCalculator.currentTariff,
+            description: tariff.description,
+            ratePerKwh: tariff.rates[0].rate,
+            category: tariff.category,
+            fixedMonthlyCharge: KRAKATAU_TARIFF.fixedMonthlyCharge
+        };
+    }
+
+    // Fallback tariff info - return KRAKATAU_TARIFF constant
+    return KRAKATAU_TARIFF;
 }
 
 /**
@@ -119,54 +157,81 @@ function extractKwhFromDashboard() {
  * Hitung biaya listrik untuk Krakatau Sarana Property
  */
 function calculateKrakatauCost(dailyKwh) {
-    if (!dailyKwh || dailyKwh <= 0) {
+    try {
+        // Validate input
+        if (!dailyKwh || dailyKwh <= 0) {
+            console.warn('[Krakatau Calculator] Invalid dailyKwh:', dailyKwh);
+            return {
+                error: 'Data konsumsi tidak tersedia',
+                dailyKwh: 0,
+                monthlyCost: 0
+            };
+        }
+
+        // Ensure KRAKATAU_TARIFF is defined
+        if (typeof KRAKATAU_TARIFF === 'undefined') {
+            console.error('[Krakatau Calculator] KRAKATAU_TARIFF is not defined');
+            return {
+                error: 'Konfigurasi tarif tidak tersedia',
+                dailyKwh: 0,
+                monthlyCost: 0
+            };
+        }
+
+        // Get current dynamic rate
+        const currentRate = getCurrentKwhRate();
+
+        console.log(`[Krakatau Calculator] Calculating cost: ${dailyKwh} kWh daily, rate: Rp ${currentRate}`);
+
+        // Estimasi konsumsi bulanan (30 hari)
+        const monthlyKwh = dailyKwh * 30;
+
+        // Hitung biaya berdasarkan tarif dinamis
+        const usageCost = monthlyKwh * currentRate;
+        const totalMonthlyCost = usageCost + KRAKATAU_TARIFF.fixedMonthlyCharge;
+        const dailyCost = totalMonthlyCost / 30;
+
+        const result = {
+            // Data konsumsi
+            dailyKwh: dailyKwh,
+            monthlyKwh: monthlyKwh,
+
+            // Biaya
+            dailyCost: dailyCost,
+            monthlyCost: totalMonthlyCost,
+            usageCost: usageCost,
+            fixedCharge: KRAKATAU_TARIFF.fixedMonthlyCharge,
+
+            // Tarif info
+            tariffName: KRAKATAU_TARIFF.name,
+            ratePerKwh: currentRate,  // Use current dynamic rate
+
+            // Breakdown untuk display
+            breakdown: [
+                {
+                    component: 'Biaya Pemakaian',
+                    detail: `${monthlyKwh.toFixed(2)} kWh × Rp ${currentRate.toLocaleString('id-ID')}`,
+                    amount: usageCost
+                },
+                {
+                    component: 'Beban Tetap',
+                    detail: 'Biaya administrasi bulanan PLN',
+                    amount: KRAKATAU_TARIFF.fixedMonthlyCharge
+                }
+            ]
+        };
+
+        console.log(`[Krakatau Calculator] ✅ Calculation successful:`, result);
+        return result;
+
+    } catch (error) {
+        console.error('[Krakatau Calculator] ❌ Calculation error:', error);
         return {
-            error: 'Data konsumsi tidak tersedia',
+            error: 'Gagal menghitung biaya listrik: ' + error.message,
             dailyKwh: 0,
             monthlyCost: 0
         };
     }
-
-    // Get current dynamic rate
-    const currentRate = getCurrentKwhRate();
-
-    // Estimasi konsumsi bulanan (30 hari)
-    const monthlyKwh = dailyKwh * 30;
-
-    // Hitung biaya berdasarkan tarif dinamis
-    const usageCost = monthlyKwh * currentRate;
-    const totalMonthlyCost = usageCost + KRAKATAU_TARIFF.fixedMonthlyCharge;
-    const dailyCost = totalMonthlyCost / 30;
-
-    return {
-        // Data konsumsi
-        dailyKwh: dailyKwh,
-        monthlyKwh: monthlyKwh,
-
-        // Biaya
-        dailyCost: dailyCost,
-        monthlyCost: totalMonthlyCost,
-        usageCost: usageCost,
-        fixedCharge: KRAKATAU_TARIFF.fixedMonthlyCharge,
-
-        // Tarif info
-        tariffName: KRAKATAU_TARIFF.name,
-        ratePerKwh: currentRate,  // Use current dynamic rate
-
-        // Breakdown untuk display
-        breakdown: [
-            {
-                component: 'Biaya Pemakaian',
-                detail: `${monthlyKwh.toFixed(2)} kWh × Rp ${currentRate.toLocaleString('id-ID')}`,
-                amount: usageCost
-            },
-            {
-                component: 'Beban Tetap',
-                detail: 'Biaya administrasi bulanan PLN',
-                amount: KRAKATAU_TARIFF.fixedMonthlyCharge
-            }
-        ]
-    };
 }
 
 /**
@@ -308,6 +373,13 @@ function showCalculationError(message) {
 function calculateKrakatauElectricityCost() {
     console.log('[Krakatau Calculator] Starting cost calculation...');
 
+    // Validate configuration first
+    if (typeof KRAKATAU_TARIFF === 'undefined') {
+        console.error('[Krakatau Calculator] KRAKATAU_TARIFF configuration is missing');
+        showCalculationError('Konfigurasi tarif tidak tersedia');
+        return;
+    }
+
     showCalculationLoading();
 
     // Delay sedikit untuk UX yang lebih baik
@@ -321,6 +393,8 @@ function calculateKrakatauElectricityCost() {
                 return;
             }
 
+            console.log(`[Krakatau Calculator] Using dailyKwh: ${dailyKwh}, KRAKATAU_TARIFF:`, KRAKATAU_TARIFF);
+
             // Hitung biaya
             const costResult = calculateKrakatauCost(dailyKwh);
 
@@ -332,11 +406,11 @@ function calculateKrakatauElectricityCost() {
             // Update display
             updateCostDisplay(costResult);
 
-            console.log('[Krakatau Calculator] Calculation completed:', costResult);
+            console.log('[Krakatau Calculator] ✅ Calculation completed successfully:', costResult);
 
         } catch (error) {
-            console.error('[Krakatau Calculator] Calculation failed:', error);
-            showCalculationError('Terjadi kesalahan saat menghitung biaya listrik');
+            console.error('[Krakatau Calculator] ❌ Calculation failed:', error);
+            showCalculationError('Terjadi kesalahan saat menghitung biaya listrik: ' + error.message);
         }
     }, 800);
 }

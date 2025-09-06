@@ -8,6 +8,7 @@ use App\Http\Controllers\ListrikController;
 use App\Http\Controllers\HistoryKwhController;
 use App\Http\Controllers\ElectricityAnalysisController;
 use App\Http\Controllers\ElectricityDataController;
+use App\Http\Controllers\Api\ElectricityDataController as ApiElectricityDataController;
 
 
 /*
@@ -71,4 +72,12 @@ Route::prefix('realtime-power')->group(function () {
     Route::get('/range', [App\Http\Controllers\RealTimePowerController::class, 'getDataRange']);
     Route::get('/krakatau-stats', [App\Http\Controllers\RealTimePowerController::class, 'getKrakatauStats']);
     Route::post('/reset-energy', [App\Http\Controllers\RealTimePowerController::class, 'resetEnergyCounter']);
+});
+
+// PLN Tariff Calculator API Routes
+Route::prefix('pln')->group(function () {
+    Route::get('/latest-kwh-data', [ApiElectricityDataController::class, 'getLatestKwhData']);
+    Route::get('/monthly-kwh-consumption', [ApiElectricityDataController::class, 'getMonthlyKwhConsumption']);
+    Route::get('/hourly-consumption', [ApiElectricityDataController::class, 'getHourlyConsumption']);
+    Route::get('/daily-summary', [ApiElectricityDataController::class, 'getDailySummary']);
 });

@@ -166,7 +166,7 @@ class FirebaseService
             $sensorData = $this->database
                 ->getReference("sensor")
                 ->getValue();
-            
+
             return [
                 'temperature' => $sensorData['temperature'] ?? 25.0,
                 'humidity' => $sensorData['humidity'] ?? 60.0,

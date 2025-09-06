@@ -231,10 +231,10 @@ class ElectricityKNNCalculator {
                 },
                 scales: {
                     x: {
-                        ticks: { 
+                        ticks: {
                             color: '#ffffff',
                             maxTicksLimit: 12, // Limit jumlah label yang ditampilkan
-                            callback: function(value, index, values) {
+                            callback: function (value, index, values) {
                                 // Tampilkan setiap 2 label untuk mengurangi kesesakan
                                 if (index % 2 === 0 || index === values.length - 1) {
                                     return this.getLabelForValue(value);

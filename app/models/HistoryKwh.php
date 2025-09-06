@@ -13,7 +13,7 @@ class HistoryKwh extends Model
 
     protected $fillable = [
         'tegangan',
-        'arus', 
+        'arus',
         'daya',
         'energi',
         'frekuensi',
