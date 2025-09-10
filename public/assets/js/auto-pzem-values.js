@@ -127,10 +127,13 @@ class AutoPZEMGenerator {
             timestamp: this.getIndonesiaTimestamp()
         };
 
-        // Update night mode status
+        // ✅ FITUR BARU: Real-time night reduction (70% reduction saat malam hari)
+        generatedData = this.applyRealTimeNightReduction(generatedData);
+
+        // Update night mode status (existing system)
         this.updateNightModeStatus();
 
-        // Apply night mode reduction jika sedang aktif
+        // Apply night mode reduction jika sedang aktif (existing system)
         generatedData = this.applyNightModeReduction(generatedData);
 
         return generatedData;
@@ -144,6 +147,65 @@ class AutoPZEMGenerator {
         // Konversi ke timezone Indonesia (WIB = UTC+7)
         const indonesiaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         return indonesiaTime.toISOString().replace('Z', '+07:00');
+    }
+
+    /**
+     * ✅ FITUR BARU: Update night mode indicator di dashboard
+     */
+    updateNightModeIndicator() {
+        const now = new Date();
+        // Konversi ke timezone Indonesia (WIB = UTC+7)
+        const indonesiaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const hour = indonesiaTime.getHours();
+        const isNightTime = (hour >= 22 || hour < 6);
+
+        // Cari atau buat indicator element
+        let nightIndicator = document.getElementById('nightModeIndicator');
+        if (!nightIndicator) {
+            // Buat indicator baru jika belum ada
+            nightIndicator = document.createElement('div');
+            nightIndicator.id = 'nightModeIndicator';
+            nightIndicator.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                z-index: 1000;
+                padding: 8px 12px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                font-weight: bold;
+                transition: all 0.3s ease;
+                min-width: 120px;
+                text-align: center;
+            `;
+            document.body.appendChild(nightIndicator);
+        }
+
+        if (isNightTime) {
+            // Night mode active
+            nightIndicator.innerHTML = `
+                <i class="fa fa-moon"></i> Night Mode
+                <small style="display: block; font-size: 0.7rem; opacity: 0.8;">-70% Power</small>
+            `;
+            nightIndicator.className = 'badge bg-dark text-white';
+            nightIndicator.style.background = 'linear-gradient(45deg, #1a1a2e, #16213e)';
+        } else {
+            // Day mode
+            nightIndicator.innerHTML = `
+                <i class="fa fa-sun"></i> Day Mode
+                <small style="display: block; font-size: 0.7rem; opacity: 0.8;">Normal Power</small>
+            `;
+            nightIndicator.className = 'badge bg-warning text-dark';
+            nightIndicator.style.background = 'linear-gradient(45deg, #ffd700, #ffed4a)';
+        }
+
+        // Update title dengan current time
+        const timeStr = indonesiaTime.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'Asia/Jakarta'
+        });
+        nightIndicator.title = `Current time: ${timeStr} WIB`;
     }
 
     /**
@@ -170,6 +232,9 @@ class AutoPZEMGenerator {
         if (totalEl) {
             totalEl.textContent = `${data.totalPower} W`;
         }
+
+        // ✅ FITUR BARU: Update night mode indicator
+        this.updateNightModeIndicator();
 
         console.log('[AutoPZEM] Values updated:', {
             voltage: `${data.voltage} V`,
@@ -443,6 +508,53 @@ class AutoPZEMGenerator {
                 console.log(`[AutoPZEM] ☀️ Next night mode dalam ${this.nightModeSimulation.intervalHours} jam`);
             }
         }
+    }
+
+    /**
+     * ✅ FITUR BARU: Apply real-time night reduction (70% reduction saat malam hari)
+     * Berlaku dari jam 22:00 - 06:00 (waktu Indonesia)
+     */
+    applyRealTimeNightReduction(data) {
+        const now = new Date();
+        // Konversi ke timezone Indonesia (WIB = UTC+7)
+        const indonesiaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const hour = indonesiaTime.getHours();
+
+        // Definisi waktu malam: 19:00 - 06:00
+        const isNightTime = (hour >= 19 || hour < 6);
+
+        if (!isNightTime) {
+            // Bukan waktu malam, tidak ada pengurangan
+            return data;
+        }
+
+        // Waktu malam: kurangi daya sebesar 70% (sisa 30%)
+        const nightReductionFactor = 0.3; // 30% dari nilai normal
+
+        const reducedData = {
+            ...data,
+            power: Math.round(data.power * nightReductionFactor),
+            totalPower: Math.round(data.totalPower * nightReductionFactor),
+            current: Math.round(data.current * nightReductionFactor * 100) / 100,
+            voltage: data.voltage // Tegangan tetap stabil
+        };
+
+        // Pastikan minimal ada consumption untuk sistem keamanan dan emergency
+        const minPower = 150; // Minimal 150W untuk sistem essential
+        if (reducedData.power < minPower) {
+            reducedData.power = minPower;
+            reducedData.totalPower = minPower + Math.round(Math.random() * 50 + 20); // +emergency lighting
+            reducedData.current = Math.round((reducedData.power / data.voltage) * 100) / 100;
+        }
+
+        // Log info night reduction
+        console.log(`[AutoPZEM] 🌙 Night time reduction applied (${hour}:xx)`, {
+            original: { power: data.power, current: data.current },
+            reduced: { power: reducedData.power, current: reducedData.current },
+            reduction: `${(100 - nightReductionFactor * 100)}%`
+        });
+
+        return reducedData;
     }
 
     /**

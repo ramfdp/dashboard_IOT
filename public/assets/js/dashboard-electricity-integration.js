@@ -551,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } else {
             console.warn('[Modal] ⚠️ confidenceLevelEl not found');
         }
-        
+
         if (confidencePercentageEl) {
             confidencePercentageEl.textContent = smartPrediction.confidence + '%';
             console.log('[Modal] ✅ Confidence Percentage updated:', smartPrediction.confidence + '%');
@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // ✅ FIX: Update confidence levels yang hilang
                 const confidenceLevelEl = document.getElementById('confidenceLevel');
                 const confidencePercentageEl = document.getElementById('confidencePercentage');
-                
+
                 if (confidenceLevelEl) confidenceLevelEl.textContent = smartPrediction.confidence + '%';
                 if (confidencePercentageEl) confidencePercentageEl.textContent = smartPrediction.confidence + '%';
 
@@ -687,17 +687,17 @@ document.addEventListener('DOMContentLoaded', function () {
             // Load data immediately without delay
             updateModalData(currentPeriod).then(() => {
                 console.log('[Modal] Initial data loaded successfully');
-                
+
                 // ✅ FIX: Force update confidence if still empty
                 setTimeout(() => {
                     const confidenceLevelEl = document.getElementById('confidenceLevel');
                     const confidencePercentageEl = document.getElementById('confidencePercentage');
-                    
+
                     if (confidenceLevelEl && (confidenceLevelEl.textContent === 'Loading...' || confidenceLevelEl.textContent === '-')) {
                         confidenceLevelEl.textContent = '78%';
                         console.log('[Modal] 🔧 Force updated confidence level');
                     }
-                    
+
                     if (confidencePercentageEl && (confidencePercentageEl.textContent === 'Loading...' || confidencePercentageEl.textContent === '--%')) {
                         confidencePercentageEl.textContent = '78%';
                         console.log('[Modal] 🔧 Force updated confidence percentage');
@@ -833,12 +833,12 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
         const confidenceLevelEl = document.getElementById('confidenceLevel');
         const confidencePercentageEl = document.getElementById('confidencePercentage');
-        
+
         if (confidenceLevelEl && confidenceLevelEl.textContent === '-') {
             confidenceLevelEl.textContent = '75%';
             console.log('[Init] ✅ Default confidence level set');
         }
-        
+
         if (confidencePercentageEl && confidencePercentageEl.textContent === '--%') {
             confidencePercentageEl.textContent = '75%';
             console.log('[Init] ✅ Default confidence percentage set');

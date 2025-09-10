@@ -9,7 +9,7 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule;
+use App\Rules\SingleRoleConstraint;
 
 class UserManagement extends Component
 {
@@ -139,21 +139,22 @@ class UserManagement extends Component
         $this->validate();
 
         try {
-            // Create user with only the required fields that exist in the database
+            // Create user with role_id included
             $userData = [
                 'name' => $this->name,
                 'email' => $this->email,
                 'password' => Hash::make($this->password),
                 'email_verified_at' => now(), // Set email as verified
+                'role_id' => $this->role_id, // Include role_id for direct relationship
             ];
 
             $user = User::create($userData);
 
-            // Assign role using Spatie Permission
+            // The User model will automatically sync Spatie Permission through assignRole override
             $role = Role::findOrFail($this->role_id);
-            $user->assignRole($role);
+            $user->assignRole($role); // This ensures single role constraint
 
-            session()->flash('success_user', 'User berhasil ditambahkan.');
+            session()->flash('success_user', 'User berhasil ditambahkan dengan role: ' . $role->name);
 
             $this->closeAddModal();
             $this->resetForm();
@@ -183,6 +184,7 @@ class UserManagement extends Component
             $updateData = [
                 'name' => $this->editName,
                 'email' => $this->editEmail,
+                'role_id' => $this->editRoleId, // Update role_id directly
             ];
 
             if (!empty($this->editPassword)) {
@@ -191,11 +193,12 @@ class UserManagement extends Component
 
             $user->update($updateData);
 
-            // Update role using Spatie Permission
+            // The User model boot() method will automatically sync Spatie Permission
+            // Or we can call syncRoles explicitly to ensure immediate sync
             $role = Role::findOrFail($this->editRoleId);
-            $user->syncRoles([$role]);
+            $user->syncRoles([$role]); // This maintains single role constraint
 
-            session()->flash('success_user', 'User berhasil diupdate.');
+            session()->flash('success_user', 'User berhasil diupdate dengan role: ' . $role->name);
 
             $this->closeEditModal();
         } catch (\Exception $e) {
