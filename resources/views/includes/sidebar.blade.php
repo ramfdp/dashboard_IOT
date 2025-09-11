@@ -21,7 +21,7 @@
 						</div>
 						<div class="menu-caret ms-auto"></div>
 					</div>
-					<small>{{ Auth::user()->role ?? 'User' }}</small> <!-- Menampilkan role jika tersedia -->
+					<small>{{ Auth::user()->getRoleNames()->first() ?? 'User' }}</small> <!-- Menampilkan role jika tersedia -->
 				</div>
 
 				</a>

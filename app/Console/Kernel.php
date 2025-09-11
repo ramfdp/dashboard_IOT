@@ -18,7 +18,6 @@ class Kernel extends ConsoleKernel
         Commands\AssignUserRole::class,
         Commands\EnsureDefaultSensor::class,
         Commands\CleanupSessions::class,
-        Commands\SyncUserRoles::class,
     ];
 
     /**

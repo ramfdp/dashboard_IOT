@@ -31,8 +31,8 @@ class AutoPZEMGenerator {
 
         // PT Krakatau Sarana Property building profile
         this.buildingProfile = {
-            basePowerConsumption: 8000,    // 8kW base load
-            maxPowerConsumption: 45000,    // 45kW peak load
+            basePowerConsumption: 400,     // 400W base load  
+            maxPowerConsumption: 650,      // 650W peak load
             operatingHours: { start: 7, end: 19 },
             weekendReduction: 0.3          // 30% of normal consumption on weekends
         };
@@ -64,49 +64,19 @@ class AutoPZEMGenerator {
             maxPower *= this.buildingProfile.weekendReduction;
         }
 
-        let powerMultiplier = 1.0;
+        let finalPower;
 
-        if (isWorkingHour && !isWeekend) {
-            // Working hours pattern for office building
-            if (hour >= 7 && hour <= 9) {
-                // Morning arrival (7-9 AM) - gradual increase
-                powerMultiplier = 0.4 + (hour - 7) * 0.3 + (minute / 60) * 0.3;
-            } else if (hour >= 9 && hour <= 11) {
-                // Morning peak (9-11 AM) - high usage
-                powerMultiplier = 0.8 + Math.sin((hour - 9) * Math.PI / 2) * 0.2;
-            } else if (hour >= 11 && hour <= 13) {
-                // Pre-lunch (11 AM - 1 PM) - moderate usage
-                powerMultiplier = 0.7 + Math.sin((hour - 11) * Math.PI / 2) * 0.15;
-            } else if (hour >= 13 && hour <= 14) {
-                // Lunch break (1-2 PM) - reduced usage
-                powerMultiplier = 0.5 + Math.sin((minute / 60) * Math.PI) * 0.1;
-            } else if (hour >= 14 && hour <= 17) {
-                // Afternoon peak (2-5 PM) - highest usage
-                powerMultiplier = 0.85 + Math.sin((hour - 14) * Math.PI / 3) * 0.15;
-            } else if (hour >= 17 && hour <= 19) {
-                // Evening decline (5-7 PM) - decreasing
-                powerMultiplier = 0.6 - (hour - 17) * 0.15;
-            }
-        } else if (!isWorkingHour && !isWeekend) {
-            // Non-working hours on weekdays
-            if (hour >= 19 && hour <= 23) {
-                // Evening security/cleaning
-                powerMultiplier = 0.25 + Math.random() * 0.1;
-            } else if (hour >= 0 && hour <= 6) {
-                // Night security/emergency systems
-                powerMultiplier = 0.15 + Math.random() * 0.05;
-            } else {
-                // Early morning preparation
-                powerMultiplier = 0.2 + Math.random() * 0.1;
-            }
+        // Pola sederhana sesuai permintaan: 600W jam kerja, 150an malam
+        if (hour >= 7 && hour <= 18 && !isWeekend) {
+            // Jam kerja 7 pagi - 6 sore = daya maksimal 600W
+            finalPower = 550 + Math.random() * 50; // 550-600W
+        } else if (isWeekend && hour >= 8 && hour <= 17) {
+            // Weekend jam siang = daya sedang
+            finalPower = 300 + Math.random() * 100; // 300-400W
         } else {
-            // Weekend pattern - minimal usage
-            powerMultiplier = 0.2 + Math.random() * 0.1;
+            // Malam hari atau di luar jam kerja = 150an
+            finalPower = 120 + Math.random() * 60; // 120-180W
         }
-
-        // Add some randomness for realistic variation
-        const randomVariation = 0.9 + (Math.random() * 0.2); // ±10% variation
-        const finalPower = basePower * powerMultiplier * randomVariation;
 
         // Calculate voltage with realistic variation (220V ±5%)
         const voltage = 220 + (Math.random() * 22 - 11); // 209V to 231V
@@ -114,8 +84,8 @@ class AutoPZEMGenerator {
         // Calculate current based on power and voltage (P = V × I)
         const current = finalPower / voltage;
 
-        // Add some lighting power (simulate relay usage)
-        const lightingPower = Math.random() > 0.7 ? Math.random() * 100 + 50 : Math.random() * 40;
+        // Calculate total power including lighting (add 10-30W for lighting)
+        const lightingPower = Math.random() * 20 + 10; // 10-30W for lighting
         const totalPower = finalPower + lightingPower;
 
         // Generate base data

@@ -12,15 +12,14 @@ class UserSeeder extends Seeder
     {
         // Membuat atau mendapatkan role admin dari tabel roles
         $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        
-        // Membuat user admin dengan role_id
+
+        // Membuat user admin menggunakan Spatie Permission saja
         $admin = User::create([
             'name' => 'Admin',
             'email' => 'admin@example.com',
             'password' => bcrypt('password123'),
-            'role_id' => $adminRole->id,
         ]);
-        
+
         $admin->assignRole($adminRole);
     }
 }

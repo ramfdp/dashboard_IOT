@@ -20,8 +20,8 @@ class RealTimePowerGenerator {
         this.buildingProfile = {
             totalFloors: 15,
             officeArea: 12000, // m²
-            basePowerConsumption: 8000, // Watts (base load)
-            maxPowerConsumption: 45000, // Watts (peak load)
+            basePowerConsumption: 400, // Watts (base load)
+            maxPowerConsumption: 650, // Watts (peak load)
             operatingHours: {
                 start: 7,
                 end: 19
@@ -50,61 +50,22 @@ class RealTimePowerGenerator {
         const isWorkingHour = hour >= this.buildingProfile.operatingHours.start &&
             hour <= this.buildingProfile.operatingHours.end;
 
-        let basePower = this.buildingProfile.basePowerConsumption;
-        let maxPower = this.buildingProfile.maxPowerConsumption;
+        // Pola sederhana sesuai permintaan: 600W jam kerja, 150an malam
+        let calculatedPower;
 
-        // Weekend reduction
-        if (isWeekend) {
-            basePower *= this.buildingProfile.weekendReduction;
-            maxPower *= this.buildingProfile.weekendReduction;
-        }
-
-        let powerMultiplier = 1.0;
-
-        if (isWorkingHour && !isWeekend) {
-            // Working hours pattern for office building
-            if (hour >= 7 && hour <= 9) {
-                // Morning arrival (7-9 AM) - gradual increase
-                powerMultiplier = 0.4 + (hour - 7) * 0.3 + (minute / 60) * 0.3;
-            } else if (hour >= 9 && hour <= 11) {
-                // Morning peak (9-11 AM) - high usage
-                powerMultiplier = 0.8 + Math.sin((hour - 9) * Math.PI / 2) * 0.2;
-            } else if (hour >= 11 && hour <= 13) {
-                // Pre-lunch (11 AM - 1 PM) - moderate usage
-                powerMultiplier = 0.7 + Math.sin((hour - 11) * Math.PI / 2) * 0.15;
-            } else if (hour >= 13 && hour <= 14) {
-                // Lunch break (1-2 PM) - reduced usage
-                powerMultiplier = 0.5 + Math.sin((minute / 60) * Math.PI) * 0.1;
-            } else if (hour >= 14 && hour <= 17) {
-                // Afternoon peak (2-5 PM) - highest usage
-                powerMultiplier = 0.85 + Math.sin((hour - 14) * Math.PI / 3) * 0.15;
-            } else if (hour >= 17 && hour <= 19) {
-                // Evening decline (5-7 PM) - decreasing
-                powerMultiplier = 0.6 - (hour - 17) * 0.15;
-            }
-        } else if (!isWorkingHour && !isWeekend) {
-            // Non-working hours on weekdays
-            if (hour >= 19 && hour <= 23) {
-                // Evening security/cleaning
-                powerMultiplier = 0.25 + Math.random() * 0.1;
-            } else if (hour >= 0 && hour <= 6) {
-                // Night security/emergency systems
-                powerMultiplier = 0.15 + Math.random() * 0.05;
-            } else {
-                // Early morning preparation
-                powerMultiplier = 0.2 + Math.random() * 0.1;
-            }
+        if (hour >= 7 && hour <= 18 && !isWeekend) {
+            // Jam kerja 7 pagi - 6 sore = daya maksimal 600W
+            calculatedPower = 550 + Math.random() * 50; // 550-600W
+        } else if (isWeekend && hour >= 8 && hour <= 17) {
+            // Weekend jam siang = daya sedang
+            calculatedPower = 300 + Math.random() * 100; // 300-400W
         } else {
-            // Weekend pattern - minimal usage
-            powerMultiplier = 0.2 + Math.random() * 0.1;
+            // Malam hari atau di luar jam kerja = 150an
+            calculatedPower = 120 + Math.random() * 60; // 120-180W
         }
-
-        // Add some random variation to make it realistic
-        const randomVariation = 1 + (Math.random() - 0.5) * 0.1; // ±5% variation
-        const calculatedPower = basePower + (maxPower - basePower) * powerMultiplier * randomVariation;
 
         // Ensure minimum power consumption (emergency systems, security, etc.)
-        return Math.max(calculatedPower, this.buildingProfile.basePowerConsumption * 0.15);
+        return Math.max(calculatedPower, 100);
     }
 
     /**

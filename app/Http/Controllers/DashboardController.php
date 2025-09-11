@@ -25,7 +25,7 @@ class DashboardController extends Controller
     public function index()
     {
         $roles = Role::all();
-        $users = User::with('role')->get();
+        $users = User::with('roles')->get();
         $divisions = Divisi::all();
 
         // Get data KWH with formatted time in Indonesia timezone
@@ -52,18 +52,12 @@ class DashboardController extends Controller
                 $timeCarbon = Carbon::parse($timeString, 'Asia/Jakarta');
 
                 // Create realistic power consumption pattern
-                if ($i >= 6 && $i <= 8) {
-                    // Morning peak (office start)
-                    $power = rand(150, 250);
-                } elseif ($i >= 9 && $i <= 17) {
-                    // Office hours
-                    $power = rand(200, 300);
-                } elseif ($i >= 18 && $i <= 22) {
-                    // Evening
-                    $power = rand(100, 180);
+                if ($i >= 7 && $i <= 18) {
+                    // Jam kerja (7 pagi - 6 sore) - daya maksimal
+                    $power = rand(550, 600);
                 } else {
-                    // Night/early morning
-                    $power = rand(50, 120);
+                    // Malam hari - daya rendah
+                    $power = rand(120, 180);
                 }
 
                 $demoData[] = (object)[
@@ -221,6 +215,318 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             Log::error('Get relay states error', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'Gagal mengambil status relay']);
+        }
+    }
+
+    public function setAuto(Request $request)
+    {
+        return $this->setAutoMode($request);
+    }
+
+    public function setAutoMode(Request $request)
+    {
+        try {
+            session(['manual_mode' => false]);
+            Log::info('System switched to auto mode');
+
+            return response()->json([
+                'success' => true,
+                'mode' => 'auto',
+                'message' => 'Mode otomatis diaktifkan'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Set auto mode error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengatur mode otomatis'
+            ], 500);
+        }
+    }
+
+    public function setManualMode(Request $request)
+    {
+        try {
+            session(['manual_mode' => true]);
+            Log::info('System switched to manual mode');
+
+            return response()->json([
+                'success' => true,
+                'mode' => 'manual',
+                'message' => 'Mode manual diaktifkan'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Set manual mode error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengatur mode manual'
+            ], 500);
+        }
+    }
+
+    public function storeSchedule(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'day_of_week' => 'required|integer|between:0,6',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after:start_time',
+                'relay_number' => 'required|integer|between:1,8',
+            ]);
+
+            $schedule = LightSchedule::create([
+                'name' => $validated['name'],
+                'day_of_week' => $validated['day_of_week'],
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
+                'relay_number' => $validated['relay_number'],
+                'is_active' => true,
+            ]);
+
+            Log::info('Schedule created', ['schedule' => $schedule]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal berhasil disimpan',
+                'schedule' => $schedule
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Store schedule error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan jadwal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateSchedule(Request $request, LightSchedule $schedule)
+    {
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'day_of_week' => 'required|integer|between:0,6',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i|after:start_time',
+                'relay_number' => 'required|integer|between:1,8',
+            ]);
+
+            $schedule->update($validated);
+
+            Log::info('Schedule updated', ['schedule' => $schedule]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal berhasil diperbarui',
+                'schedule' => $schedule
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Update schedule error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui jadwal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroySchedule(LightSchedule $schedule)
+    {
+        try {
+            $schedule->delete();
+
+            Log::info('Schedule deleted', ['schedule_id' => $schedule->id]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Delete schedule error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus jadwal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function toggleSchedule(LightSchedule $schedule)
+    {
+        try {
+            $schedule->is_active = !$schedule->is_active;
+            $schedule->save();
+
+            Log::info('Schedule toggled', ['schedule' => $schedule]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $schedule->is_active ? 'Jadwal diaktifkan' : 'Jadwal dinonaktifkan',
+                'schedule' => $schedule
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Toggle schedule error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengubah status jadwal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function checkSchedules(Request $request)
+    {
+        try {
+            $now = now();
+            $currentDay = $now->dayOfWeek; // 0 = Sunday, 1 = Monday, etc.
+            $currentTime = $now->format('H:i');
+
+            // Get active schedules for current day and time
+            $activeSchedules = LightSchedule::where('day_of_week', $currentDay)
+                ->where('is_active', true)
+                ->where('start_time', '<=', $currentTime)
+                ->where('end_time', '>=', $currentTime)
+                ->get();
+
+            // Check if system is in manual mode (you can implement this logic based on your needs)
+            // For now, let's assume auto mode unless manually set
+            $manualMode = session('manual_mode', false);
+
+            $response = [
+                'success' => true,
+                'manual_mode' => $manualMode,
+                'current_time' => $currentTime,
+                'current_day' => $currentDay,
+                'active_schedules_count' => $activeSchedules->count(),
+                'schedules' => $activeSchedules->map(function ($schedule) {
+                    return [
+                        'id' => $schedule->id,
+                        'name' => $schedule->name,
+                        'relay_number' => $schedule->relay_number,
+                        'start_time' => $schedule->start_time,
+                        'end_time' => $schedule->end_time,
+                    ];
+                })
+            ];
+
+            Log::info('Schedule check completed', $response);
+
+            return response()->json($response);
+        } catch (\Exception $e) {
+            Log::error('Check schedules error', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'manual_mode' => false,
+                'message' => 'Gagal memeriksa jadwal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getCurrentSchedule(Request $request)
+    {
+        try {
+            $now = Carbon::now();
+            $currentDay = $now->dayOfWeek; // 0 = Sunday, 1 = Monday, etc.
+            $currentTime = $now->format('H:i:s');
+
+            $activeSchedules = LightSchedule::where('is_active', true)
+                ->where('day_of_week', $currentDay)
+                ->where('start_time', '<=', $currentTime)
+                ->where('end_time', '>=', $currentTime)
+                ->get();
+
+            $manualMode = session('manual_mode', false);
+
+            return response()->json([
+                'success' => true,
+                'schedules' => $activeSchedules,
+                'manual_mode' => $manualMode,
+                'current_time' => $now->format('H:i:s'),
+                'current_day' => $currentDay
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get current schedule error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil jadwal aktif: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getScheduleStatus(Request $request)
+    {
+        try {
+            $relayNumber = $request->input('relay_number');
+
+            if (!$relayNumber) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Relay number is required'
+                ], 400);
+            }
+
+            $now = Carbon::now();
+            $currentDay = $now->dayOfWeek;
+            $currentTime = $now->format('H:i:s');
+
+            $activeSchedule = LightSchedule::where('is_active', true)
+                ->where('day_of_week', $currentDay)
+                ->where('relay_number', $relayNumber)
+                ->where('start_time', '<=', $currentTime)
+                ->where('end_time', '>=', $currentTime)
+                ->first();
+
+            $manualMode = session('manual_mode', false);
+
+            return response()->json([
+                'success' => true,
+                'has_active_schedule' => $activeSchedule ? true : false,
+                'schedule' => $activeSchedule,
+                'manual_mode' => $manualMode,
+                'relay_number' => $relayNumber
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get schedule status error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengecek status jadwal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getAllSchedules(Request $request)
+    {
+        try {
+            $schedules = LightSchedule::orderBy('day_of_week')
+                ->orderBy('start_time')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'schedules' => $schedules
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get all schedules error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil semua jadwal: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getCurrentMode(Request $request)
+    {
+        try {
+            $manualMode = session('manual_mode', false);
+            $mode = $manualMode ? 'manual' : 'auto';
+
+            return response()->json([
+                'success' => true,
+                'mode' => $mode,
+                'manual_mode' => $manualMode
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Get current mode error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengecek mode saat ini: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

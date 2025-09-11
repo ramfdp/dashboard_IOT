@@ -19,7 +19,7 @@ class UserManagementController extends Controller
 
     public function index()
     {
-        $users = User::with('role')->get();
+        $users = User::with('roles')->get();
         $roles = Role::all();
         $overtimes = Overtime::all();
 

@@ -3,18 +3,23 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
 
 class AdminUserSeeder extends Seeder
 {
     public function run()
     {
-        DB::table('users')->insert([
+        // Membuat atau mendapatkan role admin
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+
+        // Membuat user admin menggunakan Spatie Permission saja
+        $admin = User::create([
             'name' => 'Admin',
             'email' => 'admin@example.com',
-            'password' => Hash::make('admin123'),
-            'role_id' => 1, // Admin role
+            'password' => bcrypt('admin123'),
         ]);
+
+        $admin->assignRole($adminRole);
     }
 }

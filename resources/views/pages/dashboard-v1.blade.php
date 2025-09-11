@@ -17,18 +17,26 @@
     <script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     
-    {{-- TensorFlow.js for KNN predictions --}}
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.15.0/dist/tf-core.min.js" async defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.15.0/dist/tf-converter.min.js" async defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.15.0/dist/tf-backend-cpu.min.js" async defer></script>
+    {{-- Chart.js for visualization --}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.min.js"></script>
+    
+    {{-- TensorFlow.js tidak diperlukan untuk Linear Regression --}}
+    {{-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.15.0/dist/tf-core.min.js" async defer></script> --}}
+    {{-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.15.0/dist/tf-converter.min.js" async defer></script> --}}
+    {{-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.15.0/dist/tf-backend-cpu.min.js" async defer></script> --}}
     
     {{-- Electricity Calculation System --}}
-    <script src="/assets/js/electricity-knn-calculator.js" defer></script>
+    <script src="/assets/js/electricity-linear-regression-calculator.js" defer></script>
+    <script src="/assets/js/linear-regression-integration.js" defer></script>
     <script src="/assets/js/krakatau-electricity-calculator.js" defer></script>
     
     {{-- Dashboard Integration --}}
     <script src="/assets/js/dashboard-electricity-integration.js" defer></script>
     <script src="/assets/js/dashboard-data-debug.js" defer></script>
+    
+    {{-- New Separated Components --}}
+    <script src="/assets/js/dashboard-period-analysis.js" defer></script>
+    <script src="/assets/js/dashboard-current-usage.js" defer></script>
     
     {{-- Core Dashboard Functions --}}
     <script src="/assets/js/logika-form-lembur.js"></script>
@@ -61,6 +69,7 @@
     {{-- Firebase Integration --}}
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" defer></script>
+    {{-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" defer></script> --}}
     <script src="/assets/js/firebase-integration.js" defer></script>
     
     {{-- Auto PZEM Values Generator for PT Krakatau Sarana Property --}}
@@ -192,22 +201,26 @@
                         <div id="perhitunganSummary" class="text-dark"></div>
                     </div>
 
-                    <!-- Period Selection -->
+                    <!-- Period Selection Section -->
                     <div class="row mb-3">
                         <div class="col-md-12">
                             <div class="card border-0 shadow-sm">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="card-title mb-0"><i class="fa fa-calendar me-2"></i>Periode Analisis</h6>
+                                </div>
                                 <div class="card-body">
-                                    <label for="periodePerhitungan" class="form-label fw-bold text-dark">Periode Analisis:</label>
+                                    <label for="periodePerhitungan" class="form-label fw-bold text-dark">Pilih Periode:</label>
                                     <select class="form-select" id="periodePerhitungan">
-                                        <option value="harian" selected>Harian (24 jam)</option>
-                                        <option value="mingguan">Mingguan (7 hari)</option>
-                                        <option value="bulanan">Bulanan (30 hari)</option>
+                                        <option value="harian" selected>Harian (Hari Ini)</option>
+                                        <option value="mingguan">Mingguan (Minggu Ini)</option>
+                                        <option value="bulanan">Bulanan (Bulan Ini)</option>
                                     </select>
-                                    <!-- Hidden algorithm selection - KNN is used by default -->
+                                    <small class="text-muted mt-2 d-block" id="periodeInfo">Data akan diambil dari database berdasarkan periode yang dipilih</small>
+                                    <!-- Hidden algorithm selection - Linear Regression is used by default -->
                                     <div class="col-md-6 d-none">
                                         <label for="algorithmSelect">Algoritma Prediksi:</label>
                                         <select class="form-control" id="algorithmSelect">
-                                            <option value="knn" selected>K-Nearest Neighbors (KNN)</option>
+                                            <option value="linear-regression" selected>Linear Regression</option>
                                         </select>
                                     </div>
                                 </div>
@@ -215,36 +228,44 @@
                         </div>
                     </div>
 
-                    <!-- Statistics Cards -->
+                    <!-- Current Usage Section -->
                     <div class="row mb-3">
                         <div class="col-md-12">
                             <div class="card bg-primary text-white border-0 shadow-sm">
+                                <div class="card-header">
+                                    <h6 class="card-title mb-0"><i class="fa fa-bolt me-2"></i>Penggunaan Saat Ini</h6>
+                                </div>
                                 <div class="card-body">
-                                    <h6 class="card-title"><i class="fa fa-bolt me-2"></i>Penggunaan Saat Ini</h6>
                                     <div class="row text-center">
-                                        <div class="col-6">
-                                            <h4 id="totalWatt" class="text-white">0 W</h4>
-                                            <small class="text-light">Rata-rata Daya</small>
+                                        <div class="col-4">
+                                            <h4 id="currentPower" class="text-white">0 W</h4>
+                                            <small class="text-light">Daya Sekarang</small>
                                         </div>
-                                        <div class="col-6">
-                                            <h4 id="totalKwh" class="text-white">0 kWh</h4>
-                                            <small id="periodeLabel" class="text-light">per hari</small>
+                                        <div class="col-4">
+                                            <h4 id="averagePower" class="text-white">0 W</h4>
+                                            <small class="text-light">Rata-rata Hari Ini</small>
                                         </div>
+                                        <div class="col-4">
+                                            <h4 id="todayKwh" class="text-white">0 kWh</h4>
+                                            <small class="text-light">Total Hari Ini</small>
+                                        </div>
+                                    </div>
+                                    <div class="text-center mt-2">
+                                        <small id="lastUpdateTime" class="text-light">Update terakhir: --:--:--</small>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <!-- Hidden Efficiency Metrics -->
-                        <div class="col-md-6 d-none">
-                            <div class="card bg-info text-white">
-                                <div class="card-body">
-                                    <h6 class="card-title"><i class="fa fa-chart-bar me-2"></i>Metrik Efisiensi</h6>
-                                    <div id="efficiencyMetrics">
-                                        <div class="text-center">
-                                            <small>Calculating...</small>
-                                        </div>
-                                    </div>
-                                </div>
+                    </div>
+
+                    <!-- Period Analysis Chart -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="card-title mb-0"><i class="fa fa-chart-area me-2"></i>Grafik Konsumsi Listrik</h6>
+                        </div>
+                        <div class="card-body bg-white">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="electricityChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -281,7 +302,7 @@
                     <!-- Predictions -->
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-header bg-success text-white">
-                            <h6 class="card-title mb-0"><i class="fa fa-crystal-ball me-2"></i>Prediksi Cerdas</h6>
+                            <h6 class="card-title mb-0"><i class="fa fa-chart-line me-2"></i>Prediksi Konsumsi</h6>
                         </div>
                         <div class="card-body bg-white">
                             <div class="row">
@@ -298,17 +319,14 @@
                                     <div class="prediction-results">
                                         <p class="text-dark">Jam Berikutnya: <strong id="prediksiWatt" class="text-primary">-</strong></p>
                                         <p class="text-dark">Total Energi: <strong id="prediksiKwhHarian" class="text-success">-</strong></p>
-                                        <p class="text-dark">Confidence: <span id="confidenceLevel" class="badge bg-info">-</span></p>
                                     </div>
                                 </div>
                                 <div class="col-md-4 text-center">
-                                    <div class="prediction-gauge">
-                                        <div class="confidence-indicator" id="confidenceIndicator">
-                                            <div class="confidence-circle bg-light border border-success p-3 rounded-circle d-inline-block position-relative" style="width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;">
-                                                <span id="confidencePercentage" class="text-success fw-bold" style="font-size: 1.1rem;">--%</span>
-                                            </div>
-                                            <small class="text-muted d-block mt-2">Confidence Prediksi</small>
+                                    <div class="prediction-info">
+                                        <div class="info-circle bg-light border border-primary p-3 rounded-circle d-inline-block position-relative" style="width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-chart-line text-primary" style="font-size: 1.5rem;"></i>
                                         </div>
+                                        <small class="text-muted d-block mt-2">Prediksi Linear Regression</small>
                                     </div>
                                 </div>
                             </div>

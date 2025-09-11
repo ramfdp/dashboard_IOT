@@ -9,7 +9,7 @@ use App\Models\User;
 class SingleRoleConstraint implements ValidationRule
 {
     protected $userId;
-    
+
     public function __construct($userId = null)
     {
         $this->userId = $userId;
@@ -23,15 +23,15 @@ class SingleRoleConstraint implements ValidationRule
         // If we're updating an existing user
         if ($this->userId) {
             $user = User::find($this->userId);
-            
+
             if ($user) {
                 // Check if user already has Spatie roles that would conflict
                 $existingRoles = $user->roles()->count();
-                
+
                 if ($existingRoles > 1) {
                     $fail('This user has multiple roles assigned. Please resolve role conflicts before updating.');
                 }
-                
+
                 // Check if the new role_id differs from existing Spatie role
                 $currentSpatieRole = $user->roles()->first();
                 if ($currentSpatieRole && $currentSpatieRole->id != $value) {
@@ -39,7 +39,7 @@ class SingleRoleConstraint implements ValidationRule
                 }
             }
         }
-        
+
         // Additional validation can be added here
         // For example, checking if certain roles are restricted
     }

@@ -1,6 +1,6 @@
 /**
  * Dashboard Electricity Integration - FIXED VERSION
- * Menggabungkan Chart.js dengan KNN prediction dan modal calculator
+ * Menggabungkan Chart.js dengan Linear Regression prediction dan modal calculator
  * Dipindahkan dari dashboard-v1.blade.php untuk clean separation
  */
 
@@ -84,14 +84,10 @@ function initializeElectricityChart() {
 
                 // Realistic power consumption pattern
                 let power;
-                if (i >= 7 && i <= 9) {
-                    power = 180 + Math.random() * 80; // Morning peak
-                } else if (i >= 10 && i <= 16) {
-                    power = 220 + Math.random() * 80; // Work hours  
-                } else if (i >= 17 && i <= 21) {
-                    power = 140 + Math.random() * 60; // Evening
+                if (i >= 6 && i <= 18) {
+                    power = 550 + Math.random() * 50; // Jam kerja 6 pagi - 6 sore (550-600W)
                 } else {
-                    power = 60 + Math.random() * 40;  // Night
+                    power = 120 + Math.random() * 60; // Malam hari (120-180W)
                 }
                 values.push(Math.round(power));
             }

@@ -31,8 +31,8 @@ class FirebaseIntegration {
         try {
             // Check if Firebase SDK is loaded
             if (typeof firebase === 'undefined') {
-                console.warn('[Firebase] Firebase SDK not loaded. Please include Firebase SDK in your HTML.');
-                this.loadFirebaseSDK();
+                console.warn('[Firebase] Firebase SDK not loaded. Loading Firebase SDK...');
+                await this.loadFirebaseSDK();
                 return;
             }
 
@@ -46,41 +46,112 @@ class FirebaseIntegration {
             }
 
             this.database = firebase.database();
-            this.auth = firebase.auth();
+            
+            // Safely try to initialize auth if available
+            try {
+                if (typeof firebase.auth === 'function') {
+                    this.auth = firebase.auth();
+                    console.log('[Firebase] Auth module loaded successfully');
+                    this.setupAuthListener();
+                } else {
+                    console.log('[Firebase] Auth module not available, continuing without auth');
+                }
+            } catch (authError) {
+                console.warn('[Firebase] Auth initialization failed, continuing without auth:', authError);
+            }
+            
             this.isInitialized = true;
-
             console.log('[Firebase] Firebase integration ready for PT Krakatau Sarana Property');
-
-            // Set up authentication state listener
-            this.setupAuthListener();
 
         } catch (error) {
             console.error('[Firebase] Initialization error:', error);
+            // Continue without auth if possible
+            this.initializeWithoutAuth();
         }
+    }
+
+    /**
+     * Initialize Firebase without auth (fallback)
+     */
+    initializeWithoutAuth() {
+        try {
+            if (typeof firebase !== 'undefined' && typeof firebase.database === 'function') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(this.config);
+                }
+                this.database = firebase.database();
+                this.isInitialized = true;
+                console.log('[Firebase] Initialized without auth module');
+            }
+        } catch (error) {
+            console.error('[Firebase] Failed to initialize without auth:', error);
+        }
+    }
+
+    /**
+     * Load Firebase Auth module specifically
+     */
+    async loadFirebaseAuth() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js';
+            script.onload = () => {
+                console.log('[Firebase] Auth module loaded');
+                setTimeout(() => {
+                    this.init();
+                    resolve();
+                }, 500);
+            };
+            script.onerror = () => {
+                console.warn('[Firebase] Failed to load auth module, continuing without auth');
+                this.initializeWithoutAuth();
+                resolve();
+            };
+            document.head.appendChild(script);
+        });
     }
 
     /**
      * Load Firebase SDK dynamically if not present
      */
-    loadFirebaseSDK() {
-        const scripts = [
-            'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
-            'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js',
-            'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js'
-        ];
+    /**
+     * Load Firebase SDK dynamically if not present
+     */
+    async loadFirebaseSDK() {
+        return new Promise((resolve, reject) => {
+            const scripts = [
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js',
+                'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js'
+                // Skip auth for now to avoid conflicts
+                // 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js'
+            ];
 
-        let loadedScripts = 0;
-        scripts.forEach(src => {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => {
-                loadedScripts++;
-                if (loadedScripts === scripts.length) {
-                    console.log('[Firebase] SDK loaded, reinitializing...');
-                    setTimeout(() => this.init(), 1000);
-                }
-            };
-            document.head.appendChild(script);
+            let loadedScripts = 0;
+            scripts.forEach(src => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = () => {
+                    loadedScripts++;
+                    if (loadedScripts === scripts.length) {
+                        console.log('[Firebase] Essential SDK modules loaded, reinitializing...');
+                        setTimeout(() => {
+                            this.init();
+                            resolve();
+                        }, 1000);
+                    }
+                };
+                script.onerror = () => {
+                    console.error('[Firebase] Failed to load script:', src);
+                    if (loadedScripts >= scripts.length - 1) {
+                        // Try to continue even if one script fails
+                        setTimeout(() => {
+                            this.init();
+                            resolve();
+                        }, 1000);
+                    }
+                };
+                document.head.appendChild(script);
+            });
         });
     }
 
@@ -88,16 +159,23 @@ class FirebaseIntegration {
      * Setup authentication listener
      */
     setupAuthListener() {
-        if (!this.auth) return;
+        if (!this.auth) {
+            console.log('[Firebase] Auth not available, skipping auth listener setup');
+            return;
+        }
 
-        this.auth.onAuthStateChanged(user => {
-            if (user) {
-                console.log('[Firebase] User signed in:', user.uid);
-            } else {
-                console.log('[Firebase] User signed out');
-                // For public data, we can continue without authentication
-            }
-        });
+        try {
+            this.auth.onAuthStateChanged(user => {
+                if (user) {
+                    console.log('[Firebase] User signed in:', user.uid);
+                } else {
+                    console.log('[Firebase] User signed out');
+                    // For public data, we can continue without authentication
+                }
+            });
+        } catch (error) {
+            console.warn('[Firebase] Failed to setup auth listener:', error);
+        }
     }
 
     /**
