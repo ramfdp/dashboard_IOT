@@ -70,12 +70,15 @@ class AutoPZEMGenerator {
         if (hour >= 7 && hour <= 18 && !isWeekend) {
             // Jam kerja 7 pagi - 6 sore = daya maksimal 600W
             finalPower = 550 + Math.random() * 50; // 550-600W
+            console.log(`[AutoPZEM] 🏢 Working hours (${hour}:${minute}): Generated ${Math.round(finalPower)}W`);
         } else if (isWeekend && hour >= 8 && hour <= 17) {
             // Weekend jam siang = daya sedang
             finalPower = 300 + Math.random() * 100; // 300-400W
+            console.log(`[AutoPZEM] 🏖️ Weekend daytime (${hour}:${minute}): Generated ${Math.round(finalPower)}W`);
         } else {
             // Malam hari atau di luar jam kerja = 150an
             finalPower = 120 + Math.random() * 60; // 120-180W
+            console.log(`[AutoPZEM] 🌃 Night/Off-hours (${hour}:${minute}): Generated ${Math.round(finalPower)}W`);
         }
 
         // Calculate voltage with realistic variation (220V ±5%)
@@ -114,9 +117,8 @@ class AutoPZEMGenerator {
      */
     getIndonesiaTimestamp() {
         const now = new Date();
-        // Konversi ke timezone Indonesia (WIB = UTC+7)
-        const indonesiaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        return indonesiaTime.toISOString().replace('Z', '+07:00');
+        // Gunakan waktu lokal langsung (sudah dalam WIB)
+        return now.toISOString().replace('Z', '+07:00');
     }
 
     /**
@@ -124,9 +126,8 @@ class AutoPZEMGenerator {
      */
     updateNightModeIndicator() {
         const now = new Date();
-        // Konversi ke timezone Indonesia (WIB = UTC+7)
-        const indonesiaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const hour = indonesiaTime.getHours();
+        // Gunakan waktu lokal langsung (sudah dalam WIB)
+        const hour = now.getHours();
         const isNightTime = (hour >= 22 || hour < 6);
 
         // Cari atau buat indicator element
@@ -170,7 +171,7 @@ class AutoPZEMGenerator {
         }
 
         // Update title dengan current time
-        const timeStr = indonesiaTime.toLocaleTimeString('id-ID', {
+        const timeStr = now.toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit',
             timeZone: 'Asia/Jakarta'
@@ -486,12 +487,11 @@ class AutoPZEMGenerator {
      */
     applyRealTimeNightReduction(data) {
         const now = new Date();
-        // Konversi ke timezone Indonesia (WIB = UTC+7)
-        const indonesiaTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const hour = indonesiaTime.getHours();
+        // Gunakan waktu lokal langsung (sudah dalam WIB)
+        const hour = now.getHours();
 
-        // Definisi waktu malam: 19:00 - 06:00
-        const isNightTime = (hour >= 19 || hour < 6);
+        // Definisi waktu malam: 22:00 - 06:00 (sesuai standar office building)
+        const isNightTime = (hour >= 22 || hour < 6);
 
         if (!isNightTime) {
             // Bukan waktu malam, tidak ada pengurangan
@@ -517,12 +517,19 @@ class AutoPZEMGenerator {
             reducedData.current = Math.round((reducedData.power / data.voltage) * 100) / 100;
         }
 
-        // Log info night reduction
-        console.log(`[AutoPZEM] 🌙 Night time reduction applied (${hour}:xx)`, {
-            original: { power: data.power, current: data.current },
-            reduced: { power: reducedData.power, current: reducedData.current },
-            reduction: `${(100 - nightReductionFactor * 100)}%`
-        });
+        // Log info untuk debugging
+        if (isNightTime) {
+            console.log(`[AutoPZEM] 🌙 Night time reduction applied (${hour}:xx)`, {
+                original: { power: data.power, current: data.current },
+                reduced: { power: reducedData.power, current: reducedData.current },
+                reduction: `${(100 - nightReductionFactor * 100)}%`
+            });
+        } else {
+            console.log(`[AutoPZEM] ☀️ Day time - no reduction (${hour}:xx)`, {
+                power: data.power,
+                current: data.current
+            });
+        }
 
         return reducedData;
     }
