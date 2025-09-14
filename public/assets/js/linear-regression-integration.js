@@ -3,22 +3,22 @@
  * Menggantikan KNN dengan Linear Regression untuk prediksi listrik
  */
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Initialize Linear Regression integration
     setTimeout(initializeLinearRegressionIntegration, 1500);
 });
 
 function initializeLinearRegressionIntegration() {
     console.log('[Dashboard] Initializing Linear Regression integration...');
-    
+
     // Check if Linear Regression calculator is available
     if (typeof window.ElectricityLinearRegressionCalculator !== 'undefined') {
         // Update prediction display
         updatePredictionDisplay();
-        
+
         // Setup periodic updates
         setInterval(updatePredictionDisplay, 30000); // Update every 30 seconds
-        
+
         console.log('[Dashboard] Linear Regression integration ready');
     } else {
         console.warn('[Dashboard] Linear Regression calculator not available, retrying...');
@@ -38,17 +38,17 @@ async function updatePredictionDisplay() {
 
         // Get current data for prediction
         const currentData = window.electricityCalculator.chartData || [];
-        
+
         if (currentData.length > 0) {
             // Get prediction from Linear Regression
             const prediction = await window.electricityCalculator.linearPredictor.predict(currentData, 24);
-            
+
             // Update UI elements
             updatePredictionUI(prediction);
-            
+
             console.log('[Dashboard] Prediction updated:', prediction);
         }
-        
+
     } catch (error) {
         console.error('[Dashboard] Failed to update prediction:', error);
     }
@@ -64,14 +64,14 @@ function updatePredictionUI(prediction) {
         if (prediksiWatt) {
             prediksiWatt.textContent = `${prediction.prediction} W`;
         }
-        
+
         // Calculate daily energy (prediction * 24 hours / 1000 for kWh)
         const dailyEnergy = (prediction.prediction * 24 / 1000).toFixed(2);
         const prediksiKwhHarian = document.getElementById('prediksiKwhHarian');
         if (prediksiKwhHarian) {
             prediksiKwhHarian.textContent = `${dailyEnergy} kWh`;
         }
-        
+
     } catch (error) {
         console.error('[Dashboard] Failed to update prediction UI:', error);
     }
@@ -86,7 +86,7 @@ function showElectricityAnalysis() {
         // Refresh analysis when modal opens
         window.electricityCalculator.refresh();
     }
-    
+
     // Show the modal
     const modal = new bootstrap.Modal(document.getElementById('electricityAnalysisModal'));
     modal.show();

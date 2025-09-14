@@ -70,31 +70,39 @@ function initializeElectricityChart() {
             sampleValues: values.slice(0, 3)
         });
 
-        // Create demo data if no data available
+        // Create demo data if no data available (hourly data for today)
         if (labels.length === 0 || values.length === 0) {
-            console.log('[Dashboard] No data from server, creating demo data...');
+            console.log('[Dashboard] No data from server, creating demo hourly data for today...');
 
             labels = [];
             values = [];
 
             const now = new Date();
-            for (let i = 0; i < 24; i++) {
+            const currentHour = now.getHours();
+
+            // Generate hourly data from 00:00 to current hour + few hours ahead
+            const endHour = Math.min(23, currentHour + 3);
+
+            for (let i = 0; i <= endHour; i++) {
                 const hour = String(i).padStart(2, '0') + ':00';
                 labels.push(hour);
 
-                // Realistic power consumption pattern
+                // Realistic power consumption pattern for the day
                 let power;
-                if (i >= 6 && i <= 18) {
-                    power = 550 + Math.random() * 50; // Jam kerja 6 pagi - 6 sore (550-600W)
+                if (i >= 7 && i <= 18) {
+                    power = 550 + Math.random() * 50; // Working hours (550-600W)
+                } else if (i >= 19 && i <= 21) {
+                    power = 300 + Math.random() * 100; // Evening (300-400W)
                 } else {
-                    power = 120 + Math.random() * 60; // Malam hari (120-180W)
+                    power = 120 + Math.random() * 60; // Night/early morning (120-180W)
                 }
                 values.push(Math.round(power));
             }
 
-            console.log('[Dashboard] Demo data created:', {
+            console.log('[Dashboard] Demo hourly data created for today:', {
                 labelsCount: labels.length,
                 valuesCount: values.length,
+                timeRange: `00:00 - ${endHour}:00`,
                 sampleValues: values.slice(0, 5)
             });
         }
@@ -141,7 +149,7 @@ function initializeElectricityChart() {
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Konsumsi Listrik (Watt)',
+                        label: 'Konsumsi Listrik Hari Ini (Watt)',
                         data: values,
                         borderColor: '#36a2eb',
                         backgroundColor: gradient,
@@ -150,8 +158,8 @@ function initializeElectricityChart() {
                         tension: 0.3,
                         pointBackgroundColor: '#ffffff',
                         pointBorderColor: '#36a2eb',
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
                         pointBorderWidth: 2
                     }]
                 },
@@ -159,6 +167,18 @@ function initializeElectricityChart() {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
+                        title: {
+                            display: true,
+                            text: `Monitoring Konsumsi Listrik - ${new Date().toLocaleDateString('id-ID', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            })}`,
+                            color: '#ffffff',
+                            font: { size: 16, weight: 'bold' },
+                            padding: 20
+                        },
                         legend: {
                             labels: {
                                 color: '#ffffff',
@@ -188,8 +208,15 @@ function initializeElectricityChart() {
                             },
                             title: {
                                 display: true,
-                                text: 'Waktu (Jam)',
-                                color: '#ffffff'
+                                text: 'Waktu (Jam) - Data Hari Ini',
+                                color: '#ffffff',
+                                font: { size: 12 }
+                            },
+                            ticks: {
+                                maxTicksLimit: 12, // Limit to 12 ticks for better readability
+                                autoSkip: true,
+                                maxRotation: 45,
+                                minRotation: 0
                             }
                         },
                         y: {
@@ -373,214 +400,227 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to calculate and update modal data based on period INTERPRETATION
     async function updateModalData(period = 'harian') {
-        console.log('[Modal] Updating data for period:', period);
+        try {
+            console.log('[Modal] Updating data for period:', period);
 
-        // Fetch real data from API (ALWAYS same 30 records from database)
-        const apiData = await fetchRealDataFromAPI(period);
+            // Fetch real data from API (ALWAYS same 30 records from database)
+            const apiData = await fetchRealDataFromAPI(period);
 
-        let data, labels, dataCount;
+            let data, labels, dataCount;
 
-        if (!apiData || !apiData.data || apiData.data.length === 0) {
-            console.log('[Modal] No API data available, using fallback data');
-            // Use fallback data if API fails or returns empty
-            if (window.globalElectricityData && window.globalElectricityData.dailyData.length > 0) {
-                data = window.globalElectricityData.dailyData;
-                labels = window.globalElectricityData.labels || [];
-                dataCount = data.length;
-                console.log('[Modal] Using existing global data:', { dataCount });
+            if (!apiData || !apiData.data || apiData.data.length === 0) {
+                console.log('[Modal] No API data available, using fallback data');
+                // Use fallback data if API fails or returns empty
+                if (window.globalElectricityData && window.globalElectricityData.dailyData.length > 0) {
+                    data = window.globalElectricityData.dailyData;
+                    labels = window.globalElectricityData.labels || [];
+                    dataCount = data.length;
+                    console.log('[Modal] Using existing global data:', { dataCount });
+                } else {
+                    // Generate demo data as last resort
+                    data = Array.from({ length: 30 }, () => Math.floor(Math.random() * 200 + 100));
+                    labels = Array.from({ length: 30 }, (_, i) => `${23 - i}:00`);
+                    dataCount = 30;
+                    console.log('[Modal] Using demo data as fallback:', { dataCount });
+                }
             } else {
-                // Generate demo data as last resort
-                data = Array.from({ length: 30 }, () => Math.floor(Math.random() * 200 + 100));
-                labels = Array.from({ length: 30 }, (_, i) => `${23 - i}:00`);
-                dataCount = 30;
-                console.log('[Modal] Using demo data as fallback:', { dataCount });
+                // SAME DATA (e.g., 30 records), different INTERPRETATION
+                data = apiData.data; // Always 30 records from database
+                labels = apiData.labels;
+                dataCount = data.length; // Always 30
             }
-        } else {
-            // SAME DATA (e.g., 30 records), different INTERPRETATION
-            data = apiData.data; // Always 30 records from database
-            labels = apiData.labels;
-            dataCount = data.length; // Always 30
-        }
 
-        console.log('[Modal] Using SAME database data:', {
-            period,
-            dataCount,
-            source: apiData.source,
-            interpretation: apiData.interpretation
-        });
+            console.log('[Modal] Using SAME database data:', {
+                period,
+                dataCount,
+                source: apiData ? apiData.source : 'unknown',
+                interpretation: apiData ? apiData.interpretation : 'unknown'
+            });
 
-        // Calculate statistics from SAME 30 database records
-        const avgPower = data.reduce((a, b) => a + b, 0) / data.length;
-        const maxPower = Math.max(...data);
-        const minPower = Math.min(...data);
+            // Calculate statistics from SAME 30 database records
+            const avgPower = data.reduce((a, b) => a + b, 0) / data.length;
+            const maxPower = Math.max(...data);
+            const minPower = Math.min(...data);
 
-        // Calculate energy based on PERIOD INTERPRETATION (not data count)
-        let periodKwh, dailyKwh, weeklyKwh, monthlyKwh;
-        let periodLabel, timeSpanHours;
+            // Calculate energy based on PERIOD INTERPRETATION (not data count)
+            let periodKwh, dailyKwh, weeklyKwh, monthlyKwh;
+            let periodLabel, timeSpanHours;
 
-        switch (period) {
-            case 'harian':
-                // Interpret: 30 readings as hourly data (30 hours of data)
-                timeSpanHours = dataCount; // 30 hours
-                dailyKwh = (avgPower * 24) / 1000; // Standard 24h projection
-                periodKwh = dailyKwh;
-                weeklyKwh = dailyKwh * 7;
-                monthlyKwh = dailyKwh * 30;
-                periodLabel = 'per hari';
-                break;
+            switch (period) {
+                case 'harian':
+                    // Interpret: 30 readings as hourly data (30 hours of data)
+                    timeSpanHours = dataCount; // 30 hours
+                    dailyKwh = (avgPower * 24) / 1000; // Standard 24h projection
+                    periodKwh = dailyKwh;
+                    weeklyKwh = dailyKwh * 7;
+                    monthlyKwh = dailyKwh * 30;
+                    periodLabel = 'per hari';
+                    break;
 
-            case 'mingguan':
-                // Interpret: Same 30 readings in weekly context
-                timeSpanHours = dataCount; // Still 30 hours of actual data
-                dailyKwh = (avgPower * 24) / 1000;
-                weeklyKwh = dailyKwh * 7; // Project to full week
-                periodKwh = weeklyKwh;
-                monthlyKwh = weeklyKwh * 4.3; // ~4.3 weeks in month
-                periodLabel = 'per minggu';
-                break;
+                case 'mingguan':
+                    // Interpret: Same 30 readings in weekly context
+                    timeSpanHours = dataCount; // Still 30 hours of actual data
+                    dailyKwh = (avgPower * 24) / 1000;
+                    weeklyKwh = dailyKwh * 7; // Project to full week
+                    periodKwh = weeklyKwh;
+                    monthlyKwh = weeklyKwh * 4.3; // ~4.3 weeks in month
+                    periodLabel = 'per minggu';
+                    break;
 
-            case 'bulanan':
-                // Interpret: Same 30 readings in monthly context
-                timeSpanHours = dataCount; // Still 30 hours of actual data
-                dailyKwh = (avgPower * 24) / 1000;
-                weeklyKwh = dailyKwh * 7;
-                monthlyKwh = dailyKwh * 30; // Project to full month
-                periodKwh = monthlyKwh;
-                periodLabel = 'per bulan';
-                break;
-        }
+                case 'bulanan':
+                    // Interpret: Same 30 readings in monthly context
+                    timeSpanHours = dataCount; // Still 30 hours of actual data
+                    dailyKwh = (avgPower * 24) / 1000;
+                    weeklyKwh = dailyKwh * 7;
+                    monthlyKwh = dailyKwh * 30; // Project to full month
+                    periodKwh = monthlyKwh;
+                    periodLabel = 'per bulan';
+                    break;
+            }
 
-        console.log('[Modal] Period interpretation calculated:', {
-            period,
-            actualDataPoints: dataCount, // Always 30
-            timeSpanHours,
-            avgPower: avgPower.toFixed(1),
-            periodKwh: periodKwh.toFixed(2)
-        });
+            console.log('[Modal] Period interpretation calculated:', {
+                period,
+                actualDataPoints: dataCount, // Always 30
+                timeSpanHours,
+                avgPower: avgPower.toFixed(1),
+                periodKwh: periodKwh.toFixed(2)
+            });
 
-        // Store/update global electricity data for prediction use
-        window.globalElectricityData = {
-            currentPower: avgPower,
-            dailyData: data,
-            labels: labels,
-            source: 'modal_data',
-            period: period,
-            periodKwh: periodKwh,
-            predictionHours: predictionHours, // Store current prediction horizon
-            lastUpdated: new Date().getTime()
-        };
+            // Store/update global electricity data for prediction use
+            window.globalElectricityData = {
+                currentPower: avgPower,
+                dailyData: data,
+                labels: labels,
+                source: 'modal_data',
+                period: period,
+                periodKwh: periodKwh,
+                predictionHours: predictionHours, // Store current prediction horizon
+                lastUpdated: new Date().getTime()
+            };
 
-        console.log('[Modal] Global data updated:', {
-            dataPoints: data.length,
-            avgPower: avgPower.toFixed(1),
-            period: period,
-            predictionHours: predictionHours,
-            source: window.globalElectricityData.source
-        });
+            console.log('[Modal] Global data updated:', {
+                dataPoints: data.length,
+                avgPower: avgPower.toFixed(1),
+                period: period,
+                predictionHours: predictionHours,
+                source: window.globalElectricityData.source
+            });
 
-        // Update current usage display
-        const totalWattEl = document.getElementById('totalWatt');
-        const totalKwhEl = document.getElementById('totalKwh');
-        const periodeLabelEl = document.getElementById('periodeLabel');
+            // Update current usage display
+            const totalWattEl = document.getElementById('totalWatt');
+            const totalKwhEl = document.getElementById('totalKwh');
+            const periodeLabelEl = document.getElementById('periodeLabel');
 
-        if (totalWattEl) totalWattEl.textContent = Math.round(avgPower) + ' W';
-        if (totalKwhEl) totalKwhEl.textContent = periodKwh.toFixed(2) + ' kWh';
-        if (periodeLabelEl) periodeLabelEl.textContent = periodLabel;
+            if (totalWattEl) totalWattEl.textContent = Math.round(avgPower) + ' W';
+            if (totalKwhEl) totalKwhEl.textContent = periodKwh.toFixed(2) + ' kWh';
+            if (periodeLabelEl) periodeLabelEl.textContent = periodLabel;
 
-        // Update detailed statistics (ALWAYS based on SAME 30 database records)
-        const dayaTertinggiEl = document.getElementById('dayaTertinggi');
-        const dayaTerendahEl = document.getElementById('dayaTerendah');
-        const totalDataEl = document.getElementById('totalData');
-        const kwhHarianEl = document.getElementById('kwhHarian');
-        const kwhMingguanEl = document.getElementById('kwhMingguan');
-        const kwhBulananEl = document.getElementById('kwhBulanan');
+            // Update detailed statistics (ALWAYS based on SAME 30 database records)
+            const dayaTertinggiEl = document.getElementById('dayaTertinggi');
+            const dayaTerendahEl = document.getElementById('dayaTerendah');
+            const totalDataEl = document.getElementById('totalData');
+            const kwhHarianEl = document.getElementById('kwhHarian');
+            const kwhMingguanEl = document.getElementById('kwhMingguan');
+            const kwhBulananEl = document.getElementById('kwhBulanan');
 
-        if (dayaTertinggiEl) dayaTertinggiEl.textContent = Math.round(maxPower) + ' W';
-        if (dayaTerendahEl) dayaTerendahEl.textContent = Math.round(minPower) + ' W';
-        if (totalDataEl) totalDataEl.textContent = dataCount; // Always shows 30 (real count)
-        if (kwhHarianEl) kwhHarianEl.textContent = dailyKwh.toFixed(2) + ' kWh';
-        if (kwhMingguanEl) kwhMingguanEl.textContent = weeklyKwh.toFixed(2) + ' kWh';
-        if (kwhBulananEl) kwhBulananEl.textContent = monthlyKwh.toFixed(2) + ' kWh';
+            if (dayaTertinggiEl) dayaTertinggiEl.textContent = Math.round(maxPower) + ' W';
+            if (dayaTerendahEl) dayaTerendahEl.textContent = Math.round(minPower) + ' W';
+            if (totalDataEl) totalDataEl.textContent = dataCount; // Always shows 30 (real count)
+            if (kwhHarianEl) kwhHarianEl.textContent = dailyKwh.toFixed(2) + ' kWh';
+            if (kwhMingguanEl) kwhMingguanEl.textContent = weeklyKwh.toFixed(2) + ' kWh';
+            if (kwhBulananEl) kwhBulananEl.textContent = monthlyKwh.toFixed(2) + ' kWh';
 
-        // Update predictions based on REAL trend analysis and CURRENT PERIOD CONTEXT
-        const prediksiWattEl = document.getElementById('prediksiWatt');
-        const prediksiKwhHarianEl = document.getElementById('prediksiKwhHarian');
-        const confidenceLevelEl = document.getElementById('confidenceLevel');
-        const confidencePercentageEl = document.getElementById('confidencePercentage');
+            // Update predictions based on REAL trend analysis and CURRENT PERIOD CONTEXT
+            const prediksiWattEl = document.getElementById('prediksiWatt');
+            const prediksiKwhHarianEl = document.getElementById('prediksiKwhHarian');
+            const confidenceLevelEl = document.getElementById('confidenceLevel');
+            const confidencePercentageEl = document.getElementById('confidencePercentage');
 
-        // Get current prediction horizon (default to 1 hour if not set)
-        const periodePrediksiEl = document.getElementById('periodePrediksi');
-        const predictionHours = periodePrediksiEl ? parseInt(periodePrediksiEl.value) || 1 : 1;
+            // Get current prediction horizon (default to 1 hour if not set)
+            const periodePrediksiEl = document.getElementById('periodePrediksi');
+            const predictionHours = periodePrediksiEl ? parseInt(periodePrediksiEl.value) || 1 : 1;
 
-        // Use smart prediction calculation
-        const smartPrediction = calculateSmartPrediction(data, period, predictionHours);
+            // Use smart prediction calculation
+            const smartPrediction = calculateSmartPrediction(data, period, predictionHours);
 
-        console.log('[Modal] 🔍 Smart Prediction Debug:', {
-            dataLength: data.length,
-            period: period,
-            predictionHours: predictionHours,
-            smartPrediction: smartPrediction,
-            confidenceLevelEl: !!confidenceLevelEl,
-            confidencePercentageEl: !!confidencePercentageEl
-        });
+            console.log('[Modal] 🔍 Smart Prediction Debug:', {
+                dataLength: data.length,
+                period: period,
+                predictionHours: predictionHours,
+                smartPrediction: smartPrediction,
+                confidenceLevelEl: !!confidenceLevelEl,
+                confidencePercentageEl: !!confidencePercentageEl
+            });
 
-        // Update prediction display with proper context
-        if (prediksiWattEl) {
-            if (predictionHours === 1) {
-                prediksiWattEl.textContent = smartPrediction.prediction + ' W';
+            // Update prediction display with proper context
+            if (prediksiWattEl) {
+                if (predictionHours === 1) {
+                    prediksiWattEl.textContent = smartPrediction.prediction + ' W';
+                } else {
+                    prediksiWattEl.textContent = smartPrediction.prediction + ' W (rata-rata)';
+                }
+            }
+
+            if (prediksiKwhHarianEl) {
+                if (predictionHours === 1) {
+                    prediksiKwhHarianEl.textContent = smartPrediction.kwh.toFixed(3) + ' kWh (1 jam)';
+                } else {
+                    prediksiKwhHarianEl.textContent = smartPrediction.kwh.toFixed(2) + ` kWh (${predictionHours} jam)`;
+                }
+            }
+
+            if (confidenceLevelEl) {
+                confidenceLevelEl.textContent = smartPrediction.confidence + '%';
+                console.log('[Modal] ✅ Confidence Level updated:', smartPrediction.confidence + '%');
             } else {
-                prediksiWattEl.textContent = smartPrediction.prediction + ' W (rata-rata)';
+                console.warn('[Modal] ⚠️ confidenceLevelEl not found');
             }
-        }
 
-        if (prediksiKwhHarianEl) {
-            if (predictionHours === 1) {
-                prediksiKwhHarianEl.textContent = smartPrediction.kwh.toFixed(3) + ' kWh (1 jam)';
+            if (confidencePercentageEl) {
+                confidencePercentageEl.textContent = smartPrediction.confidence + '%';
+                console.log('[Modal] ✅ Confidence Percentage updated:', smartPrediction.confidence + '%');
             } else {
-                prediksiKwhHarianEl.textContent = smartPrediction.kwh.toFixed(2) + ` kWh (${predictionHours} jam)`;
+                console.warn('[Modal] ⚠️ confidencePercentageEl not found');
             }
+
+            console.log('[Modal] ✅ Prediction updated with smart calculation:', {
+                analysisPeriod: period,
+                predictionHours: predictionHours,
+                prediction: smartPrediction.prediction,
+                predictedKwh: smartPrediction.kwh.toFixed(3),
+                confidence: smartPrediction.confidence + '%'
+            });
+
+            console.log('[Modal] ✅ Modal updated with SAME database data, different period interpretation');
+            console.log('[Modal] Data integrity:', {
+                alwaysSameDataCount: dataCount, // Always 30
+                periodInterpretation: periodLabel,
+                predictionConfidence: smartPrediction.confidence + '%'
+            });
+
+            // Store the updated data globally for later use
+            window.globalElectricityData = {
+                currentPower: avgPower,
+                dailyData: data,
+                labels: labels,
+                source: 'modal_data',
+                period: period,
+                periodKwh: periodKwh,
+                predictionHours: predictionHours,
+                lastUpdated: new Date().getTime()
+            };
+        } catch (error) {
+            console.error('[Modal] Error in updateModalData:', error);
+
+            // Fallback: show default values
+            const elements = ['maxPowerModal', 'minPowerModal', 'averagePowerModal', 'periodKwhModal', 'predictionNextHours'];
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = 'Error loading';
+                }
+            });
         }
-
-        if (confidenceLevelEl) {
-            confidenceLevelEl.textContent = smartPrediction.confidence + '%';
-            console.log('[Modal] ✅ Confidence Level updated:', smartPrediction.confidence + '%');
-        } else {
-            console.warn('[Modal] ⚠️ confidenceLevelEl not found');
-        }
-
-        if (confidencePercentageEl) {
-            confidencePercentageEl.textContent = smartPrediction.confidence + '%';
-            console.log('[Modal] ✅ Confidence Percentage updated:', smartPrediction.confidence + '%');
-        } else {
-            console.warn('[Modal] ⚠️ confidencePercentageEl not found');
-        }
-
-        console.log('[Modal] ✅ Prediction updated with smart calculation:', {
-            analysisPeriod: period,
-            predictionHours: predictionHours,
-            prediction: smartPrediction.prediction,
-            predictedKwh: smartPrediction.kwh.toFixed(3),
-            confidence: smartPrediction.confidence + '%'
-        });
-
-        console.log('[Modal] ✅ Modal updated with SAME database data, different period interpretation');
-        console.log('[Modal] Data integrity:', {
-            alwaysSameDataCount: dataCount, // Always 30
-            periodInterpretation: periodLabel,
-            predictionConfidence: smartPrediction.confidence + '%'
-        });
-
-        // Store the updated data globally for later use
-        window.globalElectricityData = {
-            currentPower: avgPower,
-            dailyData: data,
-            labels: labels,
-            source: 'modal_data',
-            period: period,
-            periodKwh: periodKwh,
-            predictionHours: predictionHours,
-            lastUpdated: new Date().getTime()
-        };
     }
 
     // Handle periode analisis change

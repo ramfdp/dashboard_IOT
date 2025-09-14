@@ -87,6 +87,7 @@ Route::prefix('electricity')->group(function () {
     Route::get('/data/{period}', [ElectricityDataController::class, 'getDataByPeriod']);
     Route::get('/data', [ElectricityDataController::class, 'getDataByPeriod']);
     Route::get('/current-usage', [ElectricityDataController::class, 'getCurrentUsage']);
+    Route::get('/usage-by-period', [ElectricityDataController::class, 'getUsageByPeriod']);
 });
 
 // Real-time Power API for auto-generated data

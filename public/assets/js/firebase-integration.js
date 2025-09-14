@@ -46,7 +46,7 @@ class FirebaseIntegration {
             }
 
             this.database = firebase.database();
-            
+
             // Safely try to initialize auth if available
             try {
                 if (typeof firebase.auth === 'function') {
@@ -59,7 +59,7 @@ class FirebaseIntegration {
             } catch (authError) {
                 console.warn('[Firebase] Auth initialization failed, continuing without auth:', authError);
             }
-            
+
             this.isInitialized = true;
             console.log('[Firebase] Firebase integration ready for PT Krakatau Sarana Property');
 

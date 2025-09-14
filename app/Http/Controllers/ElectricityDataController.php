@@ -14,11 +14,11 @@ class ElectricityDataController extends Controller
     public function getDataByPeriod(Request $request)
     {
         $period = $request->get('period', 'harian');
-        
+
         try {
             $currentMonth = Carbon::now('Asia/Jakarta')->month;
             $currentYear = Carbon::now('Asia/Jakarta')->year;
-            
+
             // Get data based on the selected period from current month
             switch ($period) {
                 case 'harian':
@@ -28,7 +28,7 @@ class ElectricityDataController extends Controller
                         ->orderBy('waktu', 'asc')
                         ->get();
                     break;
-                    
+
                 case 'mingguan':
                     $startOfWeek = Carbon::now('Asia/Jakarta')->startOfWeek();
                     $endOfWeek = Carbon::now('Asia/Jakarta')->endOfWeek();
@@ -38,14 +38,14 @@ class ElectricityDataController extends Controller
                         ->orderBy('waktu', 'asc')
                         ->get();
                     break;
-                    
+
                 case 'bulanan':
                     $records = HistoryKwh::whereMonth('waktu', $currentMonth)
                         ->whereYear('waktu', $currentYear)
                         ->orderBy('waktu', 'asc')
                         ->get();
                     break;
-                    
+
                 default:
                     $records = HistoryKwh::whereMonth('waktu', $currentMonth)
                         ->whereYear('waktu', $currentYear)
@@ -130,10 +130,10 @@ class ElectricityDataController extends Controller
     private function generateLabelsFromRecords($records, $period)
     {
         $labels = [];
-        
+
         foreach ($records as $record) {
             $time = Carbon::parse($record->waktu)->setTimezone('Asia/Jakarta');
-            
+
             switch ($period) {
                 case 'harian':
                     $labels[] = $time->format('H:i');
@@ -148,7 +148,7 @@ class ElectricityDataController extends Controller
                     $labels[] = $time->format('H:i');
             }
         }
-        
+
         return $labels;
     }
 
@@ -158,7 +158,7 @@ class ElectricityDataController extends Controller
     private function getPeriodInfo($period)
     {
         $currentMonth = Carbon::now('Asia/Jakarta')->format('F Y');
-        
+
         switch ($period) {
             case 'harian':
                 return "Data konsumsi listrik hari ini (" . Carbon::now('Asia/Jakarta')->format('d F Y') . ")";
@@ -305,29 +305,29 @@ class ElectricityDataController extends Controller
     {
         try {
             $currentTime = Carbon::now('Asia/Jakarta');
-            
+
             // Get the latest record from today
             $latestRecord = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
                 ->orderBy('waktu', 'desc')
                 ->first();
-            
+
             // Get last 10 records for average calculation
             $recentRecords = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
                 ->orderBy('waktu', 'desc')
                 ->take(10)
                 ->get();
-            
+
             if ($latestRecord && $recentRecords->isNotEmpty()) {
                 $currentPower = $latestRecord->daya;
                 $averagePower = $recentRecords->avg('daya');
-                
+
                 // Calculate kWh for today
                 $todayRecords = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
                     ->orderBy('waktu', 'asc')
                     ->get();
-                    
+
                 $totalKwh = $this->calculateKwh($todayRecords);
-                
+
                 $source = 'database';
                 $lastUpdate = Carbon::parse($latestRecord->waktu)->setTimezone('Asia/Jakarta');
             } else {
@@ -338,7 +338,7 @@ class ElectricityDataController extends Controller
                 $source = 'demo';
                 $lastUpdate = $currentTime;
             }
-            
+
             return response()->json([
                 'success' => true,
                 'current_power' => round($currentPower),
@@ -348,11 +348,10 @@ class ElectricityDataController extends Controller
                 'date' => $currentTime->format('d F Y'),
                 'source' => $source
             ]);
-            
         } catch (\Exception $e) {
             // Return demo values on error
             $currentTime = Carbon::now('Asia/Jakarta');
-            
+
             return response()->json([
                 'success' => true,
                 'current_power' => $this->generateCurrentPowerDemo(),
@@ -374,21 +373,21 @@ class ElectricityDataController extends Controller
         if ($records->isEmpty()) {
             return 0;
         }
-        
+
         $totalWh = 0;
         $previousTime = null;
-        
+
         foreach ($records as $record) {
             $currentTime = Carbon::parse($record->waktu);
-            
+
             if ($previousTime) {
                 $hoursDiff = $currentTime->diffInHours($previousTime);
                 $totalWh += $record->daya * $hoursDiff;
             }
-            
+
             $previousTime = $currentTime;
         }
-        
+
         return $totalWh / 1000; // Convert Wh to kWh
     }
 
@@ -398,7 +397,7 @@ class ElectricityDataController extends Controller
     private function generateCurrentPowerDemo()
     {
         $hour = Carbon::now('Asia/Jakarta')->hour;
-        
+
         if ($hour >= 7 && $hour <= 18) {
             // Working hours
             return 550 + rand(-30, 50);
@@ -409,19 +408,136 @@ class ElectricityDataController extends Controller
     }
 
     /**
-     * Generate demo kWh for today
+     * Get usage data based on selected period (untuk sinkronisasi dengan periode analisis)
      */
-    private function generateDemoKwh()
+    public function getUsageByPeriod(Request $request)
     {
-        $hour = Carbon::now('Asia/Jakarta')->hour;
-        
-        // Estimate kWh based on current hour
-        $workingHours = max(0, min($hour - 7, 11)); // Hours from 7 AM to 6 PM
-        $offHours = $hour - $workingHours;
-        
-        $workingKwh = $workingHours * 0.55; // ~550W for working hours
-        $offKwh = $offHours * 0.15; // ~150W for off hours
-        
-        return $workingKwh + $offKwh + rand(0, 20) / 10; // Add some variation
+        $period = $request->get('period', 'harian');
+
+        try {
+            $currentTime = Carbon::now('Asia/Jakarta');
+            $currentMonth = $currentTime->month;
+            $currentYear = $currentTime->year;
+
+            // Get data based on the selected period
+            switch ($period) {
+                case 'harian':
+                    $records = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
+                        ->orderBy('waktu', 'asc')
+                        ->get();
+                    break;
+
+                case 'mingguan':
+                    $startOfWeek = $currentTime->startOfWeek();
+                    $endOfWeek = $currentTime->endOfWeek();
+                    $records = HistoryKwh::whereBetween('waktu', [$startOfWeek, $endOfWeek])
+                        ->orderBy('waktu', 'asc')
+                        ->get();
+                    break;
+
+                case 'bulanan':
+                    $records = HistoryKwh::whereMonth('waktu', $currentMonth)
+                        ->whereYear('waktu', $currentYear)
+                        ->orderBy('waktu', 'asc')
+                        ->get();
+                    break;
+
+                default:
+                    $records = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
+                        ->orderBy('waktu', 'asc')
+                        ->get();
+            }
+
+            if ($records->isNotEmpty()) {
+                $maxPower = $records->max('daya');
+                $minPower = $records->min('daya');
+                $avgPower = $records->avg('daya');
+                $latestRecord = $records->last();
+
+                // Calculate kWh berdasarkan periode
+                $totalKwh = $this->calculateKwh($records);
+                $dailyKwh = $this->estimateDailyKwh($avgPower);
+                $weeklyKwh = $dailyKwh * 7;
+                $monthlyKwh = $dailyKwh * 30;
+
+                $source = 'database';
+                $lastUpdate = Carbon::parse($latestRecord->waktu)->setTimezone('Asia/Jakarta');
+            } else {
+                // Fallback to demo values
+                $maxPower = $this->generateCurrentPowerDemo() + rand(50, 100);
+                $minPower = $this->generateCurrentPowerDemo() - rand(20, 50);
+                $avgPower = $this->generateCurrentPowerDemo();
+                $totalKwh = $this->generateDemoKwh();
+                $dailyKwh = $totalKwh;
+                $weeklyKwh = $dailyKwh * 7;
+                $monthlyKwh = $dailyKwh * 30;
+
+                $source = 'demo';
+                $lastUpdate = $currentTime;
+            }
+
+            return response()->json([
+                'success' => true,
+                'period' => $period,
+                'max_power' => round($maxPower),
+                'min_power' => round($minPower),
+                'avg_power' => round($avgPower),
+                'total_kwh' => round($totalKwh, 2),
+                'daily_kwh' => round($dailyKwh, 2),
+                'weekly_kwh' => round($weeklyKwh, 2),
+                'monthly_kwh' => round($monthlyKwh, 2),
+                'last_update' => $lastUpdate->format('H:i:s'),
+                'period_info' => $this->getPeriodUsageInfo($period),
+                'source' => $source,
+                'total_records' => $records->count()
+            ]);
+        } catch (\Exception $e) {
+            // Return demo values on error
+            $currentTime = Carbon::now('Asia/Jakarta');
+            $demoPower = $this->generateCurrentPowerDemo();
+
+            return response()->json([
+                'success' => true,
+                'period' => $period,
+                'max_power' => $demoPower + 100,
+                'min_power' => $demoPower - 50,
+                'avg_power' => $demoPower,
+                'total_kwh' => $this->generateDemoKwh(),
+                'daily_kwh' => $this->generateDemoKwh(),
+                'weekly_kwh' => $this->generateDemoKwh() * 7,
+                'monthly_kwh' => $this->generateDemoKwh() * 30,
+                'last_update' => $currentTime->format('H:i:s'),
+                'period_info' => $this->getPeriodUsageInfo($period),
+                'source' => 'error_fallback',
+                'error_message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get period usage information
+     */
+    private function getPeriodUsageInfo($period)
+    {
+        $currentTime = Carbon::now('Asia/Jakarta');
+
+        switch ($period) {
+            case 'harian':
+                return "Data penggunaan listrik hari ini (" . $currentTime->format('d F Y') . ")";
+            case 'mingguan':
+                return "Data penggunaan listrik minggu ini (periode " . $currentTime->startOfWeek()->format('d') . "-" . $currentTime->endOfWeek()->format('d F Y') . ")";
+            case 'bulanan':
+                return "Data penggunaan listrik bulan " . $currentTime->format('F Y');
+            default:
+                return "Data penggunaan listrik periode {$period}";
+        }
+    }
+
+    /**
+     * Estimate daily kWh from average power
+     */
+    private function estimateDailyKwh($avgPower)
+    {
+        return ($avgPower * 24) / 1000; // Convert W*h to kWh
     }
 }

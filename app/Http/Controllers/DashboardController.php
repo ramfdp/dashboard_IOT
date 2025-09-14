@@ -28,8 +28,10 @@ class DashboardController extends Controller
         $users = User::with('roles')->get();
         $divisions = Divisi::all();
 
-        // Get data KWH with formatted time in Indonesia timezone
+        // Get data KWH for today only with formatted time in Indonesia timezone
+        $today = Carbon::now('Asia/Jakarta')->toDateString();
         $dataKwh = HistoryKwh::select('waktu', 'daya')
+            ->whereDate('waktu', $today)
             ->orderBy('waktu', 'asc')
             ->get()
             ->map(function ($item) {
@@ -39,6 +41,14 @@ class DashboardController extends Controller
                     ->format('H:i');
                 return $item;
             });
+
+        // If we have too many data points (more than 50), sample them for better chart readability
+        if ($dataKwh->count() > 50) {
+            $step = intval($dataKwh->count() / 50); // Take every nth record
+            $dataKwh = $dataKwh->filter(function ($item, $key) use ($step) {
+                return $key % $step === 0;
+            })->values();
+        }
 
         // If no data exists, create demo data with realistic electricity usage pattern
         if ($dataKwh->isEmpty()) {

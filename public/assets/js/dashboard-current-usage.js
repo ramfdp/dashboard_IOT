@@ -30,10 +30,10 @@ class DashboardCurrentUsage {
             }
 
             const result = await response.json();
-            
+
             if (result.success) {
                 this.updateCurrentUsageDisplay(result);
-                
+
                 console.log('Current usage updated:', {
                     current_power: result.current_power,
                     total_kwh: result.total_kwh_today,
@@ -89,14 +89,14 @@ class DashboardCurrentUsage {
         const currentValue = parseFloat(element.textContent.replace(/[^\d.]/g, '')) || 0;
         const increment = (targetValue - currentValue) / 20;
         let current = currentValue;
-        
+
         const timer = setInterval(() => {
             current += increment;
             if ((increment > 0 && current >= targetValue) || (increment < 0 && current <= targetValue)) {
                 current = targetValue;
                 clearInterval(timer);
             }
-            
+
             if (unit === 'kWh') {
                 element.textContent = `${current.toFixed(2)} ${unit}`;
             } else {
@@ -118,7 +118,7 @@ class DashboardCurrentUsage {
         // Create new indicator
         const indicator = document.createElement('div');
         indicator.className = 'usage-source-indicator text-center mt-2';
-        
+
         let badgeClass = 'bg-light text-dark';
         let iconClass = 'fa-database';
         let text = '';
@@ -200,7 +200,7 @@ class DashboardCurrentUsage {
 
     showError(message) {
         console.error('Current Usage Error:', message);
-        
+
         // Show error in current usage card
         const currentUsageCard = document.querySelector('#currentPower').closest('.card');
         if (currentUsageCard) {
@@ -208,7 +208,7 @@ class DashboardCurrentUsage {
             if (errorBadge) {
                 errorBadge.remove();
             }
-            
+
             const errorElement = document.createElement('div');
             errorElement.className = 'usage-error-badge text-center mt-2';
             errorElement.innerHTML = `
@@ -216,9 +216,9 @@ class DashboardCurrentUsage {
                     <i class="fa fa-exclamation-circle me-1"></i>${message}
                 </small>
             `;
-            
+
             currentUsageCard.querySelector('.card-body').appendChild(errorElement);
-            
+
             // Auto remove error after 10 seconds
             setTimeout(() => {
                 if (errorElement.parentNode) {
@@ -236,8 +236,8 @@ class DashboardCurrentUsage {
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     window.dashboardCurrentUsage = new DashboardCurrentUsage();
-    
+
     console.log('Dashboard Current Usage initialized');
 });

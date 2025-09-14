@@ -164,7 +164,10 @@
             <div class="col-md-12">
                 <div class="panel panel-inverse shadow-sm rounded-lg w-100 mb-4">
                     <div class="panel-heading d-flex justify-content-between align-items-center bg-black text-white p-3 rounded-top">
-                        <h6 class="panel-title mb-0">Penggunaan Listrik</h6>
+                        <h6 class="panel-title mb-0">
+                            <i class="fa fa-chart-line me-2"></i>Penggunaan Listrik Hari Ini
+                            <small class="text-muted ms-2">{{ \Carbon\Carbon::now('Asia/Jakarta')->format('d F Y') }}</small>
+                        </h6>
                     </div>
                     <div class="panel-body p-4 bg-dark text-white rounded-bottom">
                         <div class="row" style="overflow-x: auto; background-color: #1e1e1e; border-radius: 8px;">
@@ -233,7 +236,7 @@
                         <div class="col-md-12">
                             <div class="card bg-primary text-white border-0 shadow-sm">
                                 <div class="card-header">
-                                    <h6 class="card-title mb-0"><i class="fa fa-bolt me-2"></i>Penggunaan Saat Ini</h6>
+                                    <h6 class="card-title mb-0"><i class="fa fa-bolt me-2"></i>Penggunaan Listrik</h6>
                                 </div>
                                 <div class="card-body">
                                     <div class="row text-center">

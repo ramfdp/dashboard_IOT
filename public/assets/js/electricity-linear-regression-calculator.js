@@ -29,11 +29,11 @@ class LinearRegressionPredictor {
 
             // Calculate linear regression
             const regression = this.calculateLinearRegression(dataPoints);
-            
+
             // Predict future value
             const futureX = dataPoints.length + (targetHours / 24) * dataPoints.length;
             const prediction = regression.slope * futureX + regression.intercept;
-            
+
             // Ensure prediction is reasonable (between 50W and 800W)
             const adjustedPrediction = Math.max(50, Math.min(800, Math.abs(prediction)));
 
@@ -78,7 +78,7 @@ class ElectricityLinearRegressionCalculator {
         this.chart = null;
         this.chartData = [];
         this.chartManager = chartManager;
-        
+
         // Use existing chart manager or create new one
         if (this.chartManager) {
             console.log('ChartManager used for Linear Regression calculator initialization');
@@ -86,7 +86,7 @@ class ElectricityLinearRegressionCalculator {
 
         // Initialize linear regression predictor
         this.linearPredictor = null;
-        
+
         // Electricity analysis configurations
         this.analysisConfig = {
             predictions: {
@@ -116,7 +116,7 @@ class ElectricityLinearRegressionCalculator {
 
         // Create loading state
         this.showLoadingState();
-        
+
         // Initialize with delay to ensure DOM is ready
         setTimeout(async () => {
             await this.initializeLinearRegressionModel();
@@ -140,7 +140,7 @@ class ElectricityLinearRegressionCalculator {
                     setTimeout(waitForLinearRegression, 100);
                 }
             };
-            
+
             waitForLinearRegression();
         } catch (error) {
             console.error('Failed to initialize Linear Regression model:', error);
@@ -157,24 +157,24 @@ class ElectricityLinearRegressionCalculator {
 
             // Generate realistic electricity data if no data available
             const electricityData = await this.getElectricityData();
-            
+
             if (!electricityData || electricityData.length === 0) {
                 throw new Error('No electricity data available');
             }
 
             this.chartData = electricityData;
-            
+
             // Perform linear regression analysis
             await this.performLinearRegressionAnalysis();
-            
+
             // Create visualization
             this.createElectricityChart();
-            
+
             // Update summary statistics
             this.updateSummaryStatistics();
-            
+
             console.log('Linear Regression analysis completed successfully');
-            
+
         } catch (error) {
             console.error('Failed to load electricity data:', error);
             this.showErrorState('Failed to load electricity data: ' + error.message);
@@ -215,11 +215,11 @@ class ElectricityLinearRegressionCalculator {
     generateRealisticElectricityData() {
         const data = [];
         const now = new Date();
-        
+
         for (let i = 23; i >= 0; i--) {
             const time = new Date(now.getTime() - (i * 60 * 60 * 1000));
             const hour = time.getHours();
-            
+
             // Generate realistic power consumption based on time
             let power;
             if (hour >= 7 && hour <= 18) {
@@ -229,7 +229,7 @@ class ElectricityLinearRegressionCalculator {
                 // Night hours: 120-180W
                 power = 120 + Math.random() * 60;
             }
-            
+
             data.push({
                 waktu: time.toISOString(),
                 daya: Math.round(power),
@@ -239,7 +239,7 @@ class ElectricityLinearRegressionCalculator {
                 })
             });
         }
-        
+
         return data;
     }
 
@@ -254,14 +254,14 @@ class ElectricityLinearRegressionCalculator {
         try {
             // Get predictions for different time horizons
             this.predictions = {};
-            
+
             for (const hours of this.analysisConfig.predictions.hours) {
                 const result = await this.linearPredictor.predict(this.chartData, hours);
                 this.predictions[hours] = result;
             }
-            
+
             console.log('Linear regression predictions:', this.predictions);
-            
+
         } catch (error) {
             console.error('Linear regression analysis failed:', error);
             throw error;
@@ -279,7 +279,7 @@ class ElectricityLinearRegressionCalculator {
         }
 
         const ctx = canvas.getContext('2d');
-        
+
         // Destroy existing chart
         if (this.chart) {
             this.chart.destroy();
@@ -288,7 +288,7 @@ class ElectricityLinearRegressionCalculator {
         // Prepare chart data
         const labels = this.chartData.map(item => item.waktu_formatted);
         const powerData = this.chartData.map(item => item.daya);
-        
+
         // Add prediction point
         const prediction24h = this.predictions[24];
         if (prediction24h) {
@@ -310,9 +310,9 @@ class ElectricityLinearRegressionCalculator {
                     tension: 0.4
                 }, {
                     label: 'Prediksi Linear Regression',
-                    data: [null, null, null, null, null, null, null, null, 
-                           null, null, null, null, null, null, null, null,
-                           null, null, null, null, null, null, null, powerData[powerData.length - 1]],
+                    data: [null, null, null, null, null, null, null, null,
+                        null, null, null, null, null, null, null, null,
+                        null, null, null, null, null, null, null, powerData[powerData.length - 1]],
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.1)',
                     borderWidth: 3,
@@ -371,21 +371,21 @@ class ElectricityLinearRegressionCalculator {
             const avgPower = currentData.reduce((sum, val) => sum + val, 0) / currentData.length;
             const maxPower = Math.max(...currentData);
             const minPower = Math.min(...currentData);
-            
+
             // Get 24h prediction
             const prediction24h = this.predictions[24] || { prediction: 0 };
-            
+
             // Update DOM elements
             this.updateElementText('avgPowerConsumption', `${Math.round(avgPower)} W`);
             this.updateElementText('maxPowerConsumption', `${maxPower} W`);
             this.updateElementText('minPowerConsumption', `${minPower} W`);
             this.updateElementText('prediction24h', `${prediction24h.prediction} W`);
-            
+
             // Update algorithm info
             this.updateElementText('algorithmUsed', 'Linear Regression');
-            
+
             console.log('Summary statistics updated');
-            
+
         } catch (error) {
             console.error('Failed to update summary statistics:', error);
         }
@@ -459,10 +459,10 @@ class ElectricityLinearRegressionCalculator {
                 minPower: Math.min(...this.chartData.map(item => item.daya))
             }
         };
-        
+
         const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `electricity-analysis-linear-regression-${new Date().toISOString().split('T')[0]}.json`;
@@ -485,11 +485,11 @@ class ElectricityLinearRegressionCalculator {
 window.ElectricityLinearRegressionCalculator = ElectricityLinearRegressionCalculator;
 
 // Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Check if we should initialize the calculator
     if (document.getElementById('electricityAnalysisChart')) {
         console.log('Initializing Electricity Linear Regression Calculator...');
-        
+
         // Initialize with slight delay to ensure all dependencies are loaded
         setTimeout(() => {
             window.electricityCalculator = new ElectricityLinearRegressionCalculator();

@@ -25,6 +25,9 @@ class DashboardPeriodAnalysis {
                 this.currentPeriod = e.target.value;
                 this.loadPeriodData();
                 this.updatePeriodInfo();
+
+                // Trigger update untuk section penggunaan listrik
+                this.updateUsageSection();
             });
         }
     }
@@ -44,12 +47,15 @@ class DashboardPeriodAnalysis {
             }
 
             const result = await response.json();
-            
+
             if (result.success) {
                 this.updatePeriodDisplay(result);
                 this.updateChart(result);
                 this.updateStatistics(result);
-                
+
+                // Update section penggunaan listrik dengan periode yang dipilih
+                this.updateUsageSectionWithPeriodData();
+
                 console.log('Period data loaded:', {
                     period: result.period,
                     source: result.source,
@@ -88,7 +94,7 @@ class DashboardPeriodAnalysis {
     createSourceIndicator(source, currentMonth) {
         const indicator = document.createElement('div');
         indicator.className = 'source-indicator mt-2 p-2 rounded';
-        
+
         let badgeClass = 'bg-success';
         let iconClass = 'fa-database';
         let text = '';
@@ -182,7 +188,7 @@ class DashboardPeriodAnalysis {
         if (!data.data || data.data.length === 0) return;
 
         const stats = this.calculateStatistics(data.data);
-        
+
         // Update detailed statistics
         const elements = {
             'dayaTertinggi': `${stats.max} W`,
@@ -199,6 +205,171 @@ class DashboardPeriodAnalysis {
                 element.textContent = value;
             }
         });
+    }
+
+    /**
+     * Update section penggunaan listrik berdasarkan periode yang dipilih
+     */
+    updateUsageSectionWithPeriodData() {
+        // Panggil API untuk mendapatkan data usage berdasarkan periode
+        this.fetchUsageByPeriod();
+    }
+
+    /**
+     * Fetch usage data berdasarkan periode yang dipilih
+     */
+    async fetchUsageByPeriod() {
+        try {
+            console.log(`Fetching usage data for period: ${this.currentPeriod}`);
+
+            const response = await fetch(`/api/electricity/usage-by-period?period=${this.currentPeriod}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('Response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('Usage API Response:', result);
+
+            if (result.success) {
+                this.updateUsageDisplay(result);
+
+                console.log('Usage data by period loaded:', {
+                    period: result.period,
+                    source: result.source,
+                    records: result.total_records,
+                    max_power: result.max_power,
+                    avg_power: result.avg_power
+                });
+            } else {
+                console.error('Failed to load usage by period:', result.message);
+            }
+        } catch (error) {
+            console.error('Error loading usage by period:', error);
+
+            // Fallback display
+            const currentPowerElement = document.getElementById('currentPower');
+            const lastUpdateElement = document.getElementById('lastUpdateTime');
+
+            if (currentPowerElement) {
+                currentPowerElement.textContent = 'Error';
+            }
+            if (lastUpdateElement) {
+                lastUpdateElement.textContent = 'Error loading data';
+            }
+        }
+    }
+
+    /**
+     * Update tampilan section penggunaan listrik
+     */
+    updateUsageDisplay(data) {
+        console.log('updateUsageDisplay called with:', data);
+        console.log('Current period:', this.currentPeriod);
+
+        // Update power displays berdasarkan periode
+        const currentPowerElement = document.getElementById('currentPower');
+        const averagePowerElement = document.getElementById('averagePower');
+        const todayKwhElement = document.getElementById('todayKwh');
+
+        console.log('DOM Elements:', {
+            currentPowerElement: !!currentPowerElement,
+            averagePowerElement: !!averagePowerElement,
+            todayKwhElement: !!todayKwhElement
+        });
+
+        if (currentPowerElement && averagePowerElement && todayKwhElement) {
+            let powerLabel = '';
+            let avgLabel = '';
+            let energyLabel = '';
+            let energyValue = '';
+
+            switch (this.currentPeriod) {
+                case 'harian':
+                    powerLabel = 'Daya Puncak';
+                    avgLabel = 'Rata-rata Hari';
+                    energyLabel = 'Total Hari Ini';
+                    energyValue = `${data.daily_kwh} kWh`;
+                    currentPowerElement.textContent = `${data.max_power} W`;
+                    averagePowerElement.textContent = `${data.avg_power} W`;
+                    break;
+                case 'mingguan':
+                    powerLabel = 'Daya Puncak';
+                    avgLabel = 'Rata-rata Minggu';
+                    energyLabel = 'Total Minggu';
+                    energyValue = `${data.weekly_kwh} kWh`;
+                    currentPowerElement.textContent = `${data.max_power} W`;
+                    averagePowerElement.textContent = `${data.avg_power} W`;
+                    break;
+                case 'bulanan':
+                    powerLabel = 'Daya Puncak';
+                    avgLabel = 'Rata-rata Bulan';
+                    energyLabel = 'Total Bulan';
+                    energyValue = `${data.monthly_kwh} kWh`;
+                    currentPowerElement.textContent = `${data.max_power} W`;
+                    averagePowerElement.textContent = `${data.avg_power} W`;
+                    break;
+            }
+
+            // Update energy value
+            todayKwhElement.textContent = energyValue;
+
+            // Update labels dengan cara yang lebih aman
+            const currentPowerContainer = currentPowerElement.parentElement;
+            const averagePowerContainer = averagePowerElement.parentElement;
+            const energyContainer = todayKwhElement.parentElement;
+
+            if (currentPowerContainer) {
+                const currentLabel = currentPowerContainer.querySelector('small');
+                if (currentLabel) currentLabel.textContent = powerLabel;
+            }
+
+            if (averagePowerContainer) {
+                const avgLabelElement = averagePowerContainer.querySelector('small');
+                if (avgLabelElement) avgLabelElement.textContent = avgLabel;
+            }
+
+            if (energyContainer) {
+                const energyLabelElement = energyContainer.querySelector('small');
+                if (energyLabelElement) energyLabelElement.textContent = energyLabel;
+            }
+        }
+
+        // Update last update time dengan periode info
+        const lastUpdateElement = document.getElementById('lastUpdateTime');
+        if (lastUpdateElement) {
+            lastUpdateElement.textContent = `Update: ${data.last_update} (${data.period_info})`;
+        }
+
+        // Update header card title
+        const usageCard = document.querySelector('#currentPower').closest('.card');
+        if (usageCard) {
+            const usageCardTitle = usageCard.querySelector('.card-title');
+            if (usageCardTitle) {
+                const periodTitles = {
+                    'harian': 'Penggunaan Listrik - Hari Ini',
+                    'mingguan': 'Penggunaan Listrik - Minggu Ini',
+                    'bulanan': 'Penggunaan Listrik - Bulan Ini'
+                };
+                usageCardTitle.innerHTML = `<i class="fa fa-bolt me-2"></i>${periodTitles[this.currentPeriod] || 'Penggunaan Listrik'}`;
+            }
+        }
+    }
+
+    /**
+     * Trigger manual update untuk section penggunaan listrik
+     */
+    updateUsageSection() {
+        // Load data periode untuk update penggunaan listrik
+        this.loadPeriodData();
     }
 
     calculateStatistics(data) {
@@ -224,11 +395,11 @@ class DashboardPeriodAnalysis {
     updatePeriodInfo() {
         const periodeInfo = document.getElementById('periodeInfo');
         if (periodeInfo) {
-            const currentMonth = new Date().toLocaleDateString('id-ID', { 
-                month: 'long', 
-                year: 'numeric' 
+            const currentMonth = new Date().toLocaleDateString('id-ID', {
+                month: 'long',
+                year: 'numeric'
             });
-            
+
             let infoText = '';
             switch (this.currentPeriod) {
                 case 'harian':
@@ -241,7 +412,7 @@ class DashboardPeriodAnalysis {
                     infoText = `Menampilkan data konsumsi listrik untuk ${currentMonth}`;
                     break;
             }
-            
+
             periodeInfo.textContent = infoText;
         }
     }
@@ -281,7 +452,7 @@ class DashboardPeriodAnalysis {
 
     showError(message) {
         console.error('Period Analysis Error:', message);
-        
+
         // Show error badge
         const periodCard = document.querySelector('#periodePerhitungan').closest('.card');
         if (periodCard) {
@@ -289,7 +460,7 @@ class DashboardPeriodAnalysis {
             if (errorBadge) {
                 errorBadge.remove();
             }
-            
+
             const errorElement = document.createElement('div');
             errorElement.className = 'error-badge mt-2';
             errorElement.innerHTML = `
@@ -297,7 +468,7 @@ class DashboardPeriodAnalysis {
                     <i class="fa fa-exclamation-circle me-1"></i>${message}
                 </span>
             `;
-            
+
             periodCard.querySelector('.card-body').appendChild(errorElement);
         }
     }
@@ -313,7 +484,7 @@ class DashboardPeriodAnalysis {
 }
 
 // Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     if (typeof Chart !== 'undefined') {
         window.dashboardPeriodAnalysis = new DashboardPeriodAnalysis();
     } else {

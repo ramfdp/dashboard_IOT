@@ -1,19 +1,24 @@
 # Migration from KNN to Linear Regression
 
 ## Overview
+
 Proyek dashboard IoT telah dimigrasi dari menggunakan K-Nearest Neighbors (KNN) ke Linear Regression untuk prediksi konsumsi listrik.
 
 ## Changes Made
 
 ### 1. Files Removed
+
 - `public/assets/js/electricity-knn-calculator.js` - File KNN calculator yang lama
 
 ### 2. Files Added
+
 - `public/assets/js/electricity-linear-regression-calculator.js` - Calculator baru dengan Linear Regression
 - `public/assets/js/linear-regression-integration.js` - Script integrasi dengan UI dashboard
 
 ### 3. Files Modified
+
 - `resources/views/pages/dashboard-v1.blade.php`
+
   - Menghapus referensi TensorFlow.js scripts
   - Mengubah dari KNN ke Linear Regression calculator
   - Update judul modal dari "Prediksi Cerdas" ke "Prediksi Linear Regression"
@@ -23,12 +28,14 @@ Proyek dashboard IoT telah dimigrasi dari menggunakan K-Nearest Neighbors (KNN) 
   - Update komentar untuk mereferensi Linear Regression
 
 ### 4. Dependencies Removed
+
 - TensorFlow.js tidak lagi diperlukan
 - Scripts TensorFlow di HTML telah di-comment atau dihapus
 
 ## Benefits of Linear Regression
 
 ### Advantages:
+
 1. **Lightweight**: Tidak memerlukan TensorFlow.js library yang besar
 2. **Fast**: Komputasi lebih cepat dan efisien
 3. **Interpretable**: Model lebih mudah dipahami dan dijelaskan
@@ -36,6 +43,7 @@ Proyek dashboard IoT telah dimigrasi dari menggunakan K-Nearest Neighbors (KNN) 
 5. **No External Dependencies**: Menggunakan pure JavaScript
 
 ### Features:
+
 1. **Simple Predictions**: Hanya menampilkan hasil prediksi yang diperlukan
 2. **Multiple Time Horizons**: Prediksi untuk 1, 6, 12, dan 24 jam
 3. **Realistic Bounds**: Prediksi dibatasi antara 50W-800W untuk hasil realistis
@@ -44,6 +52,7 @@ Proyek dashboard IoT telah dimigrasi dari menggunakan K-Nearest Neighbors (KNN) 
 ## Algorithm Details
 
 ### Linear Regression Implementation:
+
 - **Input**: Historical power consumption data
 - **Output**: Future power prediction with confidence level
 - **Method**: Least squares regression
@@ -51,6 +60,7 @@ Proyek dashboard IoT telah dimigrasi dari menggunakan K-Nearest Neighbors (KNN) 
 - **Bounds**: Prediksi dibatasi untuk nilai realistis
 
 ### Calculation Formula:
+
 ```
 y = mx + b
 where:
@@ -65,6 +75,7 @@ Output: Simple prediction value only
 ## Usage
 
 ### JavaScript API:
+
 ```javascript
 // Initialize predictor
 const predictor = new LinearRegressionPredictor();
@@ -75,6 +86,7 @@ const result = await predictor.predict(historicalData, 24);
 ```
 
 ### UI Integration:
+
 - Prediksi otomatis ditampilkan di dashboard
 - Update setiap 30 detik
 - Modal analisis untuk detail lengkap
@@ -83,18 +95,21 @@ const result = await predictor.predict(historicalData, 24);
 ## Migration Impact
 
 ### Performance:
+
 - ✅ Improved loading speed (no TensorFlow.js)
 - ✅ Reduced bandwidth usage
 - ✅ Faster computation time
 - ✅ Lower memory footprint
 
 ### Functionality:
+
 - ✅ Maintains all prediction features
 - ✅ Better confidence calculation
 - ✅ Clearer trend analysis
 - ✅ More reliable results
 
 ### User Experience:
+
 - ✅ Faster page load
 - ✅ More responsive interface
 - ✅ Cleaner algorithm explanation
