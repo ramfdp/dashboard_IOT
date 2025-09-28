@@ -105,8 +105,7 @@ class RealTimePowerGenerator {
             frequency: 50.0 + (Math.random() - 0.5) * 0.5, // ±0.25Hz variation
             powerFactor: 0.85 + (Math.random() - 0.5) * 0.1, // ±0.05 variation
             timestamp: new Date().toISOString(),
-            building: 'PT Krakatau Sarana Property',
-            location: 'Cilegon, Banten'
+            location: 'PT Krakatau Sarana Property'
         };
 
         return this.currentData;

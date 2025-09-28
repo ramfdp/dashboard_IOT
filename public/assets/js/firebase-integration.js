@@ -195,8 +195,7 @@ class FirebaseIntegration {
                 ...data,
                 stored_at: firebase.database.ServerValue.TIMESTAMP,
                 client_timestamp: timestamp,
-                building: 'PT Krakatau Sarana Property',
-                location: 'Cilegon, Banten'
+                location: 'PT Krakatau Sarana Property'
             };
 
             // Store in multiple locations for different access patterns

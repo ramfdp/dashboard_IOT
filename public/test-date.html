@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Date Test</title>
+</head>
+<body>
+    <h1>JavaScript Date Test</h1>
+    <div id="current-date"></div>
+    <div id="server-date"></div>
+    
+    <script>
+        // JavaScript current date
+        const jsDate = new Date();
+        const realJsDate = new Date(Date.now());
+        
+        // Format in Indonesian
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            timeZone: 'Asia/Jakarta'
+        };
+        
+        const timeOptions = {
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone: 'Asia/Jakarta'
+        };
+        
+        const jsFormatted = jsDate.toLocaleDateString('id-ID', options) + ' - ' + jsDate.toLocaleTimeString('id-ID', timeOptions);
+        const realJsFormatted = realJsDate.toLocaleDateString('id-ID', options) + ' - ' + realJsDate.toLocaleTimeString('id-ID', timeOptions);
+        
+        document.getElementById('current-date').innerHTML = `
+            <h3>JavaScript Date (original):</h3>
+            <p>${jsFormatted}</p>
+            <h3>JavaScript Date (Date.now()):</h3>
+            <p>${realJsFormatted}</p>
+            <h3>Raw timestamp:</h3>
+            <p>${Date.now()}</p>
+            <h3>Browser timezone:</h3>
+            <p>${Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+        `;
+        
+        // Update every second
+        setInterval(() => {
+            const now = new Date(Date.now());
+            const formatted = now.toLocaleDateString('id-ID', options) + ' - ' + now.toLocaleTimeString('id-ID', timeOptions);
+            document.getElementById('current-date').querySelector('p:nth-child(4)').textContent = formatted;
+        }, 1000);
+        
+        // Fetch server time via API
+        fetch('/api/electricity/data?period=harian')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('server-date').innerHTML = `
+                    <h3>Server Response:</h3>
+                    <p>Current month: ${data.current_month}</p>
+                    <p>Debug info: ${JSON.stringify(data.debug)}</p>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('server-date').innerHTML = `<p>Error: ${error}</p>`;
+            });
+    </script>
+</body>
+</html>

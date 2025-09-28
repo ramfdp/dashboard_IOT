@@ -13,33 +13,23 @@ class Listrik extends Model
 
     protected $fillable = [
         'lokasi',
-        'voltage',
-        'current',
-        'power',
-        'energy',
-        'frequency',
-        'pf',
-        'timestamp',
-        'status',
-        // Indonesian field names for compatibility
         'tegangan',
         'arus',
         'daya',
         'energi',
         'frekuensi',
         'power_factor',
-        'source',
+        'status',
         'metadata'
     ];
 
     protected $casts = [
-        'voltage' => 'float',
-        'current' => 'float',
-        'power' => 'float',
-        'energy' => 'float',
-        'frequency' => 'float',
-        'pf' => 'float',
-        'timestamp' => 'datetime',
+        'tegangan' => 'float',
+        'arus' => 'float',
+        'daya' => 'float',
+        'energi' => 'float',
+        'frekuensi' => 'float',
+        'power_factor' => 'float',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];

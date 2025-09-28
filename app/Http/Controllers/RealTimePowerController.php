@@ -48,13 +48,7 @@ class RealTimePowerController extends Controller
                 'frekuensi' => $data['frekuensi'] ?? 50.0,
                 'power_factor' => $data['power_factor'] ?? 0.85,
                 'lokasi' => $data['lokasi'] ?? 'PT Krakatau Sarana Property',
-                'status' => 'active',
-                'source' => 'real_time_generator',
-                'metadata' => json_encode([
-                    'building' => $data['building'] ?? 'PT Krakatau Sarana Property',
-                    'generator_timestamp' => $data['timestamp'] ?? now()->toISOString(),
-                    'generated_by' => 'RealTimePowerGenerator'
-                ])
+                'status' => 'active'
             ]);
 
             // Store in history table (HistoryKwh) for historical analysis

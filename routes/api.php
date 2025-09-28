@@ -110,3 +110,19 @@ Route::prefix('pln')->group(function () {
     Route::get('/hourly-consumption', [ApiElectricityDataController::class, 'getHourlyConsumption']);
     Route::get('/daily-summary', [ApiElectricityDataController::class, 'getDailySummary']);
 });
+
+// User Management API Routes
+Route::prefix('users')->group(function () {
+    Route::get('/', [App\Http\Controllers\Api\UserController::class, 'index']);
+    Route::post('/', [App\Http\Controllers\Api\UserController::class, 'store']);
+    Route::get('/statistics', [App\Http\Controllers\Api\UserController::class, 'statistics']);
+    Route::get('/{id}', [App\Http\Controllers\Api\UserController::class, 'show']);
+    Route::put('/{id}', [App\Http\Controllers\Api\UserController::class, 'update']);
+    Route::delete('/{id}', [App\Http\Controllers\Api\UserController::class, 'destroy']);
+});
+
+// Additional Sensor API Routes (completing existing sensor routes)
+Route::prefix('sensors')->group(function () {
+    Route::get('/', [SensorController::class, 'index']);
+    Route::get('/summary', [SensorController::class, 'summary']);
+});

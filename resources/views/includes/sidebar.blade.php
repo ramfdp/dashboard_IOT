@@ -41,13 +41,24 @@
 			
 			@php
 				$currentUrl = (Request::path() != '/') ? '/'. Request::path() : '/';
+				// Get user role, default to 'user' if no role found
+				$userRole = 'user'; // default
+				if (Auth::user()) {
+					$roles = Auth::user()->getRoleNames();
+					$userRole = $roles->isNotEmpty() ? $roles->first() : 'user';
+				}
 				
-				function renderSubMenu($value, $currentUrl) {
+				function renderSubMenu($value, $currentUrl, $userRole) {
 					$subMenu = '';
 					$GLOBALS['sub_level'] += 1 ;
 					$GLOBALS['active'][$GLOBALS['sub_level']] = '';
 					$currentLevel = $GLOBALS['sub_level'];
 					foreach ($value as $key => $menu) {
+						// Check permission for submenu
+						if (!empty($menu['permissions']) && !in_array($userRole, $menu['permissions'])) {
+							continue; // Skip this menu item if user doesn't have permission
+						}
+						
 						$GLOBALS['subparent_level'] = '';
 						
 						$subSubMenu = '';
@@ -58,7 +69,7 @@
 						
 						if (!empty($menu['sub_menu'])) {
 							$subSubMenu .= '<div class="menu-submenu">';
-							$subSubMenu .= renderSubMenu($menu['sub_menu'], $currentUrl);
+							$subSubMenu .= renderSubMenu($menu['sub_menu'], $currentUrl, $userRole);
 							$subSubMenu .= '</div>';
 						}
 						
@@ -82,6 +93,11 @@
 				}
 				
 				foreach (config('sidebar.menu') as $key => $menu) {
+					// Check permission for main menu
+					if (!empty($menu['permissions']) && !in_array($userRole, $menu['permissions'])) {
+						continue; // Skip this menu item if user doesn't have permission
+					}
+					
 					$GLOBALS['parent_active'] = '';
 					
 					$hasSub = (!empty($menu['sub_menu'])) ? 'has-sub' : '';
@@ -97,7 +113,7 @@
 					if (!empty($menu['sub_menu'])) {
 						$GLOBALS['sub_level'] = 0;
 						$subMenu .= '<div class="menu-submenu">';
-						$subMenu .= renderSubMenu($menu['sub_menu'], $currentUrl);
+						$subMenu .= renderSubMenu($menu['sub_menu'], $currentUrl, $userRole);
 						$subMenu .= '</div>';
 					}
 					$active = (!empty($menu['route-name']) && (Route::currentRouteName() == $menu['route-name'])) ? 'active' : '';

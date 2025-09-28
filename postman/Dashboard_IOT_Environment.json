@@ -1,0 +1,37 @@
+{
+  "id": "dashboard-iot-env",
+  "name": "Dashboard IOT - Development",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "laravelUrl",
+      "value": "http://dashboard_iot.test",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "location",
+      "value": "PT Krakatau Sarana Property",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "user_id",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "timestamp",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

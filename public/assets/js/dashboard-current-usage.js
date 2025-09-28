@@ -50,6 +50,17 @@ class DashboardCurrentUsage {
         }
     }
 
+    /**
+     * Start auto-update interval untuk current usage
+     */
+    startAutoUpdate() {
+        // Update every 15 seconds for current usage
+        this.updateInterval = setInterval(() => {
+            console.log('🔄 Auto-updating current usage...');
+            this.loadCurrentUsage();
+        }, 15 * 1000); // Update setiap 15 detik
+    }
+
     updateCurrentUsageDisplay(data) {
         // Update current power
         const currentPowerElement = document.getElementById('currentPower');

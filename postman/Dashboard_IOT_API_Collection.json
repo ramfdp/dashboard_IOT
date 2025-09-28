@@ -1,0 +1,516 @@
+{
+  "info": {
+    "name": "Dashboard IOT - PZEM Sensor API",
+    "description": "Complete API Collection for PZEM Sensor Management with 18,148 real data records (July-September 2025)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "location",
+      "value": "PT Krakatau Sarana Property",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "PZEM Sensor Management",
+      "item": [
+        {
+          "name": "1. Get All Sensor Data (Latest 100)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensors"
+              ]
+            },
+            "description": "Mengambil 100 data sensor PZEM terbaru dari 18,148 total records (Juli-September 2025)"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sensors",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sensors"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 18117,\n      \"lokasi\": \"PT Krakatau Sarana Property\",\n      \"tegangan\": 210.5,\n      \"arus\": 5.71,\n      \"daya\": 1057,\n      \"energi\": 31.34,\n      \"frekuensi\": 49.7,\n      \"power_factor\": 0.88,\n      \"status\": \"active\",\n      \"metadata\": \"{\\\"sensor_type\\\":\\\"PZEM-004T\\\",\\\"location_detail\\\":\\\"Main Power Line\\\",\\\"measurement_interval\\\":\\\"5_minutes\\\"}\",\n      \"created_at\": \"2025-09-14T14:40:00.000000Z\",\n      \"updated_at\": \"2025-09-14T14:40:00.000000Z\"\n    }\n  ],\n  \"count\": 100\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. Get Sensor Summary Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensors/summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensors",
+                "summary"
+              ]
+            },
+            "description": "Mendapatkan ringkasan statistik dari 18,148 data sensor PZEM"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sensors/summary",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sensors",
+                    "summary"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"total_power\": 16382652,\n  \"total_energy\": 461624.77,\n  \"avg_voltage\": 219.91,\n  \"avg_current\": 4.85,\n  \"latest_power\": 338,\n  \"latest_voltage\": 210.6,\n  \"latest_current\": 1.61,\n  \"latest_energy\": 0.01,\n  \"data_count\": 18148,\n  \"location\": \"PT Krakatau Sarana Property\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "3. Get Latest Sensor Reading",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensor/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensor",
+                "latest"
+              ]
+            },
+            "description": "Mengambil data sensor PZEM terbaru (record terakhir)"
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sensor/latest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sensor",
+                    "latest"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"tegangan\": 222.7,\n  \"arus\": 1.03,\n  \"daya\": 199,\n  \"energi\": 42.34,\n  \"frekuensi\": 50.5,\n  \"power_factor\": 0.87,\n  \"lokasi\": \"PT Krakatau Sarana Property\",\n  \"status\": \"active\",\n  \"datetime\": \"2025-09-14T16:55:00.000000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "4. Create New Sensor Data (Indonesian Fields) - TESTED ✅",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lokasi\": \"PT Krakatau Sarana Property\",\n  \"tegangan\": 220.5,\n  \"arus\": 5.2,\n  \"daya\": 1140,\n  \"energi\": 15.5,\n  \"frekuensi\": 50.0,\n  \"power_factor\": 0.85\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://127.0.0.1:8000/api/sensor",
+              "protocol": "http",
+              "host": [
+                "127",
+                "0",
+                "0",
+                "1"
+              ],
+              "port": "8000",
+              "path": [
+                "api",
+                "sensor"
+              ]
+            },
+            "description": "✅ TESTED WORKING - Menyimpan data sensor PZEM baru menggunakan field Indonesia. API sudah diverifikasi bekerja via command line."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lokasi\": \"PT Krakatau Sarana Property\",\n  \"tegangan\": 220.5,\n  \"arus\": 5.2,\n  \"daya\": 1140,\n  \"energi\": 15.5,\n  \"frekuensi\": 50.0,\n  \"power_factor\": 0.85\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/sensor",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sensor"
+                  ]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Data listrik berhasil disimpan\",\n  \"data\": {\n    \"id\": 18149,\n    \"lokasi\": \"PT Krakatau Sarana Property\",\n    \"tegangan\": 220.5,\n    \"arus\": 5.2,\n    \"daya\": 1140,\n    \"energi\": 15.5,\n    \"frekuensi\": 50.0,\n    \"power_factor\": 0.85,\n    \"status\": \"active\",\n    \"metadata\": \"{\\\"sensor_type\\\":\\\"PZEM-004T\\\",\\\"source\\\":\\\"api_sensor\\\"}\",\n    \"created_at\": \"2025-09-28T15:30:00.000000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "5. Create New Sensor Data (Legacy English Fields)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lokasi\": \"{{location}}\",\n  \"voltage\": 220.5,\n  \"current\": 5.2,\n  \"power\": 1140,\n  \"energy\": 15.5,\n  \"frequency\": 50.0,\n  \"pf\": 0.85\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sensor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensor"
+              ]
+            },
+            "description": "Menyimpan data sensor PZEM baru menggunakan field English (Legacy Support)"
+          }
+        }
+      ],
+      "description": "Collection untuk mengelola data sensor PZEM dengan 18,148 data real Juli-September 2025"
+    },
+    {
+      "name": "Real-time Power Management",
+      "item": [
+        {
+          "name": "Store Real-time Power Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voltage\": 220.5,\n  \"current\": 5.2,\n  \"power\": 1140,\n  \"energy\": 15.5,\n  \"frequency\": 50.0,\n  \"pf\": 0.85,\n  \"location\": \"{{location}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/real-time-power",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "real-time-power"
+              ]
+            },
+            "description": "Endpoint untuk menyimpan data real-time power"
+          }
+        },
+        {
+          "name": "Get Latest Real-time Power",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/real-time-power/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "real-time-power",
+                "latest"
+              ]
+            },
+            "description": "Mengambil data real-time power terbaru"
+          }
+        },
+        {
+          "name": "Get Krakatau Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/realtime-power/krakatau-stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "realtime-power",
+                "krakatau-stats"
+              ]
+            },
+            "description": "Mengambil statistik khusus PT Krakatau Sarana Property"
+          }
+        }
+      ],
+      "description": "Collection untuk mengelola data real-time power"
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Mengambil semua data user dengan role information"
+          }
+        },
+        {
+          "name": "Create New User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"user\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Membuat user baru dengan role"
+          }
+        },
+        {
+          "name": "Get User Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "statistics"
+              ]
+            },
+            "description": "Mengambil statistik user (total, by role, etc.)"
+          }
+        }
+      ],
+      "description": "Collection untuk mengelola user dan role management"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set timestamp for requests",
+          "pm.environment.set('timestamp', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Basic response validation",
+          "pm.test('Status code should be 200 or 201', function () {",
+          "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+          "});",
+          "",
+          "pm.test('Response should be JSON', function () {",
+          "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "});",
+          "",
+          "if (pm.response.code === 200 || pm.response.code === 201) {",
+          "    pm.test('Response should have success property', function () {",
+          "        const responseJson = pm.response.json();",
+          "        pm.expect(responseJson).to.have.property('success');",
+          "        pm.expect(responseJson.success).to.be.true;",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ]
+}

@@ -9,6 +9,8 @@ class DashboardPeriodAnalysis {
         this.currentPeriod = 'harian';
         this.updateInterval = null;
         this.chart = null;
+        this.midnightResetInterval = null;
+        this.lastChartDate = new Date().toDateString();
         this.init();
     }
 
@@ -16,6 +18,7 @@ class DashboardPeriodAnalysis {
         this.setupEventListeners();
         this.loadPeriodData();
         this.startAutoUpdate();
+        this.setupMidnightReset();
     }
 
     setupEventListeners() {
@@ -34,11 +37,30 @@ class DashboardPeriodAnalysis {
 
     async loadPeriodData() {
         try {
-            const response = await fetch(`/api/electricity/data?period=${this.currentPeriod}`, {
+            // Show loading indicator
+            this.showLoadingIndicator(true);
+
+            // Add multiple timestamps untuk super strong cache-busting
+            const timestamp = new Date().getTime();
+            const randomNum = Math.random().toString(36).substring(7);
+            const url = `/api/electricity/data?period=${this.currentPeriod}&_t=${timestamp}&_r=${randomNum}&_force=${Date.now()}`;
+
+            console.log('🔄 Loading period data:', {
+                period: this.currentPeriod,
+                url: url,
+                timestamp: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
+            });
+
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                    'If-Modified-Since': 'Thu, 01 Jan 1970 00:00:00 GMT',
+                    'If-None-Match': timestamp.toString()
                 }
             });
 
@@ -47,8 +69,18 @@ class DashboardPeriodAnalysis {
             }
 
             const result = await response.json();
+            console.log('📥 API Response received:', result);
 
             if (result.success) {
+                console.log('✅ Data validation:', {
+                    hasData: !!(result.data && result.data.length > 0),
+                    dataCount: result.data ? result.data.length : 0,
+                    hasLabels: !!(result.labels && result.labels.length > 0),
+                    labelsCount: result.labels ? result.labels.length : 0,
+                    source: result.source,
+                    period: result.period
+                });
+
                 this.updatePeriodDisplay(result);
                 this.updateChart(result);
                 this.updateStatistics(result);
@@ -56,19 +88,24 @@ class DashboardPeriodAnalysis {
                 // Update section penggunaan listrik dengan periode yang dipilih
                 this.updateUsageSectionWithPeriodData();
 
-                console.log('Period data loaded:', {
+                // Hide loading indicator
+                this.showLoadingIndicator(false);
+
+                console.log('✅ Period data loaded successfully:', {
                     period: result.period,
                     source: result.source,
                     records: result.total_records,
                     current_month: result.current_month
                 });
             } else {
-                console.error('Failed to load period data:', result.message);
-                this.showError('Gagal memuat data periode');
+                this.showLoadingIndicator(false);
+                console.error('❌ API returned error:', result.message);
+                this.showError('Gagal memuat data periode: ' + result.message);
             }
         } catch (error) {
-            console.error('Error loading period data:', error);
-            this.showError('Error koneksi saat memuat data periode');
+            this.showLoadingIndicator(false);
+            console.error('❌ Error loading period data:', error);
+            this.showError('Error koneksi saat memuat data periode: ' + error.message);
         }
     }
 
@@ -127,21 +164,60 @@ class DashboardPeriodAnalysis {
     }
 
     updateChart(data) {
+        console.log('📊 updateChart called with data:', data);
+
         const canvas = document.getElementById('electricityChart');
-        if (!canvas) return;
+        if (!canvas) {
+            console.error('❌ Canvas element not found!');
+            return;
+        }
+
+        // Validate data
+        if (!data || !data.data || !Array.isArray(data.data) || data.data.length === 0) {
+            console.warn('⚠️ No chart data available:', data);
+
+            // Show empty chart message instead of failing silently
+            const ctx = canvas.getContext('2d');
+
+            // Destroy existing chart
+            if (this.chart) {
+                this.chart.destroy();
+                this.chart = null;
+            }
+
+            // Clear canvas and show message
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#6c757d';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Belum ada data untuk periode ini', canvas.width / 2, canvas.height / 2);
+            return;
+        }
+
+        console.log('✅ Chart data validation passed:', {
+            dataLength: data.data.length,
+            labelsLength: data.labels ? data.labels.length : 0,
+            firstData: data.data[0],
+            lastData: data.data[data.data.length - 1]
+        });
 
         const ctx = canvas.getContext('2d');
 
         // Destroy existing chart
         if (this.chart) {
+            console.log('🗑️ Destroying existing chart...');
             this.chart.destroy();
         }
 
-        // Create new chart
+        // Force canvas clear untuk memastikan tidak ada cache
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Create new chart dengan timestamp untuk mencegah caching
+        console.log('🎨 Creating new chart...');
         this.chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: data.labels,
+                labels: data.labels || [],
                 datasets: [{
                     label: 'Konsumsi Listrik (W)',
                     data: data.data,
@@ -155,6 +231,9 @@ class DashboardPeriodAnalysis {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1000 // Add animation to make updates visible
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -177,11 +256,19 @@ class DashboardPeriodAnalysis {
                     },
                     title: {
                         display: true,
-                        text: `Analisis Konsumsi Listrik - ${this.getPeriodTitle()}`
+                        text: `Monitoring Konsumsi Listrik - ${this.getRealtimeTitle()}`
                     }
                 }
             }
         });
+
+        // Update chart title with current time
+        if (this.chart && this.chart.options && this.chart.options.plugins && this.chart.options.plugins.title) {
+            this.chart.options.plugins.title.text = `Monitoring Konsumsi Listrik - ${this.getRealtimeTitle()}`;
+            this.chart.update('none'); // Update without animation
+        }
+
+        console.log('✅ Chart created successfully!');
     }
 
     updateStatistics(data) {
@@ -443,11 +530,283 @@ class DashboardPeriodAnalysis {
         }
     }
 
-    startAutoUpdate() {
-        // Update every 5 minutes for period data
-        this.updateInterval = setInterval(() => {
+    /**
+     * Get real-time title with current date and time (pure JavaScript, not server dependent)
+     */
+    getRealtimeTitle() {
+        // Use pure JavaScript to get real current date/time
+        const now = new Date();
+
+        // Force override any system date issues by creating a new Date object
+        const realNow = new Date(Date.now());
+
+        const options = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            timeZone: 'Asia/Jakarta'
+        };
+
+        // Format in Indonesian
+        const dateString = realNow.toLocaleDateString('id-ID', options);
+        const timeString = realNow.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone: 'Asia/Jakarta'
+        });
+
+        console.log(`🕒 Real-time title generated: ${dateString} - ${timeString}`);
+        return `${dateString} - ${timeString}`;
+    }
+
+    /**
+     * Setup midnight reset untuk clear grafik setiap pergantian hari
+     */
+    setupMidnightReset() {
+        // Calculate time until next midnight
+        const now = new Date();
+        const nextMidnight = new Date(now);
+        nextMidnight.setHours(24, 0, 0, 0); // Set to next midnight
+
+        const timeUntilMidnight = nextMidnight.getTime() - now.getTime();
+
+        // Set initial timeout to next midnight
+        setTimeout(() => {
+            this.performMidnightReset();
+
+            // Then set interval for every 24 hours
+            this.midnightResetInterval = setInterval(() => {
+                this.performMidnightReset();
+            }, 24 * 60 * 60 * 1000); // 24 hours
+
+        }, timeUntilMidnight);
+
+        console.log(`Next midnight reset scheduled in ${Math.round(timeUntilMidnight / 1000 / 60)} minutes`);
+    }
+
+    /**
+     * Perform midnight reset - clear chart dan reload data baru
+     */
+    performMidnightReset() {
+        console.log('🌙 Performing midnight reset - clearing chart for new day');
+        console.log('📅 Date change:', {
+            from: this.lastChartDate,
+            to: new Date().toDateString()
+        });
+
+        // Update last chart date
+        this.lastChartDate = new Date().toDateString();
+
+        // Clear existing chart dengan animasi
+        if (this.chart) {
+            console.log('🗑️ Destroying chart for midnight reset...');
+            this.chart.destroy();
+            this.chart = null;
+        }
+
+        // Clear chart canvas completely
+        const canvas = document.getElementById('electricityChart');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Show loading message pada canvas
+            this.showLoadingOnCanvas(canvas);
+        }
+
+        // Reset statistics display
+        this.resetStatisticsDisplay();
+
+        // Clear any cached data
+        if (window.dashboardData) {
+            delete window.dashboardData;
+        }
+
+        // Force reload dengan delay yang lebih singkat dan cache busting
+        setTimeout(() => {
+            console.log('📊 Loading fresh data for new day...');
+
+            // Force periode ke harian untuk data hari baru
+            const periodSelect = document.getElementById('periodePerhitungan');
+            if (periodSelect && periodSelect.value !== 'harian') {
+                periodSelect.value = 'harian';
+                this.currentPeriod = 'harian';
+            }
+
+            // Load dengan cache busting yang kuat
             this.loadPeriodData();
-        }, 5 * 60 * 1000);
+
+            // Update periode info
+            this.updatePeriodInfo();
+
+        }, 500); // Reduced delay untuk responsivitas yang lebih baik
+    }    /**
+     * Show loading message pada canvas
+     */
+    showLoadingOnCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+
+        ctx.fillStyle = '#6c757d';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Loading data hari baru...', centerX, centerY);
+    }
+
+    /**
+     * Reset statistics display ke nilai default
+     */
+    resetStatisticsDisplay() {
+        const elements = {
+            'dayaTertinggi': '-- W',
+            'dayaTerendah': '-- W',
+            'totalData': '--',
+            'kwhHarian': '-- kWh',
+            'kwhMingguan': '-- kWh',
+            'kwhBulanan': '-- kWh'
+        };
+
+        Object.entries(elements).forEach(([id, value]) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value;
+            }
+        });
+    }
+
+    /**
+     * Check if date has changed (fallback check)
+     */
+    checkDateChange() {
+        const currentDate = new Date().toDateString();
+        if (this.lastChartDate !== currentDate) {
+            console.log('📅 Date change detected, performing reset...');
+            console.log('📊 Date comparison:', {
+                stored: this.lastChartDate,
+                current: currentDate
+            });
+            this.performMidnightReset();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Force refresh data (manual trigger)
+     */
+    forceRefresh() {
+        console.log('🔄 Force refresh triggered');
+
+        // Show loading indicator
+        this.showLoadingIndicator(true);
+
+        // Clear any existing chart
+        if (this.chart) {
+            this.chart.destroy();
+            this.chart = null;
+        }
+
+        // Clear cache
+        if (window.dashboardData) {
+            delete window.dashboardData;
+        }
+
+        // Reload data with cache busting
+        this.loadPeriodData();
+    }
+
+    /**
+     * Show/hide loading indicator pada chart
+     */
+    showLoadingIndicator(show) {
+        const canvas = document.getElementById('electricityChart');
+        if (!canvas) return;
+
+        let loadingOverlay = document.getElementById('chartLoadingOverlay');
+
+        if (show) {
+            // Create loading overlay if doesn't exist
+            if (!loadingOverlay) {
+                loadingOverlay = document.createElement('div');
+                loadingOverlay.id = 'chartLoadingOverlay';
+                loadingOverlay.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(255, 255, 255, 0.8);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    font-size: 16px;
+                    color: #007bff;
+                    font-weight: bold;
+                `;
+                loadingOverlay.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px;"></div>
+                        <div>📊 Memperbarui data real-time...</div>
+                    </div>
+                `;
+
+                // Add CSS animation for spinner
+                if (!document.getElementById('spinnerStyle')) {
+                    const style = document.createElement('style');
+                    style.id = 'spinnerStyle';
+                    style.textContent = `
+                        @keyframes spin {
+                            0% { transform: rotate(0deg); }
+                            100% { transform: rotate(360deg); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
+                canvas.parentElement.style.position = 'relative';
+                canvas.parentElement.appendChild(loadingOverlay);
+            }
+            loadingOverlay.style.display = 'flex';
+        } else {
+            // Hide loading overlay
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+    }
+
+    startAutoUpdate() {
+        // Update every 30 seconds for real-time data
+        this.updateInterval = setInterval(() => {
+            // Check if date has changed (fallback protection)
+            this.checkDateChange();
+
+            console.log('🔄 Auto-updating chart data...');
+            this.loadPeriodData();
+
+            // Update chart title every update
+            this.updateChartTitle();
+        }, 30 * 1000); // Changed from 5 minutes to 30 seconds
+
+        // Update chart title every 5 seconds for real-time clock
+        this.titleUpdateInterval = setInterval(() => {
+            this.updateChartTitle();
+        }, 5 * 1000);
+    }
+
+    /**
+     * Update chart title with real-time clock
+     */
+    updateChartTitle() {
+        if (this.chart && this.chart.options && this.chart.options.plugins && this.chart.options.plugins.title) {
+            this.chart.options.plugins.title.text = `Monitoring Konsumsi Listrik - ${this.getRealtimeTitle()}`;
+            this.chart.update('none'); // Update without animation
+            console.log('🕒 Chart title updated');
+        }
     }
 
     showError(message) {
@@ -477,6 +836,12 @@ class DashboardPeriodAnalysis {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
         }
+        if (this.titleUpdateInterval) {
+            clearInterval(this.titleUpdateInterval);
+        }
+        if (this.midnightResetInterval) {
+            clearInterval(this.midnightResetInterval);
+        }
         if (this.chart) {
             this.chart.destroy();
         }
@@ -487,6 +852,17 @@ class DashboardPeriodAnalysis {
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof Chart !== 'undefined') {
         window.dashboardPeriodAnalysis = new DashboardPeriodAnalysis();
+
+        // Expose force refresh untuk debugging
+        window.forceRefreshChart = function () {
+            if (window.dashboardPeriodAnalysis) {
+                console.log('🔧 Manual force refresh triggered from console');
+                window.dashboardPeriodAnalysis.forceRefresh();
+            }
+        };
+
+        console.log('✅ Dashboard Period Analysis initialized');
+        console.log('💡 Use window.forceRefreshChart() to manually refresh data');
     } else {
         console.warn('Chart.js not loaded, period analysis chart disabled');
     }

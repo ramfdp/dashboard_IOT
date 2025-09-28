@@ -240,7 +240,6 @@ class AutoPZEMGenerator {
                 frekuensi: 50.0,
                 power_factor: 0.85,
                 lokasi: 'PT Krakatau Sarana Property',
-                building: 'PT Krakatau Sarana Property',
                 timestamp: data.timestamp
             };
 
