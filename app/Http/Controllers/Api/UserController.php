@@ -22,7 +22,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->getRoleNames()->first() ?? 'user',
+                'role' => $user->role ?? 'user',
                 'created_at' => $user->created_at->format('Y-m-d H:i:s')
             ];
         });
@@ -58,6 +58,7 @@ class UserController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
+                'role' => $request->role,
             ]);
 
             // Assign role using Spatie Permission
@@ -140,6 +141,7 @@ class UserController extends Controller
             $updateData = [
                 'name' => $request->name,
                 'email' => $request->email,
+                'role' => $request->role,
             ];
 
             // Update password if provided
