@@ -86,8 +86,8 @@
                                         <td>{{ $user->name }}</td>
                                         <td>{{ $user->email }}</td>
                                         <td>
-                                            @if($user->roles->count() > 0)
-                                                <span class="badge bg-primary">{{ ucfirst($user->getRoleNames()->first()) }}</span>
+                                            @if($user->role)
+                                                <span class="badge {{ $user->role === 'admin' ? 'bg-primary' : 'bg-info' }}">{{ ucfirst($user->role) }}</span>
                                             @else
                                                 <span class="badge bg-secondary">No Role</span>
                                             @endif

@@ -49,7 +49,7 @@ class UserManagement extends Component
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'role_id' => 'required|exists:roles,id',
+            'role_id' => 'required|in:admin,user',
         ];
 
         if ($this->editUserId) {
@@ -107,7 +107,7 @@ class UserManagement extends Component
         $this->editName = $user->name;
         $this->editEmail = $user->email;
         $this->editPassword = '';
-        $this->editRoleId = $user->roles->first()->id ?? '';
+        $this->editRoleId = $user->role ?? '';
 
         $this->showEditModal = true;
     }
@@ -136,25 +136,36 @@ class UserManagement extends Component
 
     public function store()
     {
-        $this->validate();
+        // Custom validation for string role
+        $this->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'role_id' => 'required|in:admin,user'
+        ]);
 
         try {
-            // Create user with role_id included
+            // Get role_id from roles table based on role name
+            $spatie_role = Role::where('name', $this->role_id)->first();
+
+            // Create user with both role string and role_id
             $userData = [
                 'name' => $this->name,
                 'email' => $this->email,
                 'password' => Hash::make($this->password),
-                'email_verified_at' => now(), // Set email as verified
-                'role_id' => $this->role_id, // Include role_id for direct relationship
+                'email_verified_at' => now(),
+                'role' => $this->role_id, // Store role as string
+                'role_id' => $spatie_role ? $spatie_role->id : null, // Store role_id for Spatie
             ];
 
             $user = User::create($userData);
 
-            // The User model will automatically sync Spatie Permission through assignRole override
-            $role = Role::findOrFail($this->role_id);
-            $user->assignRole($role); // This ensures single role constraint
+            // Assign Spatie Permission role
+            if ($spatie_role) {
+                $user->assignRole($spatie_role);
+            }
 
-            session()->flash('success_user', 'User berhasil ditambahkan dengan role: ' . $role->name);
+            session()->flash('success_user', 'User berhasil ditambahkan dengan role: ' . ucfirst($this->role_id));
 
             $this->closeAddModal();
             $this->resetForm();
@@ -175,16 +186,20 @@ class UserManagement extends Component
             'editName' => 'required|string|max:255',
             'editEmail' => 'required|email|unique:users,email,' . $this->editUserId,
             'editPassword' => 'nullable|string|min:8',
-            'editRoleId' => 'required|exists:roles,id',
+            'editRoleId' => 'required|in:admin,user',
         ]);
 
         try {
             $user = User::findOrFail($this->editUserId);
 
+            // Get role_id from roles table based on role name
+            $spatie_role = Role::where('name', $this->editRoleId)->first();
+
             $updateData = [
                 'name' => $this->editName,
                 'email' => $this->editEmail,
-                'role_id' => $this->editRoleId, // Update role_id directly
+                'role' => $this->editRoleId, // Store role as string
+                'role_id' => $spatie_role ? $spatie_role->id : null, // Store role_id for Spatie
             ];
 
             if (!empty($this->editPassword)) {
@@ -193,12 +208,12 @@ class UserManagement extends Component
 
             $user->update($updateData);
 
-            // The User model boot() method will automatically sync Spatie Permission
-            // Or we can call syncRoles explicitly to ensure immediate sync
-            $role = Role::findOrFail($this->editRoleId);
-            $user->syncRoles([$role]); // This maintains single role constraint
+            // Sync Spatie Permission role
+            if ($spatie_role) {
+                $user->syncRoles([$spatie_role]);
+            }
 
-            session()->flash('success_user', 'User berhasil diupdate dengan role: ' . $role->name);
+            session()->flash('success_user', 'User berhasil diupdate dengan role: ' . ucfirst($this->editRoleId));
 
             $this->closeEditModal();
         } catch (\Exception $e) {
@@ -302,7 +317,7 @@ class UserManagement extends Component
 
     public function render()
     {
-        $query = User::with('roles');
+        $query = User::query();
 
         // Apply search filter
         if ($this->search) {
@@ -314,13 +329,16 @@ class UserManagement extends Component
 
         // Apply role filter
         if ($this->filterRole) {
-            $query->whereHas('roles', function ($q) {
-                $q->where('id', $this->filterRole);
-            });
+            $query->where('role', $this->filterRole);
         }
 
         $users = $query->paginate(10);
-        $roles = Role::all();
+
+        // Create roles array for filter dropdown
+        $roles = collect([
+            (object)['id' => 'admin', 'name' => 'Admin'],
+            (object)['id' => 'user', 'name' => 'User']
+        ]);
 
         return view('livewire.user-management', [
             'users' => $users,

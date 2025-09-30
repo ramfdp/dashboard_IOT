@@ -38,31 +38,40 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        // Custom validation untuk role yang case-insensitive
+        $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'role' => 'required|in:admin,user'
+            'role' => 'required|string'
         ]);
 
-        if ($validator->fails()) {
+        // Validasi role secara manual dengan case-insensitive
+        $normalizedRole = strtolower($request->role);
+        if (!in_array($normalizedRole, ['admin', 'user'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors()
+                'errors' => ['role' => ['Role harus admin atau user']]
             ], 422);
         }
 
         try {
+
+            // Get the correct role_id from roles table
+            $role = \Spatie\Permission\Models\Role::where('name', $normalizedRole)->first();
+            $roleId = $role ? $role->id : null;
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => $request->role,
+                'role' => $normalizedRole,
+                'role_id' => $roleId,
             ]);
 
             // Assign role using Spatie Permission
-            $user->assignRole($request->role);
+            $user->assignRole($normalizedRole);
 
             return response()->json([
                 'success' => true,
@@ -71,7 +80,7 @@ class UserController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $request->role
+                    'role' => $normalizedRole
                 ]
             ], 201);
         } catch (\Exception $e) {
@@ -102,7 +111,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->getRoleNames()->first() ?? 'user',
+                'role' => $user->role ?? 'user',
                 'created_at' => $user->created_at->format('Y-m-d H:i:s')
             ]
         ]);
@@ -122,26 +131,34 @@ class UserController extends Controller
             ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        // Custom validation
+        $validatedData = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
-            'role' => 'required|in:admin,user',
-            'password' => 'nullable|string|min:8'
+            'password' => 'nullable|string|min:8',
+            'role' => 'required|string'
         ]);
 
-        if ($validator->fails()) {
+        // Validasi role secara manual dengan case-insensitive
+        $normalizedRole = strtolower($request->role);
+        if (!in_array($normalizedRole, ['admin', 'user'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
-                'errors' => $validator->errors()
+                'errors' => ['role' => ['Role harus admin atau user']]
             ], 422);
         }
 
         try {
+            // Get the correct role_id from roles table
+            $role = \Spatie\Permission\Models\Role::where('name', $normalizedRole)->first();
+            $roleId = $role ? $role->id : null;
+
             $updateData = [
                 'name' => $request->name,
                 'email' => $request->email,
-                'role' => $request->role,
+                'role' => $normalizedRole,
+                'role_id' => $roleId,
             ];
 
             // Update password if provided
@@ -152,7 +169,10 @@ class UserController extends Controller
             $user->update($updateData);
 
             // Update role
-            $user->syncRoles([$request->role]);
+            $user->syncRoles([$normalizedRole]);
+
+            // Refresh user data from database to ensure we get updated values
+            $user->refresh();
 
             return response()->json([
                 'success' => true,
@@ -161,7 +181,7 @@ class UserController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $request->role
+                    'role' => $user->role
                 ]
             ]);
         } catch (\Exception $e) {
