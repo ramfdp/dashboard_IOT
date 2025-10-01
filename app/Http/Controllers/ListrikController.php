@@ -4,49 +4,77 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Listrik;
-use Pusher\Pusher;
 
 class ListrikController extends Controller
 {
-    public function store(Request $request)
+    public function index(Request $request)
     {
-        $request->validate([
-            'lokasi' => 'required|string',
-            'listrik' => 'required|numeric',
-            'ac' => 'required|numeric',
-            'lampu' => 'required|numeric',
-        ]);
+        try {
+            $query = Listrik::query();
 
-        $listrik = Listrik::create([
-            'lokasi' => $request->lokasi,
-            'listrik' => $request->listrik,
-            'ac' => $request->ac,
-            'lampu' => $request->lampu,
-        ]);
+            // Filter by month if provided
+            if ($request->has('bulan') && $request->bulan != '') {
+                $query->whereMonth('created_at', $request->bulan);
+            }
 
-        $pusher = new Pusher(
-            env('PUSHER_APP_KEY'),
-            env('PUSHER_APP_SECRET'),
-            env('PUSHER_APP_ID'),
-            [
-                'cluster' => env('PUSHER_APP_CLUSTER'),
-                'useTLS' => true,
-            ]
-        );
+            // Filter by year if provided  
+            if ($request->has('tahun') && $request->tahun != '') {
+                $query->whereYear('created_at', $request->tahun);
+            }
 
-        $pusher->trigger('penggunaan-listrik', 'update-' . strtolower($request->lokasi), [
-            'labels' => now()->toDateTimeString(),
-            'listrik' => [$request->listrik],
-            'ac' => [$request->ac],
-            'lampu' => [$request->lampu],
-        ]);
+            // Get page size from request or default to 10
+            $perPage = $request->get('per_page', 10);
 
-        return response()->json(['message' => 'Data berhasil disimpan dan dikirim'], 200);
+            $listriks = $query->latest()->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => $listriks,
+                'filters' => [
+                    'bulan' => $request->bulan,
+                    'tahun' => $request->tahun
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function getData($lokasi)
+    public function store(Request $request)
     {
-        $data = Listrik::where('lokasi', $lokasi)->latest()->take(30)->get();
-        return response()->json($data);
+        try {
+            $listrik = Listrik::create($request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Data berhasil disimpan',
+                'data' => $listrik
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function show($id)
+    {
+        try {
+            $listrik = Listrik::findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $listrik
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data tidak ditemukan'
+            ], 404);
+        }
     }
 }

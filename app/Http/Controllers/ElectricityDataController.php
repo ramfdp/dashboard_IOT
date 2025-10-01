@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\HistoryKwh;
+use App\Models\Listrik;
 use Carbon\Carbon;
 
 class ElectricityDataController extends Controller
@@ -22,35 +22,35 @@ class ElectricityDataController extends Controller
             // Get data based on the selected period from current month
             switch ($period) {
                 case 'harian':
-                    $records = HistoryKwh::whereMonth('waktu', $currentMonth)
-                        ->whereYear('waktu', $currentYear)
-                        ->whereDate('waktu', Carbon::today('Asia/Jakarta'))
-                        ->orderBy('waktu', 'asc')
+                    $records = Listrik::whereMonth('created_at', $currentMonth)
+                        ->whereYear('created_at', $currentYear)
+                        ->whereDate('created_at', Carbon::today('Asia/Jakarta'))
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
 
                 case 'mingguan':
                     $startOfWeek = Carbon::now('Asia/Jakarta')->startOfWeek();
                     $endOfWeek = Carbon::now('Asia/Jakarta')->endOfWeek();
-                    $records = HistoryKwh::whereMonth('waktu', $currentMonth)
-                        ->whereYear('waktu', $currentYear)
-                        ->whereBetween('waktu', [$startOfWeek, $endOfWeek])
-                        ->orderBy('waktu', 'asc')
+                    $records = Listrik::whereMonth('created_at', $currentMonth)
+                        ->whereYear('created_at', $currentYear)
+                        ->whereBetween('created_at', [$startOfWeek, $endOfWeek])
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
 
                 case 'bulanan':
-                    $records = HistoryKwh::whereMonth('waktu', $currentMonth)
-                        ->whereYear('waktu', $currentYear)
-                        ->orderBy('waktu', 'asc')
+                    $records = Listrik::whereMonth('created_at', $currentMonth)
+                        ->whereYear('created_at', $currentYear)
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
 
                 default:
-                    $records = HistoryKwh::whereMonth('waktu', $currentMonth)
-                        ->whereYear('waktu', $currentYear)
-                        ->whereDate('waktu', Carbon::today('Asia/Jakarta'))
-                        ->orderBy('waktu', 'asc')
+                    $records = Listrik::whereMonth('created_at', $currentMonth)
+                        ->whereYear('created_at', $currentYear)
+                        ->whereDate('created_at', Carbon::today('Asia/Jakarta'))
+                        ->orderBy('created_at', 'asc')
                         ->get();
             }
 
@@ -132,7 +132,7 @@ class ElectricityDataController extends Controller
         $labels = [];
 
         foreach ($records as $record) {
-            $time = Carbon::parse($record->waktu)->setTimezone('Asia/Jakarta');
+            $time = Carbon::parse($record->created_at)->setTimezone('Asia/Jakarta');
 
             switch ($period) {
                 case 'harian':
@@ -307,13 +307,13 @@ class ElectricityDataController extends Controller
             $currentTime = Carbon::now('Asia/Jakarta');
 
             // Get the latest record from today
-            $latestRecord = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
-                ->orderBy('waktu', 'desc')
+            $latestRecord = Listrik::whereDate('created_at', $currentTime->toDateString())
+                ->orderBy('created_at', 'desc')
                 ->first();
 
             // Get last 10 records for average calculation
-            $recentRecords = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
-                ->orderBy('waktu', 'desc')
+            $recentRecords = Listrik::whereDate('created_at', $currentTime->toDateString())
+                ->orderBy('created_at', 'desc')
                 ->take(10)
                 ->get();
 
@@ -322,14 +322,14 @@ class ElectricityDataController extends Controller
                 $averagePower = $recentRecords->avg('daya');
 
                 // Calculate kWh for today
-                $todayRecords = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
-                    ->orderBy('waktu', 'asc')
+                $todayRecords = Listrik::whereDate('created_at', $currentTime->toDateString())
+                    ->orderBy('created_at', 'asc')
                     ->get();
 
                 $totalKwh = $this->calculateKwh($todayRecords);
 
                 $source = 'database';
-                $lastUpdate = Carbon::parse($latestRecord->waktu)->setTimezone('Asia/Jakarta');
+                $lastUpdate = Carbon::parse($latestRecord->created_at)->setTimezone('Asia/Jakarta');
             } else {
                 // Fallback to realistic demo values
                 $currentPower = $this->generateCurrentPowerDemo();
@@ -378,7 +378,7 @@ class ElectricityDataController extends Controller
         $previousTime = null;
 
         foreach ($records as $record) {
-            $currentTime = Carbon::parse($record->waktu);
+            $currentTime = Carbon::parse($record->created_at);
 
             if ($previousTime) {
                 $hoursDiff = $currentTime->diffInHours($previousTime);
@@ -422,29 +422,29 @@ class ElectricityDataController extends Controller
             // Get data based on the selected period
             switch ($period) {
                 case 'harian':
-                    $records = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
-                        ->orderBy('waktu', 'asc')
+                    $records = Listrik::whereDate('created_at', $currentTime->toDateString())
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
 
                 case 'mingguan':
                     $startOfWeek = $currentTime->startOfWeek();
                     $endOfWeek = $currentTime->endOfWeek();
-                    $records = HistoryKwh::whereBetween('waktu', [$startOfWeek, $endOfWeek])
-                        ->orderBy('waktu', 'asc')
+                    $records = Listrik::whereBetween('created_at', [$startOfWeek, $endOfWeek])
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
 
                 case 'bulanan':
-                    $records = HistoryKwh::whereMonth('waktu', $currentMonth)
-                        ->whereYear('waktu', $currentYear)
-                        ->orderBy('waktu', 'asc')
+                    $records = Listrik::whereMonth('created_at', $currentMonth)
+                        ->whereYear('created_at', $currentYear)
+                        ->orderBy('created_at', 'asc')
                         ->get();
                     break;
 
                 default:
-                    $records = HistoryKwh::whereDate('waktu', $currentTime->toDateString())
-                        ->orderBy('waktu', 'asc')
+                    $records = Listrik::whereDate('created_at', $currentTime->toDateString())
+                        ->orderBy('created_at', 'asc')
                         ->get();
             }
 
@@ -461,7 +461,7 @@ class ElectricityDataController extends Controller
                 $monthlyKwh = $dailyKwh * 30;
 
                 $source = 'database';
-                $lastUpdate = Carbon::parse($latestRecord->waktu)->setTimezone('Asia/Jakarta');
+                $lastUpdate = Carbon::parse($latestRecord->created_at)->setTimezone('Asia/Jakarta');
             } else {
                 // Fallback to demo values
                 $maxPower = $this->generateCurrentPowerDemo() + rand(50, 100);

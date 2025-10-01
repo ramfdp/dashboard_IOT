@@ -1,0 +1,306 @@
+// Dashboard IOT Database Schema
+// Generated for dbdiagram.io
+// Project: Dashboard IOT - Electricity Monitoring & Control System
+// Updated: September 30, 2025
+
+Project dashboard_iot {
+  database_type: 'MySQL'
+  Note: '''
+  # Dashboard IOT Database
+  Comprehensive IoT dashboard for electricity monitoring, overtime management, 
+  lighting control, CCTV monitoring, and user management with role-based permissions.
+  
+  **Key Features:**
+  - Real-time electricity monitoring (PZEM sensors)
+  - Overtime management with light control
+  - Scheduled lighting automation
+  - CCTV camera management
+  - Role-based user permissions (Spatie Permission)
+  '''
+}
+
+// ===========================
+// CORE TABLES
+// ===========================
+
+Table users {
+  id bigint [pk, increment]
+  name varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  email_verified_at timestamp [null]
+  password varchar(255) [not null]
+  role varchar(255) [not null, default: 'user', note: 'Basic role field']
+  role_id bigint [null, ref: > roles.id, note: 'Spatie role reference']
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: 'Main user authentication table with basic and Spatie role support'
+}
+
+// ===========================
+// ELECTRICITY MONITORING
+// ===========================
+
+Table listriks {
+  id bigint [pk, increment]
+  lokasi varchar(255) [not null, note: 'Location: CM1, CM2, Main Panel, etc.']
+  
+  // Legacy columns (may be deprecated)
+  listrik float [null, note: 'Legacy electricity value']
+  ac float [null, note: 'Legacy AC consumption']
+  lampu float [null, note: 'Legacy lighting consumption']
+  
+  // PZEM Sensor Data (Current Implementation)
+  tegangan float [null, note: 'Voltage in Volts (V)']
+  arus float [null, note: 'Current in Amperes (A)']
+  daya float [null, note: 'Power in Watts (W) - Max 660W for medium business']
+  energi float [null, note: 'Energy consumption in kWh']
+  frekuensi float [null, default: 50.0, note: 'Frequency in Hz']
+  power_factor float [null, default: 0.85, note: 'Power Factor (0.0-1.0)']
+  
+  // Metadata & Status
+  status varchar(255) [null, default: 'active', note: 'active, inactive, maintenance']
+  source varchar(255) [null, note: 'Data source: sensor, api, manual']
+  metadata text [null, note: 'JSON metadata: sensor_type, business_type, max_power']
+  sensor_timestamp timestamp [null, note: 'Original sensor reading timestamp']
+  
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+  Electricity monitoring data from PZEM-004T sensors.
+  Contains both legacy columns and modern sensor data.
+  Realistic business consumption: 25W-660W range.
+  Records collected every 30 seconds.
+  '''
+}
+
+// ===========================
+// OVERTIME MANAGEMENT
+// ===========================
+
+Table overtimes {
+  id bigint [pk, increment]
+  employee_id bigint [null, ref: > users.id, note: 'Foreign key to users table']
+  employee_name varchar(255) [not null, note: 'Employee name (redundant for data integrity)']
+  division_name varchar(255) [not null, note: 'Department/Division name']
+  overtime_date date [not null, note: 'Date of overtime work']
+  start_time datetime [not null, note: 'Overtime start time']
+  end_time datetime [null, note: 'Overtime end time (null if ongoing)']
+  duration integer [null, note: 'Duration in minutes']
+  status integer [default: 0, note: '0=pending, 1=running, 2=completed']
+  notes text [null, note: 'Additional notes or remarks']
+  light_selection varchar(255) [default: 'all', note: 'Comma-separated relay IDs: relay1,relay3,relay8 or "all"']
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+  Overtime management with integrated lighting control.
+  Supports 8-relay lighting system for energy efficiency.
+  Employee relationship via foreign key with fallback name field.
+  '''
+}
+
+// ===========================
+// LIGHTING AUTOMATION
+// ===========================
+
+Table light_schedules {
+  id bigint [pk, increment]
+  name varchar(255) [not null, note: 'Schedule name/description']
+  device_type enum [not null, note: 'relay1, relay2 (may be deprecated)']
+  day_of_week enum [not null, note: 'monday, tuesday, wednesday, thursday, friday, saturday, sunday']
+  start_time time [not null, note: 'Time to turn lights ON']
+  end_time time [not null, note: 'Time to turn lights OFF']
+  is_active boolean [default: true, note: 'Enable/disable this schedule']
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+  Automated lighting schedules for different days.
+  Supports time-based ON/OFF control.
+  Can be activated/deactivated without deletion.
+  '''
+}
+
+// ===========================
+// CCTV MONITORING
+// ===========================
+
+Table cctv_cameras {
+  id bigint [pk, increment]
+  name varchar(255) [not null, note: 'Camera name/identifier']
+  url varchar(255) [not null, note: 'Camera stream URL/IP']
+  description varchar(255) [null, note: 'Camera description']
+  location varchar(255) [null, note: 'Physical location']
+  status enum [default: 'active', note: 'active, inactive, maintenance']
+  ip_address varchar(255) [null, note: 'Camera IP address']
+  port integer [null, note: 'Camera port number']
+  settings json [null, note: 'Camera-specific settings (resolution, quality, etc.)']
+  last_online timestamp [null, note: 'Last successful connection timestamp']
+  is_recording boolean [default: false, note: 'Recording status']
+  sort_order integer [default: 0, note: 'Display order in UI']
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  Note: '''
+  CCTV camera management and monitoring.
+  Supports IP cameras with flexible configuration.
+  Status tracking and recording management.
+  '''
+}
+
+// ===========================
+// SIMPLIFIED ROLE SYSTEM (Optimized - Unused Tables Removed)
+// ===========================
+
+Table roles {
+  id bigint [pk, increment]
+  name varchar(255) [not null, note: 'Role name: admin, user (simplified system)']
+  guard_name varchar(255) [not null, note: 'Guard name (usually "web")']
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    (name, guard_name) [unique]
+  }
+  
+  Note: '''
+  Simple role-based system with only admin/user roles.
+  No individual permissions - uses role-based access control.
+  '''
+}
+
+Table model_has_roles {
+  role_id bigint [ref: > roles.id]
+  model_type varchar(255) [not null, note: 'Model class: App\\Models\\User']
+  model_id bigint [not null, note: 'Model ID (user ID)']
+  
+  indexes {
+    (role_id, model_id, model_type) [pk]
+  }
+  
+  Note: 'User role assignments - the only permission table actively used'
+}
+
+// ===========================
+// LARAVEL SYSTEM TABLES
+// ===========================
+
+Table sessions {
+  id varchar(255) [pk]
+  user_id bigint [null, ref: > users.id]
+  ip_address varchar(45) [null]
+  user_agent text [null]
+  payload longtext [not null]
+  last_activity integer [not null]
+  
+  indexes {
+    last_activity
+    user_id
+  }
+  
+  Note: 'Laravel session management'
+}
+
+Table migrations {
+  id int [pk, increment]
+  migration varchar(255) [not null]
+  batch int [not null]
+  
+  Note: 'Laravel migration tracking'
+}
+
+Table failed_jobs {
+  id bigint [pk, increment]
+  uuid varchar(255) [unique, not null]
+  connection text [not null]
+  queue text [not null]
+  payload longtext [not null]
+  exception longtext [not null]
+  failed_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Laravel failed job queue'
+}
+
+Table personal_access_tokens {
+  id bigint [pk, increment]
+  tokenable_type varchar(255) [not null]
+  tokenable_id bigint [not null]
+  name varchar(255) [not null]
+  token varchar(64) [unique, not null]
+  abilities text [null]
+  last_used_at timestamp [null]
+  expires_at timestamp [null]
+  created_at timestamp [null]
+  updated_at timestamp [null]
+  
+  indexes {
+    (tokenable_type, tokenable_id)
+  }
+  
+  Note: 'Laravel Sanctum API tokens'
+}
+
+// ===========================
+// DEPRECATED TABLES (Removed for Optimization)
+// ===========================
+
+// REMOVED - October 1, 2025: Unused permission system tables
+// - permissions: No individual permissions used (0 records)
+// - model_has_permissions: No direct user permissions (0 records) 
+// - role_has_permissions: No role-permission mapping (0 records)
+// - role_user_relation: Empty unused table (0 records)
+
+// REMOVED - Previous: Historical data consolidation
+// - histori_kwh: Functionality consolidated into 'listriks' table
+
+// KEPT: Only essential tables for simple role-based system
+// - roles: 2 roles (admin/user) - actively used
+// - model_has_roles: 5 user role assignments - actively used
+
+// ===========================
+// RELATIONSHIPS SUMMARY
+// ===========================
+
+// Primary Relationships:
+// 1. users.id → overtimes.employee_id (User can have many overtime records)
+// 2. users.id → sessions.user_id (User sessions)
+// 3. users.id → roles.id (via model_has_roles - simplified role system)
+
+// Independent Tables:
+// - listriks: No foreign key relationships (sensor data)
+// - light_schedules: No foreign key relationships (configuration)
+// - cctv_cameras: No foreign key relationships (device management)
+
+// ===========================
+// NOTES & CONSTRAINTS
+// ===========================
+
+Note business_rules {
+  '''
+  ## Business Rules & Constraints
+  
+  ### Electricity Monitoring
+  - Power consumption: 25W-660W (medium business realistic range)
+  - Data collection: Every 30 seconds
+  - Voltage range: 210V-240V (Indonesian standard)
+  - Power factor: 0.85-0.95 typical range
+  
+  ### Overtime Management
+  - Employee must exist in users table
+  - Light selection supports 8-relay system
+  - Status flow: 0 (pending) → 1 (running) → 2 (completed)
+  
+  ### Security & Access
+  - Role-based access control via Spatie Permission
+  - Session-based authentication
+  - API token support via Sanctum
+  
+  ### System Architecture
+  - Laravel 10+ framework
+  - MySQL/MariaDB database
+  - Real-time data via WebSocket/Livewire
+  - ESP32 hardware integration
+  '''
+}

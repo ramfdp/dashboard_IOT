@@ -101,6 +101,11 @@ class HistoryListrikHandler {
         try {
             const params = new URLSearchParams();
 
+            // Add pagination
+            params.append('page', this.currentPage);
+            params.append('per_page', 50); // Get more records per page
+
+            // Add filters to API request
             if (this.currentFilters.bulan) {
                 params.append('bulan', this.currentFilters.bulan);
             }
@@ -109,26 +114,53 @@ class HistoryListrikHandler {
                 params.append('tahun', this.currentFilters.tahun);
             }
 
-            params.append('page', this.currentPage);
-            params.append('per_page', this.recordsPerPage);
+            console.log('Fetching with filters:', this.currentFilters);
 
-            // Make actual API call
-            const response = await fetch(`/api/history/filtered?${params.toString()}`);
+            // Make API call to the correct endpoint
+            const response = await fetch(`/api/listrik?${params.toString()}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
 
             if (data.success) {
-                this.processHistoryData(data);
+                console.log('Server returned filters:', data.filters);
+                console.log('Records count:', data.data.data.length);
+
+                // Transform data to match expected format
+                const transformedData = {
+                    data: data.data.data.map(item => ({
+                        id: item.id,
+                        timestamp: new Date(item.created_at),
+                        voltage: parseFloat(item.tegangan),
+                        current: parseFloat(item.arus),
+                        power: parseFloat(item.daya),
+                        energy: parseFloat(item.energi),
+                        frequency: parseFloat(item.frekuensi),
+                        pf: parseFloat(item.power_factor),
+                        location: item.lokasi || 'Main Panel'
+                    })),
+                    total: data.data.total,
+                    current_page: data.data.current_page,
+                    per_page: data.data.per_page,
+                    last_page: data.data.last_page
+                };
+
+                // No need for client-side filtering since server already filtered
+                // Just use the data as is
+                this.processHistoryData(transformedData);
             } else {
                 throw new Error(data.message || 'Gagal mengambil data');
             }
 
         } catch (error) {
             console.error('Error fetching history data:', error);
+            this.showError('Gagal memuat data: ' + error.message);
 
-            // Fallback ke data simulasi jika API gagal
-            console.log('Menggunakan data simulasi sebagai fallback');
-            const simulatedData = this.generateSimulatedHistoryData();
-            this.processHistoryData(simulatedData);
+            // Show empty state instead of simulated data
+            this.processHistoryData({ data: [], total: 0, current_page: 1, per_page: this.recordsPerPage, last_page: 1 });
         }
     }
 
@@ -150,13 +182,32 @@ class HistoryListrikHandler {
 
             const timestamp = new Date(selectedYear, selectedMonth - 1, randomDay, randomHour, randomMinute, randomSecond);
 
-            // Generate realistic electrical data
-            const voltage = (220 + (Math.random() - 0.5) * 20).toFixed(2); // 210-230V
-            const current = (Math.random() * 10 + 1).toFixed(3); // 1-11A
-            const power = (parseFloat(voltage) * parseFloat(current) * (0.8 + Math.random() * 0.4)).toFixed(2); // Power with PF variation
+            // Generate realistic business electrical data (Max 660W)
+            const voltage = (220 + (Math.random() - 0.5) * 10).toFixed(2); // 215-225V (stable for business)
+
+            // Generate realistic power first (Max 660W for business)
+            let basePower;
+            if (randomHour >= 0 && randomHour < 6) {
+                basePower = 30 + Math.random() * 50; // 30-80W standby
+            } else if (randomHour >= 6 && randomHour < 8) {
+                basePower = 80 + Math.random() * 100; // 80-180W preparation
+            } else if (randomHour >= 8 && randomHour < 12) {
+                basePower = 200 + Math.random() * 300; // 200-500W active
+            } else if (randomHour >= 12 && randomHour < 14) {
+                basePower = 350 + Math.random() * 310; // 350-660W peak
+            } else if (randomHour >= 14 && randomHour < 18) {
+                basePower = 250 + Math.random() * 300; // 250-550W afternoon
+            } else if (randomHour >= 18 && randomHour < 22) {
+                basePower = 120 + Math.random() * 230; // 120-350W evening
+            } else {
+                basePower = 40 + Math.random() * 60; // 40-100W night
+            }
+
+            const power = Math.min(660, basePower).toFixed(2); // Ensure max 660W
+            const pf = (0.88 + Math.random() * 0.08).toFixed(3); // 0.88-0.96 PF for business
+            const current = (parseFloat(power) / (parseFloat(voltage) * parseFloat(pf))).toFixed(3);
             const energy = (parseFloat(power) / 1000 * Math.random()).toFixed(4); // Energy in kWh
-            const frequency = (50 + (Math.random() - 0.5) * 2).toFixed(2); // 49-51Hz
-            const pf = (0.8 + Math.random() * 0.2).toFixed(3); // 0.8-1.0 PF
+            const frequency = (50 + (Math.random() - 0.5) * 1).toFixed(2); // 49.5-50.5Hz (stable for business)
 
             data.push({
                 id: i + 1,

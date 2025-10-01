@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\HistoryKwh;
 use App\Models\Listrik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -52,7 +51,7 @@ class RealTimePowerController extends Controller
             ]);
 
             // Store in history table (HistoryKwh) for historical analysis
-            $historyKwh = HistoryKwh::create([
+            $historyKwh = Listrik::create([
                 'daya' => $data['daya'],
                 'tegangan' => $data['tegangan'],
                 'arus' => $data['arus'],
@@ -102,7 +101,7 @@ class RealTimePowerController extends Controller
     public function getLatest()
     {
         try {
-            $latest = HistoryKwh::where('source', 'real_time_generator')
+            $latest = Listrik::where('source', 'real_time_generator')
                 ->orderBy('created_at', 'desc')
                 ->first();
 
@@ -165,7 +164,7 @@ class RealTimePowerController extends Controller
             $endDate = Carbon::parse($request->end_date);
             $limit = $request->get('limit', 100);
 
-            $data = HistoryKwh::where('source', 'real_time_generator')
+            $data = Listrik::where('source', 'real_time_generator')
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->orderBy('created_at', 'desc')
                 ->limit($limit)
@@ -219,7 +218,7 @@ class RealTimePowerController extends Controller
             $thisMonth = Carbon::now()->startOfMonth();
 
             // Today's statistics
-            $todayData = HistoryKwh::where('source', 'real_time_generator')
+            $todayData = Listrik::where('source', 'real_time_generator')
                 ->whereDate('created_at', $today)
                 ->selectRaw('
                     AVG(daya) as avg_power,
@@ -231,7 +230,7 @@ class RealTimePowerController extends Controller
                 ->first();
 
             // This week's statistics
-            $weekData = HistoryKwh::where('source', 'real_time_generator')
+            $weekData = Listrik::where('source', 'real_time_generator')
                 ->where('created_at', '>=', $thisWeek)
                 ->selectRaw('
                     AVG(daya) as avg_power,
@@ -243,7 +242,7 @@ class RealTimePowerController extends Controller
                 ->first();
 
             // This month's statistics
-            $monthData = HistoryKwh::where('source', 'real_time_generator')
+            $monthData = Listrik::where('source', 'real_time_generator')
                 ->where('created_at', '>=', $thisMonth)
                 ->selectRaw('
                     AVG(daya) as avg_power,

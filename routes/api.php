@@ -5,7 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PowerUsageController;
 use App\Http\Controllers\ListrikController;
-use App\Http\Controllers\HistoryKwhController;
+// use App\Http\Controllers\HistoryKwhController; // Disabled - table removed
 use App\Http\Controllers\ElectricityAnalysisController;
 use App\Http\Controllers\ElectricityDataController;
 use App\Http\Controllers\Api\ElectricityDataController as ApiElectricityDataController;
@@ -34,13 +34,13 @@ Route::post('/listrik', [ListrikController::class, 'store']);
 Route::get('/listrik/{id}', [ListrikController::class, 'show']);
 Route::put('/listrik/{id}', [ListrikController::class, 'update']);
 Route::delete('/listrik/{id}', [ListrikController::class, 'destroy']);
-Route::get('/fetch-store-pzem', [HistoryKwhController::class, 'fetchFromFirebase']);
+// Route::get('/fetch-store-pzem', [HistoryKwhController::class, 'fetchFromFirebase']); // Disabled - table removed
 
-// History data routes untuk dashboard
-Route::prefix('history')->group(function () {
-    Route::get('/filtered', [HistoryKwhController::class, 'getFilteredHistory']);
-    Route::get('/download', [HistoryKwhController::class, 'getAllHistoryForDownload']);
-});
+// History data routes untuk dashboard - DISABLED (using Listrik model now)
+// Route::prefix('history')->group(function () {
+//     Route::get('/filtered', [HistoryKwhController::class, 'getFilteredHistory']);
+//     Route::get('/download', [HistoryKwhController::class, 'getAllHistoryForDownload']);
+// });
 
 // Schedule checking routes
 Route::post('/check-schedules', [\App\Http\Controllers\DashboardController::class, 'checkSchedules']);

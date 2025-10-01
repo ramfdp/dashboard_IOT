@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Overtime;
-use App\Models\HistoryKwh;
+use App\Models\Listrik;
 use App\Models\User;
 use App\Models\LightSchedule;
 use Spatie\Permission\Models\Role;
@@ -26,7 +26,7 @@ class OvertimeController extends Controller
             ->orderBy('start_time', 'desc')
             ->get();
 
-        $dataKwh = HistoryKwh::latest()->take(10)->get();
+        $dataKwh = Listrik::latest()->take(10)->get();
 
         $relayStatus = $this->getRelayStatusFromFirebase();
         $relay1 = $relayStatus['relay1'] ?? 0;

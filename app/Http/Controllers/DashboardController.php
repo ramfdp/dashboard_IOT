@@ -8,7 +8,7 @@ use App\models\Role;
 use App\models\User;
 use App\models\Divisi;
 use App\models\LightSchedule;
-use App\models\HistoryKwh;
+use App\models\Listrik;
 use App\models\Overtime;
 use App\Services\FirebaseService;
 use Illuminate\Support\Facades\Log;
@@ -30,9 +30,9 @@ class DashboardController extends Controller
 
         // Get data KWH for today only with formatted time in Indonesia timezone
         $today = Carbon::now('Asia/Jakarta')->toDateString();
-        $dataKwh = HistoryKwh::select('waktu', 'daya')
-            ->whereDate('waktu', $today)
-            ->orderBy('waktu', 'asc')
+        $dataKwh = Listrik::select('created_at as waktu', 'daya')
+            ->whereDate('created_at', $today)
+            ->orderBy('created_at', 'asc')
             ->get()
             ->map(function ($item) {
                 // Format waktu menjadi HH:MM dengan timezone Indonesia
