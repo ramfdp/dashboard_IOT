@@ -199,22 +199,19 @@
                                         <i class="fas fa-bolt me-1"></i>Power (W)
                                     </th>
                                     <th class="text-center">
-                                        <i class="fas fa-fire me-1"></i>Energy (kWh)
+                                        <i class="fas fa-fire me-1"></i>Energi (kWh)
                                     </th>
                                     <th class="text-center">
-                                        <i class="fas fa-wave-square me-1"></i>Frequency (Hz)
+                                        <i class="fas fa-wave-square me-1"></i>Frekuensi (Hz)
                                     </th>
                                     <th class="text-center">
-                                        <i class="fas fa-percentage me-1"></i>PF
-                                    </th>
-                                    <th class="text-center">
-                                        <i class="fas fa-map-marker-alt me-1"></i>Location
+                                        <i class="fas fa-percentage me-1"></i>Power Factor
                                     </th>
                                 </tr>
                             </thead>
                             <tbody id="historyTableBody">
                                 <tr>
-                                    <td colspan="9" class="text-center py-5">
+                                    <td colspan="8" class="text-center py-5">
                                         <div class="spinner-border text-primary me-3" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>

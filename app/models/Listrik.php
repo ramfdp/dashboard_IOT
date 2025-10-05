@@ -12,15 +12,12 @@ class Listrik extends Model
     protected $table = 'listriks';
 
     protected $fillable = [
-        'lokasi',
         'tegangan',
         'arus',
         'daya',
         'energi',
         'frekuensi',
-        'power_factor',
-        'status',
-        'metadata'
+        'power_factor'
     ];
 
     protected $casts = [
@@ -35,50 +32,46 @@ class Listrik extends Model
     ];
 
     protected $attributes = [
-        'status' => 'active',
+        // No default attributes needed
     ];
 
     /**
-     * Scope by location
+     * Scope by location (deprecated - lokasi field removed)
      */
     public function scopeByLokasi($query, $lokasi)
     {
-        return $query->where('lokasi', $lokasi);
+        // Lokasi field has been removed, return all records
+        return $query;
     }
 
     /**
-     * Scope for active records
+     * Scope for active records (deprecated - status field removed)
      */
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        // Status field has been removed, return all records
+        return $query;
     }
 
     /**
-     * Get latest reading by location
+     * Get latest reading (lokasi field removed)
      */
-    public static function getLatestByLokasi($lokasi)
+    public static function getLatest()
     {
-        return self::where('lokasi', $lokasi)
-            ->latest('timestamp')
-            ->first();
+        return self::latest('created_at')->first();
     }
 
     /**
      * Get power consumption summary
      */
-    public static function getPowerSummary($lokasi = null)
+    public static function getPowerSummary()
     {
         $query = self::query();
 
-        if ($lokasi) {
-            $query->where('lokasi', $lokasi);
-        }
-
         return [
-            'total_power' => $query->sum('power'),
-            'avg_power' => $query->avg('power'),
-            'max_power' => $query->max('power'),
+            'total_power' => $query->sum('daya'),
+            'avg_power' => $query->avg('daya'),
+            'max_power' => $query->max('daya'),
             'total_energy' => $query->sum('energy'),
             'locations' => self::distinct()->pluck('lokasi')->toArray()
         ];

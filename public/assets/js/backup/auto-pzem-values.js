@@ -1,4 +1,3 @@
-
 class AutoPZEMGenerator {
     constructor() {
         this.isRunning = false;
@@ -35,7 +34,6 @@ class AutoPZEMGenerator {
         this.start();
     }
 
-
     generateRealisticValues() {
         const now = new Date();
         const hour = now.getHours();
@@ -49,7 +47,7 @@ class AutoPZEMGenerator {
         let basePower = this.buildingProfile.basePowerConsumption;
         let maxPower = this.buildingProfile.maxPowerConsumption;
 
-
+        // Weekend reduction
         if (isWeekend) {
             basePower *= this.buildingProfile.weekendReduction;
             maxPower *= this.buildingProfile.weekendReduction;
@@ -57,54 +55,79 @@ class AutoPZEMGenerator {
 
         let finalPower;
 
+        // Pola sederhana sesuai permintaan: 600W jam kerja, 150an malam
         if (hour >= 7 && hour <= 18 && !isWeekend) {
-            finalPower = 550 + Math.random() * 50;
+            // Jam kerja 7 pagi - 6 sore = daya maksimal 600W
+            finalPower = 550 + Math.random() * 50; // 550-600W
         } else if (isWeekend && hour >= 8 && hour <= 17) {
-            finalPower = 300 + Math.random() * 100;
+            // Weekend jam siang = daya sedang
+            finalPower = 300 + Math.random() * 100; // 300-400W
         } else {
-            finalPower = 120 + Math.random() * 60;
+            // Malam hari atau di luar jam kerja = 150an
+            finalPower = 120 + Math.random() * 60; // 120-180W
         }
 
-        const voltage = 220 + (Math.random() * 22 - 11);
+        // Calculate voltage with realistic variation (220V ±5%)
+        const voltage = 220 + (Math.random() * 22 - 11); // 209V to 231V
 
+        // Calculate current based on power and voltage (P = V × I)
         const current = finalPower / voltage;
-        const lightingPower = Math.random() * 20 + 10;
+
+        // Calculate total power including lighting (add 10-30W for lighting)
+        const lightingPower = Math.random() * 20 + 10; // 10-30W for lighting
         const totalPower = finalPower + lightingPower;
 
-        const energi = (finalPower / 1000 * Math.random()).toFixed(4);
-        const frekuensi = (50 + (Math.random() - 0.5) * 1).toFixed(2);
-        const power_factor = (0.85 + Math.random() * 0.15).toFixed(3);
+        // Generate additional electrical parameters
+        const energi = (finalPower / 1000 * Math.random()).toFixed(4); // Energy in kWh
+        const frekuensi = (50 + (Math.random() - 0.5) * 1).toFixed(2); // 49.5-50.5Hz (stable for building)
+        const power_factor = (0.85 + Math.random() * 0.15).toFixed(3); // 0.85-1.0 PF (realistic for office building)
 
+        // Generate base data
         let generatedData = {
-            voltage: Math.round(voltage * 10) / 10,
-            current: Math.round(current * 100) / 100,
-            power: Math.round(finalPower),
-            energi: parseFloat(energi),
-            frekuensi: parseFloat(frekuensi),
-            power_factor: parseFloat(power_factor),
-            totalPower: Math.round(totalPower),
+            voltage: Math.round(voltage * 10) / 10,     // 1 decimal place
+            current: Math.round(current * 100) / 100,  // 2 decimal places
+            power: Math.round(finalPower),              // Whole number
+            energi: parseFloat(energi),                 // Energy in kWh
+            frekuensi: parseFloat(frekuensi),          // Frequency in Hz
+            power_factor: parseFloat(power_factor),     // Power Factor
+            totalPower: Math.round(totalPower),         // Total including lighting
             timestamp: this.getIndonesiaTimestamp()
         };
 
+        // ✅ FITUR BARU: Real-time night reduction (70% reduction saat malam hari)
         generatedData = this.applyRealTimeNightReduction(generatedData);
+
+        // Update night mode status (existing system)
         this.updateNightModeStatus();
+
+        // Apply night mode reduction jika sedang aktif (existing system)
         generatedData = this.applyNightModeReduction(generatedData);
 
         return generatedData;
     }
 
-
+    /**
+     * Get timestamp in Indonesia timezone
+     */
     getIndonesiaTimestamp() {
         const now = new Date();
+        // Gunakan waktu lokal langsung (sudah dalam WIB)
         return now.toISOString().replace('Z', '+07:00');
     }
 
+    /**
+     * ✅ FITUR BARU: Update night mode indicator di dashboard
+     */
     updateNightModeIndicator() {
         const now = new Date();
+        // Gunakan waktu lokal langsung (sudah dalam WIB)
         const hour = now.getHours();
         const isNightTime = (hour >= 22 || hour < 6);
+
+        // Cari atau buat indicator element
         let nightIndicator = document.getElementById('nightModeIndicator');
         if (!nightIndicator) {
+            // Buat indicator baru jika belum ada
             nightIndicator = document.createElement('div');
             nightIndicator.id = 'nightModeIndicator';
             nightIndicator.style.cssText = `
@@ -124,6 +147,7 @@ class AutoPZEMGenerator {
         }
 
         if (isNightTime) {
+            // Night mode active
             nightIndicator.innerHTML = `
                 <i class="fa fa-moon"></i> Night Mode
                 <small style="display: block; font-size: 0.7rem; opacity: 0.8;">-70% Power</small>
@@ -131,6 +155,7 @@ class AutoPZEMGenerator {
             nightIndicator.className = 'badge bg-dark text-white';
             nightIndicator.style.background = 'linear-gradient(45deg, #1a1a2e, #16213e)';
         } else {
+            // Day mode
             nightIndicator.innerHTML = `
                 <i class="fa fa-sun"></i> Day Mode
                 <small style="display: block; font-size: 0.7rem; opacity: 0.8;">Normal Power</small>
@@ -139,6 +164,7 @@ class AutoPZEMGenerator {
             nightIndicator.style.background = 'linear-gradient(45deg, #ffd700, #ffed4a)';
         }
 
+        // Update title dengan current time
         const timeStr = now.toLocaleTimeString('id-ID', {
             hour: '2-digit',
             minute: '2-digit',
@@ -147,7 +173,11 @@ class AutoPZEMGenerator {
         nightIndicator.title = `Current time: ${timeStr} WIB`;
     }
 
+    /**
+     * Update the PZEM display elements
+     */
     updateDisplay(data) {
+        // Update PZEM monitoring widgets
         const voltageEl = document.getElementById('pzem-voltage');
         if (voltageEl) {
             voltageEl.textContent = `${data.voltage} V`;
@@ -168,6 +198,7 @@ class AutoPZEMGenerator {
             totalEl.textContent = `${data.totalPower} W`;
         }
 
+        // Update new fields if elements exist
         const energiEl = document.getElementById('pzem-energi');
         if (energiEl && data.energi) {
             energiEl.textContent = `${data.energi} kWh`;
@@ -183,22 +214,34 @@ class AutoPZEMGenerator {
             powerFactorEl.textContent = data.power_factor;
         }
 
+        // ✅ FITUR BARU: Update night mode indicator
         this.updateNightModeIndicator();
+
+        // Values updated - logging removed for cleaner console
+
+        // Always send to Firebase (every 3 seconds)
         this.sendToFirebase(data);
+
+        // Send to database less frequently (every 10th update = every 30 seconds)
         this.databaseSyncCounter++;
         if (this.databaseSyncCounter >= 10) {
             this.sendToDatabase(data);
             this.databaseSyncCounter = 0;
         }
     }
+
+    /**
+     * Send data to Laravel database via API
+     */
     async sendToDatabase(data) {
         try {
+            // Sending to database without verbose logging
 
             const payload = {
                 tegangan: data.voltage,
                 arus: data.current,
                 daya: data.power,
-                energi: data.energi || (data.power / 1000) * (1 / 60),
+                energi: data.energi || (data.power / 1000) * (1 / 60), // Use generated energy or convert to kWh for 1 minute interval
                 frekuensi: data.frekuensi || 50.0,
                 power_factor: data.power_factor || 0.85,
                 timestamp: data.timestamp
@@ -216,31 +259,38 @@ class AutoPZEMGenerator {
 
             if (response.ok) {
                 const result = await response.json();
+                // Database sync successful - status updated in UI
 
+                // Update status indicator
                 const dbStatus = document.getElementById('dbSyncStatus');
                 if (dbStatus) {
                     dbStatus.className = 'badge bg-success me-2';
                     dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Connected';
 
+                    // Reset to normal after 5 seconds
                     setTimeout(() => {
                         dbStatus.className = 'badge bg-secondary me-2';
                         dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Synced';
                     }, 5000);
                 }
 
+                // Visual feedback
                 document.body.style.borderLeft = '3px solid green';
                 setTimeout(() => {
                     document.body.style.borderLeft = '';
                 }, 1000);
             } else {
                 const errorText = await response.text();
-                console.warn('Database sync failed:', response.statusText, errorText);
+                console.warn('[AutoPZEM] ❌ Database sync failed:', response.statusText, errorText);
+
+                // Update status indicator for error
                 const dbStatus = document.getElementById('dbSyncStatus');
                 if (dbStatus) {
                     dbStatus.className = 'badge bg-danger me-2';
                     dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Error';
                 }
 
+                // Visual feedback for error
                 document.body.style.borderLeft = '3px solid red';
                 setTimeout(() => {
                     document.body.style.borderLeft = '';
@@ -251,10 +301,17 @@ class AutoPZEMGenerator {
         }
     }
 
+    /**
+     * Send data to Firebase Realtime Database
+     */
     async sendToFirebase(data) {
         try {
+            // Sending to Firebase sensor path
+
+            // Use direct REST API to Firebase (more reliable)
             const firebaseUrl = 'https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app';
 
+            // Send to sensor path (overwrites existing data)
             const sensorResponse = await fetch(`${firebaseUrl}/sensor.json`, {
                 method: 'PUT',
                 headers: {
@@ -273,18 +330,22 @@ class AutoPZEMGenerator {
             });
 
             if (sensorResponse.ok) {
+                // Firebase sync successful - status updated in UI
 
+                // Update Firebase status indicator
                 const firebaseStatus = document.getElementById('firebaseSyncStatus');
                 if (firebaseStatus) {
                     firebaseStatus.className = 'badge bg-info';
                     firebaseStatus.innerHTML = '<i class="fa fa-cloud"></i> Firebase: Connected';
 
+                    // Reset to normal after 3 seconds
                     setTimeout(() => {
                         firebaseStatus.className = 'badge bg-secondary';
                         firebaseStatus.innerHTML = '<i class="fa fa-cloud"></i> Firebase: Synced';
                     }, 3000);
                 }
 
+                // Visual feedback - blue border for Firebase sync
                 document.body.style.borderRight = '3px solid blue';
                 setTimeout(() => {
                     document.body.style.borderRight = '';
@@ -292,6 +353,7 @@ class AutoPZEMGenerator {
             } else {
                 console.warn('[AutoPZEM] ❌ Firebase sensor sync failed:', sensorResponse.statusText);
 
+                // Update Firebase status for error
                 const firebaseStatus = document.getElementById('firebaseSyncStatus');
                 if (firebaseStatus) {
                     firebaseStatus.className = 'badge bg-warning';
@@ -299,6 +361,7 @@ class AutoPZEMGenerator {
                 }
             }
 
+            // Also save to history (every 5th update to avoid too much data)
             if (this.databaseSyncCounter % 5 === 0) {
                 const timestamp = Date.now();
                 await fetch(`${firebaseUrl}/sensorHistory/${timestamp}.json`, {
@@ -319,6 +382,7 @@ class AutoPZEMGenerator {
                     })
                 });
 
+                // Firebase history updated successfully
             }
 
         } catch (error) {
@@ -326,6 +390,9 @@ class AutoPZEMGenerator {
         }
     }
 
+    /**
+     * Start the auto-update process
+     */
     start() {
         if (this.isRunning) {
             console.log('[AutoPZEM] Already running');
