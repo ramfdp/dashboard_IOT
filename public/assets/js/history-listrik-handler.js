@@ -283,7 +283,7 @@ class HistoryListrikHandler {
         if (!tbody) return;
 
         if (this.filteredData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center">Tidak ada data untuk filter yang dipilih</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">Tidak ada data history yang tersedia</td></tr>';
             return;
         }
 
@@ -294,14 +294,14 @@ class HistoryListrikHandler {
 
             html += `
                 <tr>
-                    <td>${rowNumber}</td>
-                    <td>${formattedDate}</td>
-                    <td>${item.voltage} V</td>
-                    <td>${item.current} A</td>
-                    <td>${item.power} W</td>
-                    <td>${item.energi || item.energy || 0} kWh</td>
-                    <td>${item.frekuensi || item.frequency || 50} Hz</td>
-                    <td>${item.power_factor || item.pf || 0.85}</td>
+                    <td class="text-center">${rowNumber}</td>
+                    <td class="text-center">${formattedDate}</td>
+                    <td class="text-center">${item.voltage} V</td>
+                    <td class="text-center">${item.current} A</td>
+                    <td class="text-center">${item.power} W</td>
+                    <td class="text-center">${item.energi || item.energy || 0} kWh</td>
+                    <td class="text-center">${item.frekuensi || item.frequency || 50} Hz</td>
+                    <td class="text-center">${item.power_factor || item.pf || 0.85}</td>
                 </tr>
             `;
         });

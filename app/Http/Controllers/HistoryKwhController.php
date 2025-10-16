@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\HistoryKwh;
+use App\Models\Listrik;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Schema;
@@ -18,20 +18,22 @@ class HistoryKwhController extends Controller
     public function index(Request $request)
     {
         try {
-            if (!Schema::hasTable('histori_kwh')) {
-                Log::error("Tabel histori_kwh tidak ditemukan di database.");
+            if (!Schema::hasTable('listriks')) {
+                Log::error("Tabel listriks tidak ditemukan di database.");
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 500);
             }
 
             if ($request->ajax()) {
-                $data = HistoryKwh::select('id', 'tegangan', 'arus', 'daya', 'energi', 'frekuensi', 'power_factor', 'tanggal_input');
+                $data = Listrik::select('id', 'tegangan', 'arus', 'daya', 'energi', 'frekuensi', 'power_factor', 'created_at as tanggal_input');
 
                 Log::info("Data berhasil diambil dari database", ['jumlah_data' => $data->count()]);
 
                 return DataTables::of($data)
+                    ->editColumn('tanggal_input', function ($row) {
+                        return $row->tanggal_input->format('d/m/Y, H:i:s');
+                    })
                     ->toJson();
             }
-
 
             return view('pages.table-manage-buttons');
         } catch (\Exception $e) {
@@ -41,12 +43,12 @@ class HistoryKwhController extends Controller
     }
 
     /**
-     * Menyimpan data baru ke dalam tabel history_kwh.
+     * Menyimpan data baru ke dalam tabel listriks.
      */
     public function store(Request $request)
     {
         try {
-            if (!Schema::hasTable('history_kwh')) {
+            if (!Schema::hasTable('listriks')) {
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 500);
             }
 
@@ -59,7 +61,7 @@ class HistoryKwhController extends Controller
                 'power_factor' => 'required|numeric',
             ]);
 
-            $history = HistoryKwh::create(array_merge($validated, ['tanggal_input' => now()]));
+            $history = Listrik::create($validated);
 
             return response()->json([
                 'success' => true,
@@ -77,11 +79,11 @@ class HistoryKwhController extends Controller
     public function show($id)
     {
         try {
-            if (!Schema::hasTable('history_kwh')) {
+            if (!Schema::hasTable('listriks')) {
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 500);
             }
 
-            $history = HistoryKwh::find($id);
+            $history = Listrik::find($id);
 
             if (!$history) {
                 return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
@@ -99,11 +101,11 @@ class HistoryKwhController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            if (!Schema::hasTable('history_kwh')) {
+            if (!Schema::hasTable('listriks')) {
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 500);
             }
 
-            $history = HistoryKwh::find($id);
+            $history = Listrik::find($id);
 
             if (!$history) {
                 return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
@@ -136,11 +138,11 @@ class HistoryKwhController extends Controller
     public function destroy($id)
     {
         try {
-            if (!Schema::hasTable('history_kwh')) {
+            if (!Schema::hasTable('listriks')) {
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 500);
             }
 
-            $history = HistoryKwh::find($id);
+            $history = Listrik::find($id);
 
             if (!$history) {
                 return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
@@ -158,16 +160,16 @@ class HistoryKwhController extends Controller
     }
 
     /**
-     * Mengambil data terbaru dari history_kwh.
+     * Mengambil data terbaru dari tabel listriks.
      */
     public function latest()
     {
         try {
-            if (!Schema::hasTable('history_kwh')) {
+            if (!Schema::hasTable('listriks')) {
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 500);
             }
 
-            $history = HistoryKwh::orderBy('tanggal_input', 'desc')->first();
+            $history = Listrik::orderBy('created_at', 'desc')->first();
 
             if (!$history) {
                 return response()->json(['success' => false, 'message' => 'Data tidak ditemukan'], 404);
@@ -195,14 +197,13 @@ class HistoryKwhController extends Controller
                 }
 
                 // Simpan ke DB
-                HistoryKwh::create([
+                Listrik::create([
                     'tegangan' => $data['voltage'],
                     'arus' => $data['current'],
                     'daya' => $data['power'],
                     'energi' => $data['energy'],
                     'frekuensi' => $data['frequency'],
-                    'power_factor' => $data['powerFactor'],
-                    'tanggal_input' => now()
+                    'power_factor' => $data['powerFactor']
                 ]);
 
                 return response()->json(['success' => true, 'message' => 'Data berhasil disimpan']);
@@ -221,11 +222,11 @@ class HistoryKwhController extends Controller
     public function getFilteredHistory(Request $request)
     {
         try {
-            if (!Schema::hasTable('histori_kwh')) {
+            if (!Schema::hasTable('listriks')) {
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 404);
             }
 
-            $query = HistoryKwh::query();
+            $query = Listrik::query();
 
             // Filter berdasarkan bulan
             if ($request->filled('bulan')) {
@@ -292,11 +293,11 @@ class HistoryKwhController extends Controller
     public function getAllHistoryForDownload(Request $request)
     {
         try {
-            if (!Schema::hasTable('histori_kwh')) {
+            if (!Schema::hasTable('listriks')) {
                 return response()->json(['success' => false, 'message' => 'Tabel tidak ditemukan'], 404);
             }
 
-            $query = HistoryKwh::query();
+            $query = Listrik::query();
 
             // Filter berdasarkan bulan
             if ($request->filled('bulan')) {

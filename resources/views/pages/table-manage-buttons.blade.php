@@ -33,6 +33,21 @@
             border: none;
             border-radius: 25px;
         }
+        
+        /* Table alignment styling */
+        #historyTable {
+            table-layout: fixed;
+        }
+        #historyTable th,
+        #historyTable td {
+            text-align: center !important;
+            vertical-align: middle !important;
+            padding: 12px 8px;
+            word-wrap: break-word;
+        }
+        #historyTable tbody tr:hover {
+            background-color: #f8f9fa;
+        }
     </style>
 @endpush
 
@@ -92,15 +107,7 @@
                                 @endfor
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">&nbsp;</label>
-                            <div>
-                                <button type="button" class="btn btn-filter text-white w-100" id="btnFilterHistory">
-                                    <i class="fa fa-filter me-2"></i>Filter Data
-                                </button>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label">&nbsp;</label>
                             <div>
                                 <button type="button" class="btn btn-download text-white w-100" id="btnDownloadHistory">
@@ -185,26 +192,26 @@
                         <table class="table table-striped table-hover mb-0" id="historyTable">
                             <thead class="table-dark">
                                 <tr>
-                                    <th class="text-center">#</th>
-                                    <th class="text-center">
+                                    <th class="text-center" style="width: 60px;">No</th>
+                                    <th class="text-center" style="width: 180px;">
                                         <i class="fas fa-calendar me-1"></i>Tanggal & Waktu
                                     </th>
-                                    <th class="text-center">
+                                    <th class="text-center" style="width: 120px;">
                                         <i class="fas fa-plug me-1"></i>Voltage (V)
                                     </th>
-                                    <th class="text-center">
+                                    <th class="text-center" style="width: 120px;">
                                         <i class="fas fa-tachometer-alt me-1"></i>Current (A)
                                     </th>
-                                    <th class="text-center">
+                                    <th class="text-center" style="width: 120px;">
                                         <i class="fas fa-bolt me-1"></i>Power (W)
                                     </th>
-                                    <th class="text-center">
+                                    <th class="text-center" style="width: 130px;">
                                         <i class="fas fa-fire me-1"></i>Energi (kWh)
                                     </th>
-                                    <th class="text-center">
+                                    <th class="text-center" style="width: 130px;">
                                         <i class="fas fa-wave-square me-1"></i>Frekuensi (Hz)
                                     </th>
-                                    <th class="text-center">
+                                    <th class="text-center" style="width: 120px;">
                                         <i class="fas fa-percentage me-1"></i>Power Factor
                                     </th>
                                 </tr>

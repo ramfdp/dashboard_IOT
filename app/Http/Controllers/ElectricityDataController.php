@@ -116,9 +116,9 @@ class ElectricityDataController extends Controller
             case 'harian':
                 return $this->generateDemoHourlyData(24);
             case 'mingguan':
-                return $this->generateDemoHourlyData(168); // 7 days * 24 hours
+                return $this->generateDemoHourlyData(168); 
             case 'bulanan':
-                return $this->generateDemoHourlyData(720); // 30 days * 24 hours
+                return $this->generateDemoHourlyData(720);
             default:
                 return $this->generateDemoHourlyData(24);
         }
@@ -538,6 +538,6 @@ class ElectricityDataController extends Controller
      */
     private function estimateDailyKwh($avgPower)
     {
-        return ($avgPower * 24) / 1000; // Convert W*h to kWh
+        return ($avgPower * 24) / 1000; 
     }
 }

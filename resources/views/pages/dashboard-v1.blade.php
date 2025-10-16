@@ -13,46 +13,32 @@
 @endpush
 
 @push('scripts')
-    {{-- Essential Dashboard Scripts --}}
     <script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
-    
-    {{-- Chart.js for visualization --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.min.js"></script>
-    
-    {{-- TensorFlow.js tidak diperlukan untuk Linear Regression --}}
-    {{-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.15.0/dist/tf-core.min.js" async defer></script> --}}
-    {{-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.15.0/dist/tf-converter.min.js" async defer></script> --}}
-    {{-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu@4.15.0/dist/tf-backend-cpu.min.js" async defer></script> --}}
-    
-    {{-- Electricity Calculation System --}}
+
+    {{-- AutoPZEM Generator - Must load before dashboard integration --}}
+    <script src="/assets/js/auto-pzem-values.js" defer></script>
     <script src="/assets/js/electricity-linear-regression-calculator.js" defer></script>
     <script src="/assets/js/linear-regression-integration.js" defer></script>
     <script src="/assets/js/krakatau-electricity-calculator.js" defer></script>
-    
-    {{-- Dashboard Integration --}}
     <script src="/assets/js/dashboard-electricity-integration.js" defer></script>
     <script src="/assets/js/dashboard-data-debug.js" defer></script>
-    
-    {{-- New Separated Components --}}
     <script src="/assets/js/dashboard-period-analysis.js" defer></script>
     <script src="/assets/js/dashboard-current-usage.js" defer></script>
-    
-    {{-- Core Dashboard Functions --}}
     <script src="/assets/js/logika-form-lembur.js"></script>
     <script type="module" src="/assets/js/overtime-control-fetch.js"></script>
     <script type="module" src="/assets/js/device-firebase-control.js"></script>
     <script src="/assets/js/LightScheduleManager.js"></script>
     <script src="/assets/js/ModeManager.js"></script>
-    
+
     {{-- Initialize dashboard routes and debug data --}}
     <script>
         window.dashboardRoutes = {
             autoMode: '{{ route("dashboard.auto-mode") }}',
             manualMode: '{{ route("dashboard.manual-mode") }}'
         };
-        
-        // Pass debug data to JavaScript
+
         window.dashboardDebugData = {
             dataKwh: @json($dataKwh ?? []),
             labelsCount: @json(isset($dataKwh) ? $dataKwh->pluck('waktu')->count() : 0),
@@ -61,30 +47,13 @@
     </script>
     <script src="/assets/js/dashboard-mode-control.js"></script>
     
-    {{-- Export functionality --}}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="/assets/js/export-analysis.js"></script>
-    
     {{-- Firebase Integration --}}
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js" defer></script>
-    {{-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" defer></script> --}}
     <script src="/assets/js/firebase-integration.js" defer></script>
-    
-    {{-- Auto PZEM Values Generator for PT Krakatau Sarana Property --}}
-    <script src="/assets/js/auto-pzem-values.js" defer></script>
-    
-    {{-- Night Mode Simulation Indicator --}}
     <script src="/assets/js/night-mode-indicator.js" defer></script>
-    
-    {{-- PLN Tariff Calculator with Official Rates --}}
     <script src="/assets/js/pln-tariff-calculator.js" defer></script>
-    
-    {{-- PLN Calculator Integration with Monitoring System --}}
     <script src="/assets/js/pln-calculator-integration.js" defer></script>
-    
-    {{-- Real-time monitoring - loaded last --}}
     <script src="/assets/js/fetch-api-monitoring.js"></script>
 @endpush
 
@@ -111,10 +80,10 @@
         </div>
     </h1>
     <!-- END page-header -->
-    <!-- PZEM Monitoring (1 Row, 4 Kolom) -->
+    <!-- PZEM Monitoring (1 Row, 3 Kolom) -->
     <div class="row">
         <!-- Voltage -->
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="widget widget-stats bg-primary">
                 <div class="stats-icon"><i class="fa fa-bolt"></i></div>
                 <div class="stats-info">
@@ -125,7 +94,7 @@
         </div>
 
         <!-- Current -->
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="widget widget-stats bg-success">
                 <div class="stats-icon"><i class="fa fa-plug"></i></div>
                 <div class="stats-info">
@@ -136,23 +105,12 @@
         </div>
 
         <!-- Power -->
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="widget widget-stats bg-warning">
                 <div class="stats-icon"><i class="fa fa-lightbulb"></i></div>
                 <div class="stats-info">
-                    <h4>Daya Sensor PZEM</h4>
+                    <h4>Daya</h4>
                     <p id="pzem-power">Memuat...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Power -->
-        <div class="col-md-3">
-            <div class="widget widget-stats bg-danger">
-                <div class="stats-icon"><i class="fa fa-tachometer-alt"></i></div>
-                <div class="stats-info">
-                    <h4>Total Penggunaan Lampu</h4>
-                    <p id="total-listrik">Memuat...</p>
                 </div>
             </div>
         </div>
@@ -166,7 +124,7 @@
                     <div class="panel-heading d-flex justify-content-between align-items-center bg-black text-white p-3 rounded-top">
                         <h6 class="panel-title mb-0">
                             <i class="fa fa-chart-line me-2"></i>Penggunaan Listrik Hari Ini
-                            <small class="text-muted ms-2">{{ \Carbon\Carbon::now('Asia/Jakarta')->format('d F Y') }}</small>
+                            <small class="text-muted ms-2" id="chartDateDisplay">{{ \Carbon\Carbon::now('Asia/Jakarta')->format('d F Y') }}</small>
                         </h6>
                     </div>
                     <div class="panel-body p-4 bg-dark text-white rounded-bottom">
@@ -175,11 +133,9 @@
                             data-labels='@json(isset($dataKwh) ? $dataKwh->pluck('waktu_formatted')->toArray() : [])'
                             data-values='@json(isset($dataKwh) ? $dataKwh->pluck('daya')->toArray() : [])'
                             width="1450" height="300" style="background-color: #1e1e1e;"></canvas>
-                            
-                            {{-- Chart canvas with data attributes for JavaScript processing --}}
                         </div>
                         <div class="row col-md-12 text-center mt-3 mb-2">
-                            <button class="btn btn-primary" id="btnLihatPerhitungan" data-bs-toggle="modal" data-bs-target="#modalPerhitunganListrik">Lihat Perhitungan</button>
+                            <button class="btn btn-primary" id="btnLihatPerhitungan" data-bs-toggle="modal" data-bs-target="#modalPerhitunganListrik">Lihat Detail</button>
                         </div>
                     </div>
                 </div>
@@ -225,36 +181,6 @@
                                         <select class="form-control" id="algorithmSelect">
                                             <option value="linear-regression" selected>Linear Regression</option>
                                         </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Current Usage Section -->
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <div class="card bg-primary text-white border-0 shadow-sm">
-                                <div class="card-header">
-                                    <h6 class="card-title mb-0"><i class="fa fa-bolt me-2"></i>Penggunaan Listrik</h6>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row text-center">
-                                        <div class="col-4">
-                                            <h4 id="currentPower" class="text-white">0 W</h4>
-                                            <small class="text-light">Daya Sekarang</small>
-                                        </div>
-                                        <div class="col-4">
-                                            <h4 id="averagePower" class="text-white">0 W</h4>
-                                            <small class="text-light">Rata-rata Hari Ini</small>
-                                        </div>
-                                        <div class="col-4">
-                                            <h4 id="todayKwh" class="text-white">0 kWh</h4>
-                                            <small class="text-light">Total Hari Ini</small>
-                                        </div>
-                                    </div>
-                                    <div class="text-center mt-2">
-                                        <small id="lastUpdateTime" class="text-light">Update terakhir: --:--:--</small>
                                     </div>
                                 </div>
                             </div>
@@ -373,35 +299,6 @@
                                 </div>
                             </div>
 
-                            <!-- Cost Calculator Input -->
-                            {{-- <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Konsumsi Listrik (kWh)</label>
-                                    <div class="input-group">
-                                        <input type="number" id="kwhInputModal" class="form-control" 
-                                               placeholder="Memuat data..." readonly min="0" step="0.01">
-                                        <span class="input-group-text">kWh</span>
-                                    </div>
-                                    <small class="text-muted">
-                                        <i class="fa fa-database"></i> Data dimuat otomatis dari database
-                                    </small>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="bg-light rounded p-3">
-                                        <h6 class="fw-bold mb-3">Hasil Perhitungan:</h6>
-                                        <div class="text-center mb-3">
-                                            <small class="text-muted">Konsumsi Bulanan</small>
-                                            <div id="displayKwhModal" class="h5 fw-bold text-primary">100 kWh</div>
-                                        </div>
-                                        <hr>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="fw-bold">Total Biaya:</span>
-                                            <span id="totalCostModal" class="h5 text-success fw-bold">Rp 103.576</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> --}}
-
                             <!-- Cost Summary Cards -->
                             <div class="row mb-3">
                                 <div class="col-md-3 col-sm-6 mb-2">
@@ -500,9 +397,6 @@
 
                 </div>
                 <div class="modal-footer bg-light border-top">
-                    <button type="button" class="btn btn-info shadow-sm" id="exportAnalysis">
-                        <i class="fa fa-download me-2"></i>Export Analysis
-                    </button>
                     <button type="button" class="btn btn-success shadow-sm" id="refreshAnalysis">
                         <i class="fa fa-refresh me-2"></i>Refresh
                     </button>
@@ -830,7 +724,6 @@
         </div>
     </div>
 
-    <!-- Livewire Overtime Control Component -->
     @if(class_exists('App\Livewire\OvertimeControl'))
         @livewire('overtime-control')
     @endif

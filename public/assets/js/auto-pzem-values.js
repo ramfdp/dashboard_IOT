@@ -32,7 +32,14 @@ class AutoPZEMGenerator {
 
         console.log('[AutoPZEM] Auto PZEM Generator initialized with Night Mode Simulation');
         this.initializeNightMode();
-        this.start();
+
+        // ✅ Auto-start with duplicate protection
+        if (!this.isRunning) {
+            console.log('[AutoPZEM] Starting generator for dashboard display...');
+            this.start();
+        } else {
+            console.log('[AutoPZEM] Generator already running, skipping duplicate start');
+        }
     }
 
 
@@ -161,11 +168,6 @@ class AutoPZEMGenerator {
         const powerEl = document.getElementById('pzem-power');
         if (powerEl) {
             powerEl.textContent = `${data.power} W`;
-        }
-
-        const totalEl = document.getElementById('total-listrik');
-        if (totalEl) {
-            totalEl.textContent = `${data.totalPower} W`;
         }
 
         const energiEl = document.getElementById('pzem-energi');
@@ -509,15 +511,232 @@ class AutoPZEMGenerator {
             nightMode: nightModeInfo
         };
     }
+
+    // ✅ NEW: Generate realistic chart data with 5-minute intervals
+    generateRealisticChartData(timeRangeHours = null) {
+        console.log('[AutoPZEM] Generating realistic chart data with 5-minute intervals...');
+
+        const labels = [];
+        const values = [];
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+
+        // If timeRangeHours not specified, generate from 00:00 to current time
+        const endTimeInMinutes = timeRangeHours ? (timeRangeHours * 60) : (currentHour * 60 + currentMinute);
+
+        // Base power patterns for different time periods
+        const getBasePowerForHour = (hour) => {
+            if (hour >= 6 && hour <= 8) return 180; // Early morning
+            else if (hour >= 9 && hour <= 17) return 580; // Working hours
+            else if (hour >= 18 && hour <= 22) return 320; // Evening
+            else return 120; // Night
+        };
+
+        let lastPowerValue = getBasePowerForHour(0); // Start with night consumption
+
+        // Generate data points every 5 minutes
+        for (let totalMinutes = 0; totalMinutes <= endTimeInMinutes; totalMinutes += 5) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            const timeLabel = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+            labels.push(timeLabel);
+
+            // Get base power for this hour
+            const basePower = getBasePowerForHour(hours);
+
+            // Create realistic variations with smooth transitions
+            const targetPower = basePower + (Math.sin(totalMinutes / 30) * 20); // Gentle sine wave variation
+            const randomVariation = (Math.random() - 0.5) * 15; // ±7.5W variation
+
+            // Gradually move towards target with small random changes
+            const powerDifference = targetPower - lastPowerValue;
+            const adjustmentRate = 0.3; // 30% adjustment per 5-minute interval
+
+            let newPowerValue = lastPowerValue + (powerDifference * adjustmentRate) + randomVariation;
+
+            // Add occasional realistic spikes (AC, equipment turning on/off)
+            if (Math.random() < 0.05 && hours >= 7 && hours <= 21) { // 5% chance during active hours
+                const spikeDirection = Math.random() > 0.5 ? 1 : -1;
+                newPowerValue += spikeDirection * (20 + Math.random() * 30); // ±20-50W spike
+            }
+
+            // Keep values within realistic ranges for each time period
+            if (hours >= 9 && hours <= 17) {
+                newPowerValue = Math.max(520, Math.min(620, newPowerValue)); // Working hours: 520-620W
+            } else if (hours >= 18 && hours <= 22) {
+                newPowerValue = Math.max(250, Math.min(400, newPowerValue)); // Evening: 250-400W
+            } else if (hours >= 6 && hours <= 8) {
+                newPowerValue = Math.max(150, Math.min(220, newPowerValue)); // Morning: 150-220W
+            } else {
+                newPowerValue = Math.max(100, Math.min(160, newPowerValue)); // Night: 100-160W
+            }
+
+            values.push(Math.round(newPowerValue));
+            lastPowerValue = newPowerValue;
+        }
+
+        console.log('[AutoPZEM] Realistic chart data generated:', {
+            labelsCount: labels.length,
+            valuesCount: values.length,
+            interval: '5 minutes',
+            timeRange: `00:00 - ${String(Math.floor(endTimeInMinutes / 60)).padStart(2, '0')}:${String(endTimeInMinutes % 60).padStart(2, '0')}`,
+            powerRange: `${Math.min(...values)}W - ${Math.max(...values)}W`,
+            sampleValues: values.slice(-10) // Show last 10 values
+        });
+
+        return { labels, values, metadata: { interval: 5, unit: 'minutes' } };
+    }
+
+    // ✅ NEW: Generate realistic modal data (last 30 data points)
+    generateRealisticModalData() {
+        console.log('[AutoPZEM] Generating realistic modal data (last 30 points)...');
+
+        const data = [];
+        const labels = [];
+
+        // Generate last 30 data points with 5-minute intervals
+        const now = new Date();
+        let baseTime = new Date(now.getTime() - (30 * 5 * 60 * 1000)); // 30 points × 5 minutes back
+        let lastPower = 350; // Start with a reasonable middle value
+
+        for (let i = 0; i < 30; i++) {
+            const currentTime = new Date(baseTime.getTime() + (i * 5 * 60 * 1000));
+            const hours = currentTime.getHours();
+            const minutes = currentTime.getMinutes();
+
+            labels.push(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
+
+            // Realistic power based on time of day
+            let targetPower;
+            if (hours >= 9 && hours <= 17) targetPower = 580; // Work hours
+            else if (hours >= 18 && hours <= 22) targetPower = 320; // Evening
+            else if (hours >= 6 && hours <= 8) targetPower = 180; // Morning
+            else targetPower = 120; // Night
+
+            // Smooth transition with small variations
+            const variation = (Math.random() - 0.5) * 20; // ±10W
+            const transition = (targetPower - lastPower) * 0.2; // 20% adjustment
+            lastPower = lastPower + transition + variation;
+
+            // Keep within realistic bounds
+            lastPower = Math.max(100, Math.min(620, lastPower));
+            data.push(Math.round(lastPower));
+        }
+
+        console.log('[AutoPZEM] Realistic modal data generated:', {
+            dataCount: data.length,
+            powerRange: `${Math.min(...data)}W - ${Math.max(...data)}W`,
+            timeRange: `${labels[0]} - ${labels[labels.length - 1]}`
+        });
+
+        return { data, labels, metadata: { interval: 5, unit: 'minutes', points: 30 } };
+    }
+
+    // ✅ NEW: Generate realistic fallback data for initialization
+    generateRealisticFallbackData(dataPoints = 30) {
+        console.log('[AutoPZEM] Generating realistic fallback data...');
+
+        const fallbackData = [];
+        const fallbackLabels = [];
+        let currentPower = 320; // Start with evening power consumption
+
+        // Generate data points (5-minute intervals going backwards)
+        for (let i = dataPoints - 1; i >= 0; i--) {
+            const timeAgo = new Date(Date.now() - (i * 5 * 60 * 1000));
+            const hours = timeAgo.getHours();
+            const minutes = timeAgo.getMinutes();
+
+            fallbackLabels.unshift(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
+
+            // Realistic power variation
+            let targetPower;
+            if (hours >= 9 && hours <= 17) targetPower = 580;
+            else if (hours >= 18 && hours <= 22) targetPower = 320;
+            else if (hours >= 6 && hours <= 8) targetPower = 180;
+            else targetPower = 120;
+
+            const variation = (Math.random() - 0.5) * 15;
+            const transition = (targetPower - currentPower) * 0.15;
+            currentPower = Math.max(100, Math.min(620, currentPower + transition + variation));
+            fallbackData.unshift(Math.round(currentPower));
+        }
+
+        console.log('[AutoPZEM] Realistic fallback data created:', {
+            dataPoints: fallbackData.length,
+            powerRange: `${Math.min(...fallbackData)}W - ${Math.max(...fallbackData)}W`
+        });
+
+        return { data: fallbackData, labels: fallbackLabels, metadata: { interval: 5, unit: 'minutes' } };
+    }
+
+    // ✅ NEW: Generate data for new day reset (from 00:00 to current time)
+    generateNewDayResetData() {
+        console.log('[AutoPZEM] Generating new day reset data...');
+
+        const newLabels = [];
+        const newData = [];
+
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+        let lastPower = 120; // Start with night consumption
+
+        // Generate data for today from 00:00 to current time (5-minute intervals)
+        for (let totalMinutes = 0; totalMinutes <= currentTimeInMinutes; totalMinutes += 5) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            const timeLabel = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+            newLabels.push(timeLabel);
+
+            // Realistic power based on time of day
+            let targetPower;
+            if (hours >= 6 && hours <= 8) targetPower = 180; // Morning
+            else if (hours >= 9 && hours <= 17) targetPower = 580; // Work hours  
+            else if (hours >= 18 && hours <= 22) targetPower = 320; // Evening
+            else targetPower = 120; // Night
+
+            // Smooth transition with small variations
+            const variation = (Math.random() - 0.5) * 10; // ±5W variation
+            const transition = (targetPower - lastPower) * 0.25; // 25% adjustment per interval
+            lastPower = Math.max(100, Math.min(620, lastPower + transition + variation));
+
+            newData.push(Math.round(lastPower));
+        }
+
+        console.log('[AutoPZEM] New day reset data generated:', {
+            labelsCount: newLabels.length,
+            valuesCount: newData.length,
+            timeRange: `00:00 - ${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`,
+            powerRange: `${Math.min(...newData)}W - ${Math.max(...newData)}W`
+        });
+
+        return { labels: newLabels, data: newData, metadata: { interval: 5, unit: 'minutes' } };
+    }
 }
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function () {
     console.log('[AutoPZEM] DOM ready, initializing auto PZEM generator...');
 
-    // Wait a bit for other scripts to load
+    // Initialize quickly before dashboard needs it
     setTimeout(() => {
-        window.autoPZEMGenerator = new AutoPZEMGenerator();
+        // Guard against multiple initialization
+        if (!window.autoPZEMGenerator) {
+            console.log('[AutoPZEM] ✅ Creating new AutoPZEMGenerator instance...');
+            window.autoPZEMGenerator = new AutoPZEMGenerator();
+        } else {
+            console.log('[AutoPZEM] ⚠️ AutoPZEMGenerator already exists, checking if running...');
+            if (!window.autoPZEMGenerator.isRunning) {
+                console.log('[AutoPZEM] 🔄 Existing generator not running, starting it...');
+                window.autoPZEMGenerator.start();
+            } else {
+                console.log('[AutoPZEM] ✅ Generator already running properly');
+            }
+            return;
+        }
 
         // Global functions for console control
         window.startAutoPZEM = () => window.autoPZEMGenerator.start();
@@ -553,11 +772,5 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // Also handle window load as fallback
-window.addEventListener('load', function () {
-    if (!window.autoPZEMGenerator) {
-        console.log('[AutoPZEM] Window loaded, initializing as fallback...');
-        setTimeout(() => {
-            window.autoPZEMGenerator = new AutoPZEMGenerator();
-        }, 500);
-    }
-});
+// ✅ Fallback load event removed to prevent duplicate initialization
+// All initialization handled by DOMContentLoaded event above

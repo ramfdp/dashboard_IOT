@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 class FirebaseService
 {
     protected $database;
-    protected $timeout = 3; // Reduced timeout to 3 seconds
+    protected $timeout = 3;
 
     public function __construct()
     {
@@ -85,7 +85,6 @@ class FirebaseService
         }
     }
 
-    // Batch update for better performance
     public function setBatchRelayStates($states)
     {
         try {
@@ -108,7 +107,6 @@ class FirebaseService
         }
     }
 
-    // Schedule management methods
     public function setSchedule($scheduleId, $scheduleData)
     {
         try {
