@@ -1,18 +1,8 @@
-/**
- * Electricity Linear Regression Calculator
- * Menggantikan sistem prediksi KNN dengan Linear Regression
- * Untuk PT Krakatau Sarana Property
- */
-
-// Global Linear Regression Predictor class
 class LinearRegressionPredictor {
     constructor() {
         this.isInitialized = false;
     }
 
-    /**
-     * Simple Linear Regression prediction based on historical data
-     */
     async predict(historicalData, targetHours = 24) {
         try {
             if (!historicalData || historicalData.length < 3) {
@@ -21,56 +11,33 @@ class LinearRegressionPredictor {
                 };
             }
 
-            // Prepare data for linear regression
-            const dataPoints = historicalData.map((item, index) => ({
-                x: index,
-                y: parseFloat(item.daya) || parseFloat(item.power) || 0
-            }));
+            const dataPoints = historicalData.map((item, index) => [
+                index,
+                parseFloat(item.daya) || parseFloat(item.power) || 0
+            ]);
 
-            // Calculate linear regression
-            const regression = this.calculateLinearRegression(dataPoints);
+            const result = regression.linear(dataPoints);
 
-            // Predict future value
             const futureX = dataPoints.length + (targetHours / 24) * dataPoints.length;
-            const prediction = regression.slope * futureX + regression.intercept;
+            const prediction = result.predict(futureX)[1];
 
-            // Ensure prediction is reasonable (between 50W and 800W)
             const adjustedPrediction = Math.max(50, Math.min(800, Math.abs(prediction)));
 
             return {
-                prediction: Math.round(adjustedPrediction)
+                prediction: Math.round(adjustedPrediction),
+                equation: result.string,
+                r2: result.r2
             };
         } catch (error) {
             console.warn('Linear regression prediction failed:', error.message);
             return {
-                prediction: 250
+                prediction: 250,
+                equation: 'N/A',
+                r2: 0
             };
         }
     }
-
-    /**
-     * Calculate linear regression coefficients
-     */
-    calculateLinearRegression(dataPoints) {
-        const n = dataPoints.length;
-        const sumX = dataPoints.reduce((sum, point) => sum + point.x, 0);
-        const sumY = dataPoints.reduce((sum, point) => sum + point.y, 0);
-        const sumXY = dataPoints.reduce((sum, point) => sum + (point.x * point.y), 0);
-        const sumXX = dataPoints.reduce((sum, point) => sum + (point.x * point.x), 0);
-
-        // Calculate slope and intercept
-        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-        const intercept = (sumY - slope * sumX) / n;
-
-        return {
-            slope: slope,
-            intercept: intercept
-        };
-    }
 }
-
-// Make Linear Regression predictor available globally
-window.LinearRegressionPredictor = LinearRegressionPredictor;
 
 class ElectricityLinearRegressionCalculator {
     constructor(chartManager = null) {
@@ -78,16 +45,9 @@ class ElectricityLinearRegressionCalculator {
         this.chart = null;
         this.chartData = [];
         this.chartManager = chartManager;
-
-        // Use existing chart manager or create new one
-        if (this.chartManager) {
-            console.log('ChartManager used for Linear Regression calculator initialization');
-        }
-
-        // Initialize linear regression predictor
         this.linearPredictor = null;
+        this.predictions = {};
 
-        // Electricity analysis configurations
         this.analysisConfig = {
             predictions: {
                 enabled: true,
@@ -104,89 +64,61 @@ class ElectricityLinearRegressionCalculator {
     }
 
     async initialize() {
-        // Destroy any existing chart if using chartManager
         if (this.chartManager && this.chartManager.chart) {
             try {
                 this.chartManager.chart.destroy();
-                console.log('Existing Chart.js instance destroyed before creating new Linear Regression calculator');
+                console.log('[LinearRegression] Existing Chart.js instance destroyed');
             } catch (error) {
-                console.log('No existing chart to destroy');
+                console.log('[LinearRegression] No existing chart to destroy');
             }
         }
 
-        // Create loading state
         this.showLoadingState();
 
-        // Initialize with delay to ensure DOM is ready
         setTimeout(async () => {
             await this.initializeLinearRegressionModel();
         }, 500);
     }
 
-    /**
-     * Initialize Linear Regression model
-     */
     async initializeLinearRegressionModel() {
         try {
-            // Wait for Linear Regression Predictor to be available
-            const waitForLinearRegression = () => {
-                if (typeof LinearRegressionPredictor !== 'undefined') {
-                    this.linearPredictor = new LinearRegressionPredictor();
-                    console.log('Linear Regression predictor initialized successfully');
-                    this.isInitialized = true;
-                    this.loadElectricityData();
-                } else {
-                    console.log('Waiting for Linear Regression Predictor...');
-                    setTimeout(waitForLinearRegression, 100);
-                }
-            };
-
-            waitForLinearRegression();
+            this.linearPredictor = new LinearRegressionPredictor();
+            console.log('[LinearRegression] Predictor initialized successfully');
+            this.isInitialized = true;
+            this.loadElectricityData();
         } catch (error) {
-            console.error('Failed to initialize Linear Regression model:', error);
+            console.error('[LinearRegression] Failed to initialize model:', error);
             this.showErrorState('Failed to initialize prediction model');
         }
     }
 
-    /**
-     * Load electricity data and perform analysis
-     */
     async loadElectricityData() {
         try {
             this.showLoadingState();
 
-            // Generate realistic electricity data if no data available
             const electricityData = await this.getElectricityData();
 
             if (!electricityData || electricityData.length === 0) {
-                throw new Error('No electricity data available');
+                console.warn('[LinearRegression] No data available from API or fallback data sources');
+                this.showErrorState('No electricity data available. Please ensure data sources are accessible.');
+                return;
             }
 
             this.chartData = electricityData;
-
-            // Perform linear regression analysis
             await this.performLinearRegressionAnalysis();
-
-            // Create visualization
             this.createElectricityChart();
-
-            // Update summary statistics
             this.updateSummaryStatistics();
 
-            console.log('Linear Regression analysis completed successfully');
+            console.log('[LinearRegression] Analysis completed successfully');
 
         } catch (error) {
-            console.error('Failed to load electricity data:', error);
+            console.error('[LinearRegression] Failed to load electricity data:', error);
             this.showErrorState('Failed to load electricity data: ' + error.message);
         }
     }
 
-    /**
-     * Get electricity data from various sources
-     */
     async getElectricityData() {
         try {
-            // Try to get data from API first
             const response = await fetch('/api/history/filtered?limit=100');
             if (response.ok) {
                 const apiData = await response.json();
@@ -202,57 +134,59 @@ class ElectricityLinearRegressionCalculator {
                 }
             }
         } catch (error) {
-            console.warn('API data not available, using generated data:', error);
+            console.warn('[LinearRegression] API data not available, using fallback data source:', error);
         }
 
-        // Generate realistic data as fallback
-        return this.generateRealisticElectricityData();
+        return this.getFallbackElectricityData();
     }
 
-    /**
-     * Generate realistic electricity data for demonstration
-     */
-    generateRealisticElectricityData() {
-        const data = [];
-        const now = new Date();
+    getFallbackElectricityData() {
+          if (window.autoPZEMGenerator) {
+            console.log('[LinearRegression] Using fallback data source from system generator');
 
-        for (let i = 23; i >= 0; i--) {
-            const time = new Date(now.getTime() - (i * 60 * 60 * 1000));
-            const hour = time.getHours();
+            if (typeof window.autoPZEMGenerator.generateRealisticFallbackData === 'function') {
+                const fallbackData = window.autoPZEMGenerator.generateRealisticFallbackData(24); // 24 data points for 24 hours
 
-            // Generate realistic power consumption based on time
-            let power;
-            if (hour >= 7 && hour <= 18) {
-                // Work hours: 550-600W
-                power = 550 + Math.random() * 50;
-            } else {
-                // Night hours: 120-180W
-                power = 120 + Math.random() * 60;
+                return fallbackData.data.map((power, index) => {
+                    const label = fallbackData.labels[index];
+                    const now = new Date();
+                    const [hours, minutes] = label.split(':').map(Number);
+                    const timeDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+
+                    return {
+                        waktu: timeDate.toISOString(),
+                        daya: power,
+                        waktu_formatted: label
+                    };
+                });
             }
 
-            data.push({
-                waktu: time.toISOString(),
-                daya: Math.round(power),
-                waktu_formatted: time.toLocaleTimeString('id-ID', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })
-            });
+            if (window.autoPZEMGenerator.currentData) {
+                const currentData = window.autoPZEMGenerator.currentData;
+                const now = new Date();
+
+                console.log('[LinearRegression] Using single current data point as fallback');
+                return [{
+                    waktu: now.toISOString(),
+                    daya: parseFloat(currentData.power) || 0,
+                    waktu_formatted: now.toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                }];
+            }
         }
 
-        return data;
+        console.warn('[LinearRegression] No fallback data source available, returning empty data');
+        return [];
     }
 
-    /**
-     * Perform linear regression analysis
-     */
     async performLinearRegressionAnalysis() {
         if (!this.linearPredictor || !this.chartData) {
             throw new Error('Linear regression predictor or data not available');
         }
 
         try {
-            // Get predictions for different time horizons
             this.predictions = {};
 
             for (const hours of this.analysisConfig.predictions.hours) {
@@ -260,36 +194,30 @@ class ElectricityLinearRegressionCalculator {
                 this.predictions[hours] = result;
             }
 
-            console.log('Linear regression predictions:', this.predictions);
+            console.log('[LinearRegression] Predictions calculated:', this.predictions);
 
         } catch (error) {
-            console.error('Linear regression analysis failed:', error);
+            console.error('[LinearRegression] Analysis failed:', error);
             throw error;
         }
     }
 
-    /**
-     * Create electricity consumption chart
-     */
     createElectricityChart() {
         const canvas = document.getElementById('electricityAnalysisChart');
         if (!canvas) {
-            console.error('Chart canvas not found');
+            console.error('[LinearRegression] Chart canvas not found');
             return;
         }
 
         const ctx = canvas.getContext('2d');
 
-        // Destroy existing chart
         if (this.chart) {
             this.chart.destroy();
         }
 
-        // Prepare chart data
         const labels = this.chartData.map(item => item.waktu_formatted);
         const powerData = this.chartData.map(item => item.daya);
 
-        // Add prediction point
         const prediction24h = this.predictions[24];
         if (prediction24h) {
             labels.push('Prediksi 24h');
@@ -302,7 +230,7 @@ class ElectricityLinearRegressionCalculator {
                 labels: labels,
                 datasets: [{
                     label: 'Konsumsi Listrik (W)',
-                    data: powerData.slice(0, -1), // Exclude prediction from main line
+                    data: powerData.slice(0, -1),
                     borderColor: 'rgba(54, 162, 235, 1)',
                     backgroundColor: 'rgba(54, 162, 235, 0.1)',
                     borderWidth: 2,
@@ -310,9 +238,7 @@ class ElectricityLinearRegressionCalculator {
                     tension: 0.4
                 }, {
                     label: 'Prediksi Linear Regression',
-                    data: [null, null, null, null, null, null, null, null,
-                        null, null, null, null, null, null, null, null,
-                        null, null, null, null, null, null, null, powerData[powerData.length - 1]],
+                    data: Array(powerData.length - 1).fill(null).concat([powerData[powerData.length - 1]]),
                     borderColor: 'rgba(255, 99, 132, 1)',
                     backgroundColor: 'rgba(255, 99, 132, 0.1)',
                     borderWidth: 3,
@@ -361,39 +287,34 @@ class ElectricityLinearRegressionCalculator {
         });
     }
 
-    /**
-     * Update summary statistics
-     */
     updateSummaryStatistics() {
         try {
-            // Calculate current statistics
             const currentData = this.chartData.map(item => item.daya);
             const avgPower = currentData.reduce((sum, val) => sum + val, 0) / currentData.length;
             const maxPower = Math.max(...currentData);
             const minPower = Math.min(...currentData);
 
-            // Get 24h prediction
-            const prediction24h = this.predictions[24] || { prediction: 0 };
+            const prediction24h = this.predictions[24] || { prediction: 0, r2: 0 };
 
-            // Update DOM elements
             this.updateElementText('avgPowerConsumption', `${Math.round(avgPower)} W`);
             this.updateElementText('maxPowerConsumption', `${maxPower} W`);
             this.updateElementText('minPowerConsumption', `${minPower} W`);
             this.updateElementText('prediction24h', `${prediction24h.prediction} W`);
 
-            // Update algorithm info
-            this.updateElementText('algorithmUsed', 'Linear Regression');
+            const r2Percentage = (prediction24h.r2 * 100).toFixed(1);
+            this.updateElementText('algorithmUsed', `Linear Regression (R² ${r2Percentage}%)`);
 
-            console.log('Summary statistics updated');
+            if (prediction24h.equation) {
+                this.updateElementText('regressionEquation', prediction24h.equation);
+            }
+
+            console.log('[LinearRegression] Summary statistics updated');
 
         } catch (error) {
-            console.error('Failed to update summary statistics:', error);
+            console.error('[LinearRegression] Failed to update summary statistics:', error);
         }
     }
 
-    /**
-     * Update element text safely
-     */
     updateElementText(elementId, text) {
         const element = document.getElementById(elementId);
         if (element) {
@@ -401,9 +322,6 @@ class ElectricityLinearRegressionCalculator {
         }
     }
 
-    /**
-     * Show loading state
-     */
     showLoadingState() {
         const chartContainer = document.getElementById('electricityAnalysisChart');
         if (chartContainer) {
@@ -421,9 +339,6 @@ class ElectricityLinearRegressionCalculator {
         }
     }
 
-    /**
-     * Show error state
-     */
     showErrorState(message) {
         const chartContainer = document.getElementById('electricityAnalysisChart');
         if (chartContainer) {
@@ -444,9 +359,6 @@ class ElectricityLinearRegressionCalculator {
         }
     }
 
-    /**
-     * Export analysis results
-     */
     exportResults() {
         const results = {
             timestamp: new Date().toISOString(),
@@ -472,27 +384,99 @@ class ElectricityLinearRegressionCalculator {
         URL.revokeObjectURL(url);
     }
 
-    /**
-     * Refresh analysis
-     */
     async refresh() {
-        console.log('Refreshing Linear Regression analysis...');
+        console.log('[LinearRegression] Refreshing analysis...');
         await this.loadElectricityData();
     }
 }
 
-// Make Linear Regression calculator available globally
+function initializeLinearRegressionIntegration() {
+    console.log('[Dashboard] Initializing Linear Regression integration...');
+
+    if (typeof window.ElectricityLinearRegressionCalculator !== 'undefined') {
+        updatePredictionDisplay();
+        setInterval(updatePredictionDisplay, 30000); 
+        console.log('[Dashboard] Linear Regression integration ready');
+    } else {
+        console.warn('[Dashboard] Linear Regression calculator not available, retrying...');
+        setTimeout(initializeLinearRegressionIntegration, 1000);
+    }
+}
+
+async function updatePredictionDisplay() {
+    try {
+        if (!window.electricityCalculator || !window.electricityCalculator.linearPredictor) {
+            console.log('[Dashboard] Linear Regression predictor not ready yet');
+            return;
+        }
+
+        const currentData = window.electricityCalculator.chartData || [];
+
+        if (currentData.length > 0) {
+            const prediction = await window.electricityCalculator.linearPredictor.predict(currentData, 24);
+            updatePredictionUI(prediction);
+            console.log('[Dashboard] Prediction updated:', prediction);
+        }
+
+    } catch (error) {
+        console.error('[Dashboard] Failed to update prediction:', error);
+    }
+}
+
+function updatePredictionUI(prediction) {
+    try {
+        const prediksiWatt = document.getElementById('prediksiWatt');
+        if (prediksiWatt) {
+            prediksiWatt.textContent = `${prediction.prediction} W`;
+        }
+
+        const dailyEnergy = (prediction.prediction * 24 / 1000).toFixed(2);
+        const prediksiKwhHarian = document.getElementById('prediksiKwhHarian');
+        if (prediksiKwhHarian) {
+            prediksiKwhHarian.textContent = `${dailyEnergy} kWh`;
+        }
+
+    } catch (error) {
+        console.error('[Dashboard] Failed to update prediction UI:', error);
+    }
+}
+
+function showElectricityAnalysis() {
+    if (window.electricityCalculator) {
+        window.electricityCalculator.refresh();
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('electricityAnalysisModal'));
+    modal.show();
+}
+
+function exportLinearRegressionResults() {
+    if (window.electricityCalculator && typeof window.electricityCalculator.exportResults === 'function') {
+        window.electricityCalculator.exportResults();
+    } else {
+        console.warn('[Dashboard] Export function not available');
+        alert('Fitur export belum tersedia. Silakan coba lagi nanti.');
+    }
+}
+
+window.LinearRegressionPredictor = LinearRegressionPredictor;
 window.ElectricityLinearRegressionCalculator = ElectricityLinearRegressionCalculator;
+window.showElectricityAnalysis = showElectricityAnalysis;
+window.exportLinearRegressionResults = exportLinearRegressionResults;
+window.updatePredictionDisplay = updatePredictionDisplay;
 
-// Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function () {
-    // Check if we should initialize the calculator
-    if (document.getElementById('electricityAnalysisChart')) {
-        console.log('Initializing Electricity Linear Regression Calculator...');
+    console.log('[LinearRegression] Unified script loaded');
 
-        // Initialize with slight delay to ensure all dependencies are loaded
+    if (document.getElementById('electricityAnalysisChart')) {
+        console.log('[LinearRegression] Initializing Electricity Calculator...');
+
         setTimeout(() => {
             window.electricityCalculator = new ElectricityLinearRegressionCalculator();
         }, 1000);
     }
+
+    setTimeout(initializeLinearRegressionIntegration, 1500);
 });
+
+console.log('[LinearRegression] Unified Linear Regression module loaded successfully');

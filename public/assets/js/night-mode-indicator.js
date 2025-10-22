@@ -1,8 +1,3 @@
-/**
- * Night Mode Visual Indicator
- * Menampilkan status night mode simulation di dashboard
- */
-
 class NightModeIndicator {
     constructor() {
         this.createIndicator();

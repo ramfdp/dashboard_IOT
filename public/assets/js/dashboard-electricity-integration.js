@@ -1,57 +1,32 @@
-/**
- * Dashboard Electricity Integration - FIXED VERSION
- * Menggabungkan Chart.js dengan Linear Regression prediction dan modal calculator
- * Dipindahkan dari dashboard-v1.blade.php untuk clean separation
- */
-
-// Wait for Chart.js to be fully loaded
 function waitForChart(callback, maxRetries = 50) {
     if (typeof Chart !== 'undefined') {
-        console.log('[Dashboard] Chart.js is available');
         callback();
     } else if (maxRetries > 0) {
-        console.log('[Dashboard] Waiting for Chart.js... retries left:', maxRetries);
         setTimeout(() => waitForChart(callback, maxRetries - 1), 200);
     } else {
-        console.error('[Dashboard] Chart.js failed to load after maximum retries');
+        console.error('[Dashboard] Chart.js failed to load');
     }
 }
 
-// Initialize chart after page load
-// Main DOM Content Loaded Event Handler - Consolidated
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('[Dashboard] DOM loaded, initializing chart system...');
-
-    // Wait for AutoPZEM generator and other scripts to load
     setTimeout(() => {
         initializeElectricityChart();
     }, 1000);
 });
 
 function initializeElectricityChart() {
-    console.log('[Dashboard] Starting chart initialization...');
-
-    // Check if AutoPZEM generator is available
     if (!window.autoPZEMGenerator) {
-        console.warn('[Dashboard] ⚠️ AutoPZEM generator not yet available, waiting...');
         setTimeout(() => {
             initializeElectricityChart();
         }, 500);
         return;
     }
 
-    console.log('[Dashboard] ✅ AutoPZEM generator available, proceeding...');
-
     waitForChart(function () {
-        console.log('[Dashboard] Chart.js loaded, initializing chart...');
-
         const canvas = document.getElementById('wattChart');
         if (!canvas) {
-            console.error('[Dashboard] Canvas element #wattChart not found!');
             return;
         }
-
-        console.log('[Dashboard] Canvas found:', canvas);
 
         let labels = [];
         let values = [];
@@ -59,246 +34,239 @@ function initializeElectricityChart() {
         try {
             const rawLabels = canvas.dataset.labels;
             const rawValues = canvas.dataset.values;
-
-            console.log('[Dashboard] Raw data from canvas:', {
-                rawLabels: rawLabels ? rawLabels.substring(0, 100) + '...' : 'null',
-                rawValues: rawValues ? rawValues.substring(0, 100) + '...' : 'null'
-            });
-
             labels = rawLabels ? JSON.parse(rawLabels) : [];
             values = rawValues ? JSON.parse(rawValues).map(Number) : [];
-
         } catch (e) {
-            console.error('[Dashboard] Error parsing data from canvas:', e);
             labels = [];
             values = [];
         }
 
-        console.log('[Dashboard] Parsed data:', {
-            labelsCount: labels.length,
-            valuesCount: values.length,
-            sampleLabels: labels.slice(0, 3),
-            sampleValues: values.slice(0, 3)
-        });
-
-        // Create demo data if no data available (using AutoPZEM generator)
         if (labels.length === 0 || values.length === 0) {
-            console.log('[Dashboard] No data from server, generating realistic demo data using AutoPZEM generator...');
-
-            // Use AutoPZEM generator for chart data (required)
             if (window.autoPZEMGenerator && typeof window.autoPZEMGenerator.generateRealisticChartData === 'function') {
                 const chartData = window.autoPZEMGenerator.generateRealisticChartData();
                 labels = chartData.labels;
                 values = chartData.values;
-                console.log('[Dashboard] Using AutoPZEM generator for chart data');
-
-                console.log('[Dashboard] Realistic demo data created via AutoPZEM:', {
-                    labelsCount: labels.length,
-                    valuesCount: values.length,
-                    interval: '5 minutes',
-                    sampleValues: values.slice(-10),
-                    powerRange: `${Math.min(...values)}W - ${Math.max(...values)}W`,
-                    source: 'AutoPZEM_generator'
-                });
             } else {
-                console.error('[Dashboard] AutoPZEM generator not available! Please ensure auto-pzem-values.js is loaded.');
-                // Use empty data to prevent errors
-                labels = ['00:00'];
-                values = [0];
+                const now = new Date();
+                for (let i = 0; i < 24; i++) {
+                    const hour = String(i).padStart(2, '0') + ':00';
+                    labels.push(hour);
+
+                    let power;
+                    if (i >= 7 && i <= 9) {
+                        power = 180 + Math.random() * 80;
+                    } else if (i >= 10 && i <= 16) {
+                        power = 220 + Math.random() * 80;
+                    } else if (i >= 17 && i <= 21) {
+                        power = 140 + Math.random() * 60;
+                    } else {
+                        power = 60 + Math.random() * 40;
+                    }
+                    values.push(Math.round(power));
+                }
             }
         }
-
-        console.log('[Dashboard] Final data ready for chart:', {
-            labelsCount: labels.length,
-            valuesCount: values.length,
-            sampleLabels: labels.slice(0, 3),
-            sampleValues: values.slice(0, 3)
-        });
-
-        // Destroy existing chart instance if exists
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) {
-            console.log('[Dashboard] Destroying existing chart instance');
-            existingChart.destroy();
+        source: 'AutoPZEM_generator'
+    });
+} else {
+    console.error('[Dashboard] AutoPZEM generator not available! Please ensure auto-pzem-values.js is loaded.');
+    // Use empty data to prevent errors
+    labels = ['00:00'];
+    values = [0];
+}
         }
 
-        // Verify we have data before creating chart
-        if (values.length === 0) {
-            console.error('[Dashboard] No data available for chart!');
-            return;
-        }
+console.log('[Dashboard] Final data ready for chart:', {
+    labelsCount: labels.length,
+    valuesCount: values.length,
+    sampleLabels: labels.slice(0, 3),
+    sampleValues: values.slice(0, 3)
+});
 
-        // Create chart context
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-            console.error('[Dashboard] Could not get 2d context from canvas!');
-            return;
-        }
+// Destroy existing chart instance if exists
+const existingChart = Chart.getChart(canvas);
+if (existingChart) {
+    console.log('[Dashboard] Destroying existing chart instance');
+    existingChart.destroy();
+}
 
-        console.log('[Dashboard] Creating chart with Chart.js...');
+// Verify we have data before creating chart
+if (values.length === 0) {
+    console.error('[Dashboard] No data available for chart!');
+    return;
+}
 
-        // Create gradient for chart
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, 'rgba(54, 162, 235, 0.3)');
-        gradient.addColorStop(1, 'rgba(54, 162, 235, 0.05)');
+// Create chart context
+const ctx = canvas.getContext('2d');
+if (!ctx) {
+    console.error('[Dashboard] Could not get 2d context from canvas!');
+    return;
+}
 
-        try {
-            console.log('[Dashboard] Initializing Chart.js with data points:', values.length);
+console.log('[Dashboard] Creating chart with Chart.js...');
 
-            window.myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Konsumsi Listrik Hari Ini (Watt)',
-                        data: values,
-                        borderColor: '#36a2eb',
-                        backgroundColor: gradient,
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.3,
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#36a2eb',
-                        pointRadius: 4,
-                        pointHoverRadius: 7,
-                        pointBorderWidth: 2
-                    }]
+// Create gradient for chart
+const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+gradient.addColorStop(0, 'rgba(54, 162, 235, 0.3)');
+gradient.addColorStop(1, 'rgba(54, 162, 235, 0.05)');
+
+try {
+    console.log('[Dashboard] Initializing Chart.js with data points:', values.length);
+
+    window.myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Konsumsi Listrik Hari Ini (Watt)',
+                data: values,
+                borderColor: '#36a2eb',
+                backgroundColor: gradient,
+                borderWidth: 3,
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#36a2eb',
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: `Monitoring Konsumsi Listrik - ${new Date().toLocaleDateString('id-ID', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    })}`,
+                    color: '#ffffff',
+                    font: { size: 16, weight: 'bold' },
+                    padding: 20
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `Monitoring Konsumsi Listrik - ${new Date().toLocaleDateString('id-ID', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                            })}`,
-                            color: '#ffffff',
-                            font: { size: 16, weight: 'bold' },
-                            padding: 20
-                        },
-                        legend: {
-                            labels: {
-                                color: '#ffffff',
-                                font: { size: 14 }
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            titleColor: '#ffffff',
-                            bodyColor: '#ffffff',
-                            borderColor: '#36a2eb',
-                            borderWidth: 1,
-                            callbacks: {
-                                label: function (context) {
-                                    return context.parsed.y + ' Watt';
-                                }
-                            }
+                legend: {
+                    labels: {
+                        color: '#ffffff',
+                        font: { size: 14 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
+                    borderColor: '#36a2eb',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function (context) {
+                            return context.parsed.y + ' Watt';
                         }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                color: '#ffffff'
-                            },
-                            grid: {
-                                color: 'rgba(255,255,255,0.1)'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Waktu (Jam) - Data Hari Ini',
-                                color: '#ffffff',
-                                font: { size: 12 }
-                            },
-                            ticks: {
-                                maxTicksLimit: 12, // Limit to 12 ticks for better readability
-                                autoSkip: true,
-                                maxRotation: 45,
-                                minRotation: 0
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                color: '#ffffff',
-                                callback: function (value) {
-                                    return value + 'W';
-                                }
-                            },
-                            grid: {
-                                color: 'rgba(255,255,255,0.1)'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Daya (Watt)',
-                                color: '#ffffff'
-                            }
-                        }
-                    },
-                    animation: {
-                        duration: 1500
                     }
                 }
-            });
-
-            console.log('[Dashboard] ✅ Chart created successfully!');
-            console.log('[Dashboard] Chart instance:', window.myChart);
-
-            // Verify chart was actually created
-            if (window.myChart && window.myChart.data && window.myChart.data.datasets.length > 0) {
-                console.log('[Dashboard] Chart validation passed - data is present');
-            } else {
-                console.error('[Dashboard] Chart validation failed - chart may be empty');
-            }
-
-            // Store chart data globally for calculator access
-            window.chartData = {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    label: 'Konsumsi Listrik (Watt)'
-                }]
-            };
-
-            // Store latest power value for real-time display
-            window.latestPowerValue = values[values.length - 1] || 0;
-
-            // Store global data for calculator
-            window.globalElectricityData = {
-                currentPower: window.latestPowerValue,
-                dailyData: values,
-                labels: labels,
-                source: values.length > 0 ? (labels.length === values.length ? 'server_data' : 'demo_data') : 'no_data'
-            };
-
-            console.log('[Dashboard] Global data stored:', {
-                currentPower: window.latestPowerValue,
-                dataPoints: values.length,
-                sampleValues: values.slice(0, 3),
-                source: window.globalElectricityData.source
-            });
-
-        } catch (error) {
-            console.error('[Dashboard] ❌ Critical error creating chart:', error);
-            console.error('[Dashboard] Error details:', {
-                message: error.message,
-                stack: error.stack,
-                chartExists: typeof Chart !== 'undefined',
-                canvasExists: !!canvas,
-                contextExists: !!ctx,
-                dataLength: values.length
-            });
-
-            // Try to show some indication of error on canvas
-            if (ctx) {
-                ctx.fillStyle = '#ffffff';
-                ctx.font = '16px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('Error loading chart: ' + error.message, canvas.width / 2, canvas.height / 2);
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: '#ffffff'
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Waktu (Jam) - Data Hari Ini',
+                        color: '#ffffff',
+                        font: { size: 12 }
+                    },
+                    ticks: {
+                        maxTicksLimit: 12, // Limit to 12 ticks for better readability
+                        autoSkip: true,
+                        maxRotation: 45,
+                        minRotation: 0
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: '#ffffff',
+                        callback: function (value) {
+                            return value + 'W';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Daya (Watt)',
+                        color: '#ffffff'
+                    }
+                }
+            },
+            animation: {
+                duration: 1500
             }
         }
+    });
+
+    console.log('[Dashboard] ✅ Chart created successfully!');
+    console.log('[Dashboard] Chart instance:', window.myChart);
+
+    // Verify chart was actually created
+    if (window.myChart && window.myChart.data && window.myChart.data.datasets.length > 0) {
+        console.log('[Dashboard] Chart validation passed - data is present');
+    } else {
+        console.error('[Dashboard] Chart validation failed - chart may be empty');
+    }
+
+    // Store chart data globally for calculator access
+    window.chartData = {
+        labels: labels,
+        datasets: [{
+            data: values,
+            label: 'Konsumsi Listrik (Watt)'
+        }]
+    };
+
+    // Store latest power value for real-time display
+    window.latestPowerValue = values[values.length - 1] || 0;
+
+    // Store global data for calculator
+    window.globalElectricityData = {
+        currentPower: window.latestPowerValue,
+        dailyData: values,
+        labels: labels,
+        source: values.length > 0 ? (labels.length === values.length ? 'server_data' : 'demo_data') : 'no_data'
+    };
+
+    console.log('[Dashboard] Global data stored:', {
+        currentPower: window.latestPowerValue,
+        dataPoints: values.length,
+        sampleValues: values.slice(0, 3),
+        source: window.globalElectricityData.source
+    });
+
+} catch (error) {
+    console.error('[Dashboard] ❌ Critical error creating chart:', error);
+    console.error('[Dashboard] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        chartExists: typeof Chart !== 'undefined',
+        canvasExists: !!canvas,
+        contextExists: !!ctx,
+        dataLength: values.length
+    });
+
+    // Try to show some indication of error on canvas
+    if (ctx) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Error loading chart: ' + error.message, canvas.width / 2, canvas.height / 2);
+    }
+}
     });
 }
 

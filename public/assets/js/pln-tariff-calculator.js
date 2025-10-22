@@ -1,9 +1,3 @@
-/**
- * PLN Tariff Calculator - Enhanced with Official PLN Rates
- * Berdasarkan Tarif PLN Juli-September 2025
- * PT Krakatau Sarana Property
- */
-
 class PLNTariffCalculator {
     constructor() {
         this.tariffData = {
