@@ -216,11 +216,11 @@ class AutoPZEMGenerator {
 
     updateDisplay(data) {
         // TIDAK update UI di sini - biarkan Firebase listener yang update
-        // Hanya kirim data ke Firebase dan Database
+        // Kirim ke Firebase setiap kali, database setiap 3 kali (30 detik)
         this.updateNightModeIndicator();
         this.sendToFirebase(data);
         this.databaseSyncCounter++;
-        if (this.databaseSyncCounter >= 10) {
+        if (this.databaseSyncCounter >= 3) {
             this.sendToDatabase(data);
             this.databaseSyncCounter = 0;
         }
@@ -297,7 +297,6 @@ class AutoPZEMGenerator {
     }
     async sendToDatabase(data) {
         try {
-
             const payload = {
                 tegangan: data.voltage,
                 arus: data.current,
@@ -315,7 +314,9 @@ class AutoPZEMGenerator {
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                // Add timeout to prevent hanging
+                signal: AbortSignal.timeout(5000) // 5 second timeout
             });
 
             if (response.ok) {
@@ -324,34 +325,33 @@ class AutoPZEMGenerator {
                 const dbStatus = document.getElementById('dbSyncStatus');
                 if (dbStatus) {
                     dbStatus.className = 'badge bg-success me-2';
-                    dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Connected';
-
-                    setTimeout(() => {
-                        dbStatus.className = 'badge bg-secondary me-2';
-                        dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Synced';
-                    }, 5000);
+                    dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Synced';
                 }
 
                 document.body.style.borderLeft = '3px solid green';
                 setTimeout(() => {
                     document.body.style.borderLeft = '';
-                }, 1000);
+                }, 500);
             } else {
                 const errorText = await response.text();
                 console.warn('Database sync failed:', response.statusText, errorText);
                 const dbStatus = document.getElementById('dbSyncStatus');
                 if (dbStatus) {
-                    dbStatus.className = 'badge bg-danger me-2';
-                    dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Error';
+                    dbStatus.className = 'badge bg-warning me-2';
+                    dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Slow';
                 }
-
-                document.body.style.borderLeft = '3px solid red';
-                setTimeout(() => {
-                    document.body.style.borderLeft = '';
-                }, 1000);
             }
         } catch (error) {
-            console.error('[AutoPZEM] ❌ Database sync error:', error);
+            if (error.name === 'TimeoutError') {
+                console.error('[AutoPZEM] ❌ Database timeout (>5s)');
+                const dbStatus = document.getElementById('dbSyncStatus');
+                if (dbStatus) {
+                    dbStatus.className = 'badge bg-danger me-2';
+                    dbStatus.innerHTML = '<i class="fa fa-database"></i> DB: Timeout';
+                }
+            } else {
+                console.error('[AutoPZEM] ❌ Database sync error:', error);
+            }
         }
     }
 

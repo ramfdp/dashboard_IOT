@@ -38,7 +38,7 @@ class RealTimePowerController extends Controller
 
             $data = $request->all();
 
-            // Store in main electricity table (Listrik)
+            // Store in main electricity table (Listrik) only - optimized single write
             $listrik = Listrik::create([
                 'tegangan' => $data['tegangan'],
                 'arus' => $data['arus'],
@@ -47,38 +47,22 @@ class RealTimePowerController extends Controller
                 'frekuensi' => $data['frekuensi'] ?? 50.0,
                 'power_factor' => $data['power_factor'] ?? 0.85,
                 'lokasi' => $data['lokasi'] ?? 'PT Krakatau Sarana Property',
-                'status' => 'active'
-            ]);
-
-            // Store in history table (HistoryKwh) for historical analysis
-            $historyKwh = Listrik::create([
-                'daya' => $data['daya'],
-                'tegangan' => $data['tegangan'],
-                'arus' => $data['arus'],
-                'energi' => $data['energi'] ?? 0,
-                'power_factor' => $data['power_factor'] ?? 0.85,
-                'frekuensi' => $data['frekuensi'] ?? 50.0,
+                'status' => 'active',
                 'tanggal_input' => now('Asia/Jakarta')->toDateString(),
                 'waktu' => $data['timestamp'] ? Carbon::parse($data['timestamp'], 'Asia/Jakarta') : now('Asia/Jakarta'),
             ]);
 
-            Log::info('Real-time power data stored', [
-                'listrik_id' => $listrik->id,
-                'history_id' => $historyKwh->id,
-                'power' => $data['daya'],
-                'voltage' => $data['tegangan'],
-                'current' => $data['arus']
-            ]);
+            // Removed duplicate history write for performance optimization
+            // Data already stored in main table with timestamp for historical analysis
 
             return response()->json([
                 'success' => true,
                 'message' => 'Data stored successfully',
                 'data' => [
-                    'listrik_id' => $listrik->id,
-                    'history_id' => $historyKwh->id,
+                    'id' => $listrik->id,
                     'power' => $data['daya'],
                     'energy' => $data['energi'],
-                    'timestamp' => $historyKwh->created_at->toISOString()
+                    'timestamp' => $listrik->created_at->toISOString()
                 ]
             ], 201);
         } catch (\Exception $e) {

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\HistoryKwh;
 use App\Models\Listrik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,40 +16,21 @@ class ElectricityDataController extends Controller
     public function getLatestKwhData()
     {
         try {
-            // Get latest data from histori_kwh table
-            $latestData = HistoryKwh::orderBy('created_at', 'desc')->first();
+            // Query from listrik table (primary source after optimization)
+            $latestData = Listrik::orderBy('created_at', 'desc')->first();
 
             if ($latestData) {
-                $kwh = $this->calculateDailyKwh($latestData);
+                $kwh = $this->calculateKwhFromListrik($latestData);
 
                 return response()->json([
                     'success' => true,
                     'kwh' => $kwh,
                     'timestamp' => $latestData->created_at,
-                    'source' => 'database',
+                    'source' => 'listrik_table',
                     'raw_data' => [
-                        'daya' => $latestData->daya,
-                        'arus' => $latestData->arus,
-                        'tegangan' => $latestData->tegangan
-                    ]
-                ]);
-            }
-
-            // Fallback to listriks table if histori_kwh is empty
-            $listrikData = Listrik::orderBy('created_at', 'desc')->first();
-
-            if ($listrikData) {
-                $kwh = $this->calculateKwhFromListrik($listrikData);
-
-                return response()->json([
-                    'success' => true,
-                    'kwh' => $kwh,
-                    'timestamp' => $listrikData->created_at,
-                    'source' => 'listriks_table',
-                    'raw_data' => [
-                        'daya' => $listrikData->daya ?? 0,
-                        'arus' => $listrikData->arus ?? 0,
-                        'tegangan' => $listrikData->tegangan ?? 220
+                        'daya' => $latestData->daya ?? 0,
+                        'arus' => $latestData->arus ?? 0,
+                        'tegangan' => $latestData->tegangan ?? 220
                     ]
                 ]);
             }
@@ -64,7 +44,8 @@ class ElectricityDataController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error retrieving electricity data: ' . $e->getMessage(),
-                'kwh' => 0
+                'kwh' => 0,
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
@@ -114,7 +95,7 @@ class ElectricityDataController extends Controller
         try {
             $today = Carbon::today();
 
-            $hourlyData = HistoryKwh::whereDate('created_at', $today)
+            $hourlyData = Listrik::whereDate('created_at', $today)
                 ->select(
                     DB::raw('HOUR(created_at) as hour'),
                     DB::raw('AVG(daya) as avg_power'),
@@ -150,7 +131,8 @@ class ElectricityDataController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error retrieving hourly data: ' . $e->getMessage()
+                'message' => 'Error retrieving hourly data: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
@@ -164,8 +146,8 @@ class ElectricityDataController extends Controller
             $startOfMonth = Carbon::now()->startOfMonth();
             $endOfMonth = Carbon::now()->endOfMonth();
 
-            // Get all data for current month
-            $monthlyData = HistoryKwh::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            // Query from listrik table (primary source after optimization)
+            $monthlyData = Listrik::whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->selectRaw('
                     AVG(daya) as avg_power_watts,
                     COUNT(*) as data_points,
@@ -207,11 +189,11 @@ class ElectricityDataController extends Controller
                         'actual_hours' => $actualHours
                     ],
                     'calculation_method' => 'monthly_average_projection',
-                    'source' => 'database'
+                    'source' => 'listrik_table'
                 ]);
             }
 
-            // Fallback to listriks table if no history data
+            // Fallback to latest data if no monthly data
             $listrikData = Listrik::orderBy('created_at', 'desc')->first();
 
             if ($listrikData && $listrikData->daya > 0) {
@@ -233,7 +215,7 @@ class ElectricityDataController extends Controller
                         'actual_hours' => 24
                     ],
                     'calculation_method' => 'single_point_projection',
-                    'source' => 'listriks_table'
+                    'source' => 'listriks_table_fallback'
                 ]);
             }
 
@@ -246,7 +228,8 @@ class ElectricityDataController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error calculating monthly consumption: ' . $e->getMessage(),
-                'monthly_kwh' => 0
+                'monthly_kwh' => 0,
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
@@ -260,7 +243,7 @@ class ElectricityDataController extends Controller
             $startOfMonth = Carbon::now()->startOfMonth();
             $endOfMonth = Carbon::now()->endOfMonth();
 
-            $dailyData = HistoryKwh::whereBetween('created_at', [$startOfMonth, $endOfMonth])
+            $dailyData = Listrik::whereBetween('created_at', [$startOfMonth, $endOfMonth])
                 ->select(
                     DB::raw('DATE(created_at) as date'),
                     DB::raw('AVG(daya) as avg_power'),
@@ -296,7 +279,8 @@ class ElectricityDataController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error retrieving daily summary: ' . $e->getMessage()
+                'message' => 'Error retrieving daily summary: ' . $e->getMessage(),
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
             ], 500);
         }
     }
