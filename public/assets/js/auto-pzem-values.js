@@ -2,7 +2,7 @@
 class AutoPZEMGenerator {
     constructor() {
         console.log('[AutoPZEM] 🚀 Constructor called - initializing...');
-        
+
         this.isRunning = false;
         this.interval = null;
         this.databaseSyncCounter = 0;
@@ -69,7 +69,7 @@ class AutoPZEMGenerator {
 
                 // Listen untuk perubahan di Firebase /sensor
                 const sensorRef = firebase.database().ref('sensor');
-                
+
                 // Load existing data immediately (once)
                 sensorRef.once('value').then((snapshot) => {
                     const data = snapshot.val();
@@ -82,7 +82,7 @@ class AutoPZEMGenerator {
                 }).catch((error) => {
                     console.error('[AutoPZEM] ❌ Error loading initial data:', error);
                 });
-                
+
                 // Listen untuk perubahan real-time
                 sensorRef.on('value', (snapshot) => {
                     const data = snapshot.val();
@@ -229,7 +229,7 @@ class AutoPZEMGenerator {
     // Method baru untuk update UI dari Firebase
     updateUIFromFirebase(data) {
         console.log('[AutoPZEM] 🔄 Updating UI from Firebase:', data);
-        
+
         const voltageEl = document.getElementById('pzem-voltage');
         if (voltageEl) {
             voltageEl.textContent = `${data.voltage} V`;
@@ -720,10 +720,10 @@ class AutoPZEMGenerator {
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('[AutoPZEM] 📄 DOMContentLoaded fired');
-    
+
     setTimeout(() => {
         console.log('[AutoPZEM] ⏰ Timeout fired - initializing generator');
-        
+
         if (!window.autoPZEMGenerator) {
             console.log('[AutoPZEM] 🆕 Creating new AutoPZEMGenerator instance');
             window.autoPZEMGenerator = new AutoPZEMGenerator();
@@ -763,4 +763,3 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }, 1000);
 });
-    

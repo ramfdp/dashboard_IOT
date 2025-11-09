@@ -119,7 +119,7 @@ class DashboardCurrentUsage {
             console.warn('[CurrentUsage] Element #currentPower not found, skipping source indicator');
             return;
         }
-        
+
         const currentUsageCard = currentPowerElement.closest('.card');
         if (!currentUsageCard) {
             console.warn('[CurrentUsage] Parent card not found, skipping source indicator');
@@ -224,13 +224,13 @@ class DashboardCurrentUsage {
             console.warn('[CurrentUsage] Element #currentPower not found, cannot show error badge');
             return;
         }
-        
+
         const currentUsageCard = currentPowerElement.closest('.card');
         if (!currentUsageCard) {
             console.warn('[CurrentUsage] Parent card not found, cannot show error badge');
             return;
         }
-        
+
         let errorBadge = currentUsageCard.querySelector('.usage-error-badge');
         if (errorBadge) {
             errorBadge.remove();

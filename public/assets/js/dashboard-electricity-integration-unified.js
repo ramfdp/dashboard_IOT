@@ -192,7 +192,7 @@ function updateElectricityDisplay(currentValue) {
     // DISABLED: Fungsi ini konflik dengan Firebase listener di auto-pzem-values.js
     // Firebase listener akan mengupdate pzem-voltage, pzem-current, pzem-power
     // Jangan override nilai dari Firebase!
-    
+
     // const elements = [
     //     { id: 'pzem-power', value: currentValue + ' W' },
     //     { id: 'pzem-current', value: (currentValue / 220).toFixed(2) + ' A' },
