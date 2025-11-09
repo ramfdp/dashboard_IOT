@@ -1,7 +1,7 @@
 
 class AutoPZEMGenerator {
     constructor() {
-        console.log('[AutoPZEM] 🚀 Constructor called - initializing...');
+        // console.log('[AutoPZEM] 🚀 Constructor called - initializing...');
 
         this.isRunning = false;
         this.interval = null;
@@ -74,10 +74,10 @@ class AutoPZEMGenerator {
                 sensorRef.once('value').then((snapshot) => {
                     const data = snapshot.val();
                     if (data) {
-                        console.log('[AutoPZEM] 📥 Initial data from Firebase:', data);
+                        // console.log('[AutoPZEM] 📥 Initial data from Firebase:', data);
                         this.updateUIFromFirebase(data);
                     } else {
-                        console.warn('[AutoPZEM] ⚠️ No data in Firebase /sensor - waiting for generator');
+                        // console.warn('[AutoPZEM] ⚠️ No data in Firebase /sensor - waiting for generator');
                     }
                 }).catch((error) => {
                     console.error('[AutoPZEM] ❌ Error loading initial data:', error);
@@ -87,13 +87,13 @@ class AutoPZEMGenerator {
                 sensorRef.on('value', (snapshot) => {
                     const data = snapshot.val();
                     if (data) {
-                        console.log('[AutoPZEM] 📡 Data update from Firebase:', data);
+                        // console.log('[AutoPZEM] 📡 Data update from Firebase:', data);
                         // Update UI dengan data dari Firebase
                         this.updateUIFromFirebase(data);
                     }
                 });
 
-                console.log('[AutoPZEM] ✅ Firebase listener aktif - UI akan update otomatis dari Firebase');
+                // console.log('[AutoPZEM] ✅ Firebase listener aktif - UI akan update otomatis dari Firebase');
             } catch (error) {
                 console.error('[AutoPZEM] ❌ Error setup Firebase listener:', error);
             }
@@ -228,7 +228,7 @@ class AutoPZEMGenerator {
 
     // Method baru untuk update UI dari Firebase
     updateUIFromFirebase(data) {
-        console.log('[AutoPZEM] 🔄 Updating UI from Firebase:', data);
+        // console.log('[AutoPZEM] 🔄 Updating UI from Firebase:', data);
 
         const voltageEl = document.getElementById('pzem-voltage');
         if (voltageEl) {
@@ -293,7 +293,7 @@ class AutoPZEMGenerator {
         window.electricityChart.data.datasets[0].data = window.globalElectricityData.values;
         window.electricityChart.update('none');
 
-        console.log('[AutoPZEM] 📊 Chart updated with power:', newValue, 'W');
+        // console.log('[AutoPZEM] 📊 Chart updated with power:', newValue, 'W');
     }
     async sendToDatabase(data) {
         try {
@@ -719,22 +719,22 @@ class AutoPZEMGenerator {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('[AutoPZEM] 📄 DOMContentLoaded fired');
+    // console.log('[AutoPZEM] 📄 DOMContentLoaded fired');
 
     setTimeout(() => {
-        console.log('[AutoPZEM] ⏰ Timeout fired - initializing generator');
+        // console.log('[AutoPZEM] ⏰ Timeout fired - initializing generator');
 
         if (!window.autoPZEMGenerator) {
-            console.log('[AutoPZEM] 🆕 Creating new AutoPZEMGenerator instance');
+            // console.log('[AutoPZEM] 🆕 Creating new AutoPZEMGenerator instance');
             window.autoPZEMGenerator = new AutoPZEMGenerator();
-            console.log('[AutoPZEM] ✅ AutoPZEMGenerator instance created');
+            // console.log('[AutoPZEM] ✅ AutoPZEMGenerator instance created');
         } else {
-            console.log('[AutoPZEM] ⚠️ AutoPZEMGenerator already exists');
+            // console.log('[AutoPZEM] ⚠️ AutoPZEMGenerator already exists');
             if (!window.autoPZEMGenerator.isRunning) {
-                console.log('[AutoPZEM] 🔄 Starting existing generator');
+                // console.log('[AutoPZEM] 🔄 Starting existing generator');
                 window.autoPZEMGenerator.start();
             } else {
-                console.log('[AutoPZEM] ✅ Generator already running');
+                // console.log('[AutoPZEM] ✅ Generator already running');
             }
             return;
         }

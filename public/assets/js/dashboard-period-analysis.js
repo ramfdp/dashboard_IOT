@@ -436,18 +436,23 @@ class DashboardPeriodAnalysis {
             lastUpdateElement.textContent = `Update: ${data.last_update} (${data.period_info})`;
         }
 
-        // Update header card title
-        const usageCard = document.querySelector('#currentPower').closest('.card');
-        if (usageCard) {
-            const usageCardTitle = usageCard.querySelector('.card-title');
-            if (usageCardTitle) {
-                const periodTitles = {
-                    'harian': 'Penggunaan Listrik - Hari Ini',
-                    'mingguan': 'Penggunaan Listrik - Minggu Ini',
-                    'bulanan': 'Penggunaan Listrik - Bulan Ini'
-                };
-                usageCardTitle.innerHTML = `<i class="fa fa-bolt me-2"></i>${periodTitles[this.currentPeriod] || 'Penggunaan Listrik'}`;
+        // Update header card title dengan null check
+        const cardPowerElement = document.querySelector('#currentPower');
+        if (cardPowerElement) {
+            const usageCard = cardPowerElement.closest('.card');
+            if (usageCard) {
+                const usageCardTitle = usageCard.querySelector('.card-title');
+                if (usageCardTitle) {
+                    const periodTitles = {
+                        'harian': 'Penggunaan Listrik - Hari Ini',
+                        'mingguan': 'Penggunaan Listrik - Minggu Ini',
+                        'bulanan': 'Penggunaan Listrik - Bulan Ini'
+                    };
+                    usageCardTitle.innerHTML = `<i class="fa fa-bolt me-2"></i>${periodTitles[this.currentPeriod] || 'Penggunaan Listrik'}`;
+                }
             }
+        } else {
+            console.warn('[PeriodAnalysis] Element #currentPower not found, skipping card title update');
         }
     }
 

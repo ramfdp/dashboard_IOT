@@ -273,10 +273,13 @@ class PLNTariffCalculator {
                 });
             }
 
-            // Update help text
-            const helpText = document.querySelector('#kwhInputModal').parentElement.nextElementSibling;
-            if (helpText && helpText.classList.contains('text-muted')) {
-                helpText.innerHTML = '<i class="fa fa-edit"></i> Input manual - data database tidak tersedia';
+            // Update help text with null check
+            const kwhInputElement = document.querySelector('#kwhInputModal');
+            if (kwhInputElement && kwhInputElement.parentElement && kwhInputElement.parentElement.nextElementSibling) {
+                const helpText = kwhInputElement.parentElement.nextElementSibling;
+                if (helpText && helpText.classList.contains('text-muted')) {
+                    helpText.innerHTML = '<i class="fa fa-edit"></i> Input manual - data database tidak tersedia';
+                }
             }
 
             this.calculateModalCost();
@@ -297,10 +300,13 @@ class PLNTariffCalculator {
                 });
             }
 
-            // Update help text
-            const helpText = document.querySelector('#kwhInputModal').parentElement.nextElementSibling;
-            if (helpText && helpText.classList.contains('text-muted')) {
-                helpText.innerHTML = '<i class="fa fa-exclamation-triangle"></i> Error loading data - input manual tersedia';
+            // Update help text with null check
+            const kwhInputElement = document.querySelector('#kwhInputModal');
+            if (kwhInputElement && kwhInputElement.parentElement && kwhInputElement.parentElement.nextElementSibling) {
+                const helpText = kwhInputElement.parentElement.nextElementSibling;
+                if (helpText && helpText.classList.contains('text-muted')) {
+                    helpText.innerHTML = '<i class="fa fa-exclamation-triangle"></i> Error loading data - input manual tersedia';
+                }
             }
 
             this.calculateModalCost();

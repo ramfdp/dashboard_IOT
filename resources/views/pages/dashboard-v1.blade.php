@@ -13,23 +13,14 @@
 @endpush
 
 @push('scripts')
-    {{-- Firebase SDK - HARUS DI-LOAD PERTAMA (tanpa defer) --}}
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    
-    {{-- Libraries --}}
     <script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
-    
-    {{-- Auto PZEM Generator - akan setup Firebase listener --}}
     <script src="/assets/js/auto-pzem-values.js"></script>
-    
-    {{-- Debug Helper --}}
     <script src="/assets/js/debug-firebase-listener.js"></script>
-    
-    {{-- Other scripts --}}
     <script src="/assets/js/electricity-linear-regression.js" defer></script>
     <script src="/assets/js/krakatau-electricity-calculator.js" defer></script>
     <script src="/assets/js/dashboard-electricity-integration-unified.js" defer></script>
@@ -40,8 +31,6 @@
     <script type="module" src="/assets/js/device-firebase-control.js"></script>
     <script src="/assets/js/LightScheduleManager.js"></script>
     <script src="/assets/js/ModeManager.js"></script>
-
-    {{-- Initialize dashboard routes and debug data --}}
     <script>
         window.dashboardRoutes = {
             autoMode: '{{ route("dashboard.auto-mode") }}',
@@ -55,9 +44,6 @@
         };
     </script>
     <script src="/assets/js/dashboard-mode-control.js"></script>
-    
-    {{-- Firebase Integration Scripts - DISABLED karena konflik dengan auto-pzem-values.js --}}
-    {{-- <script src="/assets/js/firebase-integration.js" defer></script> --}}
     <script src="/assets/js/night-mode-indicator.js" defer></script>
     <script src="/assets/js/pln-tariff-calculator.js" defer></script>
     <script src="/assets/js/fetch-api-monitoring.js"></script>
