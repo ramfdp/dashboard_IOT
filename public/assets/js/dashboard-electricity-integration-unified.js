@@ -66,7 +66,7 @@ function initializeElectricityChart() {
                 const chartData = window.autoPZEMGenerator.generateRealisticChartData();
                 labels = chartData.labels;
                 values = chartData.values;
-                console.log('[Dashboard] ✅ AutoPZEM data generated');
+                // console.log('[Dashboard] ✅ AutoPZEM data generated');
             } else {
                 for (let i = 0; i < 24; i++) {
                     const hour = String(i).padStart(2, '0') + ':00';
@@ -292,7 +292,7 @@ function generateModalData() {
 }
 
 function generateModalDataForPeriod(period) {
-    console.log('[Dashboard] 🔄 Generating data for period:', period);
+    // console.log('[Dashboard] 🔄 Generating data for period:', period);
 
     if (window.autoPZEMGenerator && typeof window.autoPZEMGenerator.generateRealisticModalData === 'function') {
         // Generate different data patterns based on period

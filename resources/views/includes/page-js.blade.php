@@ -3,4 +3,10 @@
 <script src="/assets/js/app.min.js"></script>
 <!-- ================== END core-js ================== -->
 
+<!-- ================== BEGIN Firebase & Auto-PZEM (Global) ================== -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="/assets/js/auto-pzem-values.js"></script>
+<!-- ================== END Firebase & Auto-PZEM ================== -->
+
 @stack('scripts')

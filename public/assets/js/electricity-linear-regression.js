@@ -141,8 +141,8 @@ class ElectricityLinearRegressionCalculator {
     }
 
     getFallbackElectricityData() {
-          if (window.autoPZEMGenerator) {
-            console.log('[LinearRegression] Using fallback data source from system generator');
+        if (window.autoPZEMGenerator) {
+            // console.log('[LinearRegression] Using fallback data source from system generator');
 
             if (typeof window.autoPZEMGenerator.generateRealisticFallbackData === 'function') {
                 const fallbackData = window.autoPZEMGenerator.generateRealisticFallbackData(24); // 24 data points for 24 hours
@@ -395,7 +395,7 @@ function initializeLinearRegressionIntegration() {
 
     if (typeof window.ElectricityLinearRegressionCalculator !== 'undefined') {
         updatePredictionDisplay();
-        setInterval(updatePredictionDisplay, 30000); 
+        setInterval(updatePredictionDisplay, 30000);
         console.log('[Dashboard] Linear Regression integration ready');
     } else {
         console.warn('[Dashboard] Linear Regression calculator not available, retrying...');

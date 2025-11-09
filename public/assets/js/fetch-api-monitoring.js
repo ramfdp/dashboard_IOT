@@ -4,11 +4,11 @@
  */
 
 function fetchPZEMAndRelayData() {
-    console.log('[Monitoring] Starting data fetch for kWh calculations only...');
+    // console.log('[Monitoring] Starting data fetch for kWh calculations only...');
 
     // Check if auto PZEM generator is running
     if (window.autoPZEMGenerator && window.autoPZEMGenerator.isRunning) {
-        console.log('[Monitoring] Auto PZEM generator is active, using its data for kWh calculations');
+        // console.log('[Monitoring] Auto PZEM generator is active, using its data for kWh calculations');
 
         // Use data from auto generator
         const currentData = window.autoPZEMGenerator.currentData;
@@ -22,7 +22,7 @@ function fetchPZEMAndRelayData() {
         fetch('https://smart-building-3e5c1-default-rtdb.asia-southeast1.firebasedatabase.app/relayControl.json').then(res => res.json())
     ])
         .then(([sensor, relay]) => {
-            console.log('[Monitoring] Firebase data received for kWh calculations:', { sensor, relay });
+            // console.log('[Monitoring] Firebase data received for kWh calculations:', { sensor, relay });
 
             const voltage = sensor?.voltage ?? 0;
             const current = sensor?.current ?? 0;
@@ -52,34 +52,34 @@ function updateKwhCalculations(power, totalPower) {
     const weeklyKwh = dailyKwh * 7;
     const monthlyKwh = dailyKwh * 30;
 
-    console.log('[Monitoring] Calculated kWh values:', {
-        power, totalPower, dailyKwh, weeklyKwh, monthlyKwh
-    });
+    // console.log('[Monitoring] Calculated kWh values:', {
+    //     power, totalPower, dailyKwh, weeklyKwh, monthlyKwh
+    // });
 
     // Update elemen kWh saja
     setTimeout(() => {
         const totalKwhElement = document.getElementById('totalKwh');
         if (totalKwhElement) {
             totalKwhElement.innerText = `${dailyKwh.toFixed(2)} kWh`;
-            console.log(`[Monitoring] Updated totalKwh: ${dailyKwh.toFixed(2)} kWh`);
+            // console.log(`[Monitoring] Updated totalKwh: ${dailyKwh.toFixed(2)} kWh`);
         }
 
         const kwhHarianElement = document.getElementById('kwhHarian');
         if (kwhHarianElement) {
             kwhHarianElement.innerText = `${dailyKwh.toFixed(2)} kWh`;
-            console.log(`[Monitoring] Updated kwhHarian: ${dailyKwh.toFixed(2)} kWh`);
+            // console.log(`[Monitoring] Updated kwhHarian: ${dailyKwh.toFixed(2)} kWh`);
         }
 
         const kwhMingguanElement = document.getElementById('kwhMingguan');
         if (kwhMingguanElement) {
             kwhMingguanElement.innerText = `${weeklyKwh.toFixed(2)} kWh`;
-            console.log(`[Monitoring] Updated kwhMingguan: ${weeklyKwh.toFixed(2)} kWh`);
+            // console.log(`[Monitoring] Updated kwhMingguan: ${weeklyKwh.toFixed(2)} kWh`);
         }
 
         const kwhBulananElement = document.getElementById('kwhBulanan');
         if (kwhBulananElement) {
             kwhBulananElement.innerText = `${monthlyKwh.toFixed(2)} kWh`;
-            console.log(`[Monitoring] Updated kwhBulanan: ${monthlyKwh.toFixed(2)} kWh`);
+            // console.log(`[Monitoring] Updated kwhBulanan: ${monthlyKwh.toFixed(2)} kWh`);
         }
 
         // Store global data for other scripts
@@ -91,13 +91,13 @@ function updateKwhCalculations(power, totalPower) {
             monthlyKwh: monthlyKwh,
             lastUpdated: new Date().toISOString()
         };
-        console.log(`[Monitoring] Stored global kWh data:`, window.realTimeElectricityData);
+        // console.log(`[Monitoring] Stored global kWh data:`, window.realTimeElectricityData);
     }, 50);
 }
 
 // Initialize monitoring - but only for kWh calculations
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('[Monitoring] DOM loaded - initializing kWh monitoring only');
+    // console.log('[Monitoring] DOM loaded - initializing kWh monitoring only');
 
     // Wait for auto PZEM generator to start first
     setTimeout(() => {
@@ -108,4 +108,4 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 2000);
 });
 
-console.log('[Monitoring] kWh monitoring script loaded - PZEM values will be handled by auto-generator');
+// console.log('[Monitoring] kWh monitoring script loaded - PZEM values will be handled by auto-generator');

@@ -13,13 +13,11 @@
 @endpush
 
 @push('scripts')
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Firebase & Auto-PZEM loaded globally in page-js.blade.php -->
     <script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
-    <script src="/assets/js/auto-pzem-values.js"></script>
     <script src="/assets/js/debug-firebase-listener.js"></script>
     <script src="/assets/js/electricity-linear-regression.js" defer></script>
     <script src="/assets/js/krakatau-electricity-calculator.js" defer></script>
@@ -61,15 +59,7 @@
     <h1 class="page-header">
         Dashboard <small>Selamat Datang di IOT Smart Building Controller</small>
         
-        <!-- Sync Status Indicators -->
-        <div class="float-end">
-            <small class="badge bg-secondary me-2" id="dbSyncStatus">
-                <i class="fa fa-database"></i> DB: Waiting
-            </small>
-            <small class="badge bg-secondary" id="firebaseSyncStatus">
-                <i class="fa fa-cloud"></i> Firebase: Waiting
-            </small>
-        </div>
+        <!-- Sync Status Indicators moved to global header -->
     </h1>
     <!-- END page-header -->
     <!-- PZEM Monitoring (1 Row, 3 Kolom) -->

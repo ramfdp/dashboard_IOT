@@ -562,7 +562,7 @@ class DashboardPeriodAnalysis {
             timeZone: 'Asia/Jakarta'
         });
 
-        console.log(`🕒 Real-time title generated: ${dateString} - ${timeString}`);
+        // console.log(`🕒 Real-time title generated: ${dateString} - ${timeString}`);
         return `${dateString} - ${timeString}`;
     }
 

@@ -167,6 +167,11 @@ class AutoPZEMGenerator {
     }
 
     updateNightModeIndicator() {
+        // Don't show indicator on login page
+        if (window.location.pathname.includes('/login') || document.querySelector('.login-with-news-feed')) {
+            return;
+        }
+
         const now = new Date();
         const hour = now.getHours();
         const isNightTime = (hour >= 22 || hour < 6);
@@ -215,8 +220,6 @@ class AutoPZEMGenerator {
     }
 
     updateDisplay(data) {
-        // TIDAK update UI di sini - biarkan Firebase listener yang update
-        // Kirim ke Firebase setiap kali, database setiap 3 kali (30 detik)
         this.updateNightModeIndicator();
         this.sendToFirebase(data);
         this.databaseSyncCounter++;
@@ -724,17 +727,27 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
         // console.log('[AutoPZEM] ⏰ Timeout fired - initializing generator');
 
+        // Check if we're on dashboard page (has PZEM elements)
+        const isDashboardPage = document.getElementById('pzem-voltage') !== null;
+
         if (!window.autoPZEMGenerator) {
             // console.log('[AutoPZEM] 🆕 Creating new AutoPZEMGenerator instance');
             window.autoPZEMGenerator = new AutoPZEMGenerator();
             // console.log('[AutoPZEM] ✅ AutoPZEMGenerator instance created');
+
+            // Only start generator if on dashboard page
+            if (isDashboardPage) {
+                // console.log('[AutoPZEM] 🏠 Dashboard page detected - starting generator');
+            } else {
+                // console.log('[AutoPZEM] 📄 Non-dashboard page - generator created but not started');
+            }
         } else {
             // console.log('[AutoPZEM] ⚠️ AutoPZEMGenerator already exists');
-            if (!window.autoPZEMGenerator.isRunning) {
+            if (!window.autoPZEMGenerator.isRunning && isDashboardPage) {
                 // console.log('[AutoPZEM] 🔄 Starting existing generator');
                 window.autoPZEMGenerator.start();
             } else {
-                // console.log('[AutoPZEM] ✅ Generator already running');
+                // console.log('[AutoPZEM] ✅ Generator already running or not on dashboard');
             }
             return;
         }
