@@ -7,12 +7,15 @@
 class DashboardCurrentUsage {
     constructor() {
         this.updateInterval = null;
-        this.init();
+        // DISABLED: Menggunakan Firebase listener dari auto-pzem-values.js
+        // this.init();
+        console.log('[CurrentUsage] ⚠️ Disabled - menggunakan Firebase listener');
     }
 
     init() {
-        this.loadCurrentUsage();
-        this.startAutoUpdate();
+        // DISABLED
+        // this.loadCurrentUsage();
+        // this.startAutoUpdate();
     }
 
     async loadCurrentUsage() {
@@ -111,8 +114,17 @@ class DashboardCurrentUsage {
     }
 
     updateSourceIndicator(source, date) {
-        const currentUsageCard = document.querySelector('#currentPower').closest('.card');
-        if (!currentUsageCard) return;
+        const currentPowerElement = document.querySelector('#currentPower');
+        if (!currentPowerElement) {
+            console.warn('[CurrentUsage] Element #currentPower not found, skipping source indicator');
+            return;
+        }
+        
+        const currentUsageCard = currentPowerElement.closest('.card');
+        if (!currentUsageCard) {
+            console.warn('[CurrentUsage] Parent card not found, skipping source indicator');
+            return;
+        }
 
         // Remove existing indicator
         let existingIndicator = currentUsageCard.querySelector('.usage-source-indicator');
@@ -207,30 +219,39 @@ class DashboardCurrentUsage {
         console.error('Current Usage Error:', message);
 
         // Show error in current usage card
-        const currentUsageCard = document.querySelector('#currentPower').closest('.card');
-        if (currentUsageCard) {
-            let errorBadge = currentUsageCard.querySelector('.usage-error-badge');
-            if (errorBadge) {
-                errorBadge.remove();
-            }
-
-            const errorElement = document.createElement('div');
-            errorElement.className = 'usage-error-badge text-center mt-2';
-            errorElement.innerHTML = `
-                <small class="badge bg-danger">
-                    <i class="fa fa-exclamation-circle me-1"></i>${message}
-                </small>
-            `;
-
-            currentUsageCard.querySelector('.card-body').appendChild(errorElement);
-
-            // Auto remove error after 10 seconds
-            setTimeout(() => {
-                if (errorElement.parentNode) {
-                    errorElement.remove();
-                }
-            }, 10000);
+        const currentPowerElement = document.querySelector('#currentPower');
+        if (!currentPowerElement) {
+            console.warn('[CurrentUsage] Element #currentPower not found, cannot show error badge');
+            return;
         }
+        
+        const currentUsageCard = currentPowerElement.closest('.card');
+        if (!currentUsageCard) {
+            console.warn('[CurrentUsage] Parent card not found, cannot show error badge');
+            return;
+        }
+        
+        let errorBadge = currentUsageCard.querySelector('.usage-error-badge');
+        if (errorBadge) {
+            errorBadge.remove();
+        }
+
+        const errorElement = document.createElement('div');
+        errorElement.className = 'usage-error-badge text-center mt-2';
+        errorElement.innerHTML = `
+            <small class="badge bg-danger">
+                <i class="fa fa-exclamation-circle me-1"></i>${message}
+            </small>
+        `;
+
+        currentUsageCard.querySelector('.card-body').appendChild(errorElement);
+
+        // Auto remove error after 10 seconds
+        setTimeout(() => {
+            if (errorElement.parentNode) {
+                errorElement.remove();
+            }
+        }, 10000);
     }
 
     destroy() {
