@@ -45,7 +45,6 @@
     
     <!-- BEGIN header-nav -->
     <div class="navbar-nav">
-        <!-- Sync Status Indicators (Global) -->
         <div class="navbar-item d-none d-md-flex align-items-center me-2">
             <small class="badge bg-secondary me-2" id="dbSyncStatus" title="Database Sync Status">
                 <i class="fa fa-database"></i> DB: Waiting
@@ -86,7 +85,6 @@
     </div>
     <!-- END header-nav -->
 </div>
-<!-- END #header -->
 
 <style>
     .logo-ksp {
