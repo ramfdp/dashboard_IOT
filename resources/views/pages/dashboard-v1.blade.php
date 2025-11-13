@@ -21,7 +21,7 @@
     <script src="/assets/js/debug-firebase-listener.js"></script>
     <script src="/assets/js/electricity-linear-regression.js" defer></script>
     <script src="/assets/js/krakatau-electricity-calculator.js" defer></script>
-    <script src="/assets/js/dashboard-electricity-integration-unified.js" defer></script>
+    <script src="/assets/js/dashboard-electricity.js" defer></script>
     <script src="/assets/js/dashboard-period-analysis.js" defer></script>
     <script src="/assets/js/dashboard-current-usage.js" defer></script>
     <script src="/assets/js/logika-form-lembur.js"></script>
@@ -42,7 +42,7 @@
         };
     </script>
     <script src="/assets/js/dashboard-mode-control.js"></script>
-    <script src="/assets/js/night-mode-indicator.js" defer></script>
+    <script src="/assets/js/support/support-api.js" defer></script>
     <script src="/assets/js/pln-tariff-calculator.js" defer></script>
     <script src="/assets/js/fetch-api-monitoring.js"></script>
 @endpush
