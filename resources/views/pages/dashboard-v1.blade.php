@@ -20,7 +20,7 @@
     <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
     <script src="/assets/js/debug-firebase-listener.js"></script>
     <script src="/assets/js/electricity-linear-regression.js" defer></script>
-    <script src="/assets/js/krakatau-electricity-calculator.js" defer></script>
+    <script src="/assets/js/kwh-calc.js" defer></script>
     <script src="/assets/js/dashboard-electricity.js" defer></script>
     <script src="/assets/js/dashboard-period-analysis.js" defer></script>
     <script src="/assets/js/dashboard-current-usage.js" defer></script>
@@ -42,8 +42,6 @@
         };
     </script>
     <script src="/assets/js/dashboard-mode-control.js"></script>
-    <script src="/assets/js/support/support-api.js" defer></script>
-    <script src="/assets/js/pln-tariff-calculator.js" defer></script>
     <script src="/assets/js/fetch-api-monitoring.js"></script>
 @endpush
 
@@ -58,8 +56,6 @@
     <!-- BEGIN page-header -->
     <h1 class="page-header">
         Dashboard <small>Selamat Datang di IOT Smart Building Controller</small>
-        
-        <!-- Sync Status Indicators moved to global header -->
     </h1>
     <!-- END page-header -->
     <!-- PZEM Monitoring (1 Row, 3 Kolom) -->
@@ -126,7 +122,7 @@
     </div>
 
     <!-- Modal untuk Perhitungan Listrik -->
-    <div class="modal fade" id="modalPerhitunganListrik" tabindex="-1" aria-labelledby="modalPerhitunganListrikLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
+    <div class="modal fade" id="modalPerhitunganListrik" tabindex="-1" aria-labelledby="modalPerhitunganListrikLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
@@ -260,7 +256,7 @@
                                         <div class="row align-items-center">
                                             <div class="col-md-8">
                                                 <label for="tariffSelectModal" class="form-label fw-bold mb-2">
-                                                    <i class="fa fa-bolt text-warning me-2"></i>Golongan Tarif PLN (Juli-September 2025)
+                                                    <i class="fa fa-bolt text-warning me-2"></i>Golongan Tarif Krakatau Chandra Energi (Oktober-Desember 2025)
                                                 </label>
                                                 <select id="tariffSelectModal" class="form-select">
                                                     <!-- Options will be populated by JavaScript -->
@@ -272,8 +268,8 @@
                                             <div class="col-md-4">
                                                 <div class="text-center">
                                                     <small class="text-muted d-block">Tarif Per kWh</small>
-                                                    <div id="currentRateModal" class="h5 text-primary fw-bold">Rp 1.035,76</div>
-                                                    <small class="text-muted">Resmi PLN</small>
+                                                    <div id="currentRateModal" class="h5 text-primary fw-bold">Rp 1.745,43</div>
+                                                    <small class="text-muted">Krakatau Chandra Energi</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -318,22 +314,22 @@
                             </div>
 
                             <!-- Detailed Cost Breakdown -->
-                            <div class="cost-breakdown-container" style="display: none;" id="costBreakdownContainer">
-                                <div class="card border-0 text-white shadow-sm">
-                                    <div class="card-header bg-secondary text-white">
-                                        <h6 class="mb-0">
-                                            <i class="fa fa-list text-white me-2"></i>
-                                            Rincian Biaya Bulanan
+                            <div class="cost-breakdown-container mt-3" style="display: none;" id="costBreakdownContainer">
+                                <div class="card border-0 shadow-sm">
+                                    <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                        <h6 class="mb-0 text-white">
+                                            <i class="fa fa-list-alt text-white me-2"></i>
+                                            Rincian Detail Perhitungan Biaya Listrik
                                         </h6>
                                     </div>
-                                    <div class="card-body bg-white">
+                                    <div class="card-body bg-light">
                                         <div class="table-responsive">
-                                            <table class="table table-sm table-borderless">
+                                            <table class="table table-sm table-hover">
                                                 <thead>
-                                                    <tr class="border-bottom">
-                                                        <th class="text-white fw-bold">Komponen Biaya</th>
-                                                        <th class="text-white fw-bold">Detail</th>
-                                                        <th class="text-end text-white fw-bold">Jumlah</th>
+                                                    <tr class="border-bottom bg-white">
+                                                        <th class="text-dark fw-bold">Komponen Biaya</th>
+                                                        <th class="text-dark fw-bold">Detail</th>
+                                                        <th class="text-end text-dark fw-bold">Jumlah</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody id="costBreakdownTable" class="text-dark">
@@ -344,13 +340,13 @@
                                         
                                         <!-- Total Cost Highlight -->
                                         <div class="text-center mt-3">
-                                            <div class="alert alert-success border-0 shadow-sm">
+                                            <div class="alert alert-success border-0 shadow-sm mb-0">
                                                 <h5 class="mb-1 text-success">
-                                                    <i class="fa fa-calculator me-2"></i>
-                                                    Total Estimasi Biaya Listrik
+                                                    <i class="fa fa-money me-2"></i>
+                                                    Total Estimasi Biaya Listrik Bulanan
                                                 </h5>
                                                 <h3 id="totalCostHighlight" class="text-success fw-bold mb-0">Rp 0</h3>
-                                                <small class="text-muted">per bulan</small>
+                                                <small class="text-muted d-block mt-1"><i class="fa fa-info-circle me-1"></i>Berdasarkan konsumsi bulan berjalan</small>
                                             </div>
                                         </div>
                                     </div>
@@ -363,9 +359,13 @@
                                     <i class="fa fa-calculator me-1"></i>
                                     Hitung Estimasi Biaya
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary ms-2 shadow-sm" id="toggleCostDetailsBtn" style="display: none;">
-                                    <i class="fa fa-eye me-1"></i>
-                                    <span>Lihat Detail</span>
+                                <button type="button" class="btn btn-info shadow-sm ms-2" id="toggleCostDetailsBtn" style="display: none;">
+                                    <i class="fa fa-list-alt me-1"></i>
+                                    <span>Detail Rincian</span>
+                                </button>
+                                <button type="button" class="btn btn-success shadow-sm ms-2" id="downloadCsvBtn" style="display: none;">
+                                    <i class="fa fa-download me-1"></i>
+                                    <span>Download CSV</span>
                                 </button>
                             </div>
                             

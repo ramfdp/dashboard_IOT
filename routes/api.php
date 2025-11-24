@@ -86,7 +86,7 @@ Route::prefix('electricity')->group(function () {
 Route::post('/real-time-power', [App\Http\Controllers\RealTimePowerController::class, 'store']);
 Route::get('/real-time-power/latest', [App\Http\Controllers\RealTimePowerController::class, 'getLatest']);
 
-// Real-time Power Generation Routes for PT Krakatau Sarana Property
+
 Route::prefix('realtime-power')->group(function () {
     Route::post('/store', [App\Http\Controllers\RealTimePowerController::class, 'store']);
     Route::get('/latest', [App\Http\Controllers\RealTimePowerController::class, 'getLatest']);
@@ -98,6 +98,7 @@ Route::prefix('realtime-power')->group(function () {
 // PLN Tariff Calculator API Routes
 Route::prefix('pln')->group(function () {
     Route::get('/latest-kwh-data', [ApiElectricityDataController::class, 'getLatestKwhData']);
+    Route::get('/monthly-kwh-data', [ApiElectricityDataController::class, 'getMonthlyKwhData']);
     Route::get('/monthly-kwh-consumption', [ApiElectricityDataController::class, 'getMonthlyKwhConsumption']);
     Route::get('/hourly-consumption', [ApiElectricityDataController::class, 'getHourlyConsumption']);
     Route::get('/daily-summary', [ApiElectricityDataController::class, 'getDailySummary']);

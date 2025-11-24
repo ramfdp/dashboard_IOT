@@ -51,6 +51,75 @@ class ElectricityDataController extends Controller
     }
 
     /**
+     * Get current month's total kWh data for PLN calculator
+     * Returns actual database total for the current month only
+     */
+    public function getMonthlyKwhData()
+    {
+        try {
+            $startOfMonth = Carbon::now()->startOfMonth();
+            $now = Carbon::now();
+
+            // Get all data from current month
+            $monthlyData = Listrik::whereBetween('created_at', [$startOfMonth, $now])
+                ->selectRaw('
+                    SUM(daya) as total_power_watts,
+                    COUNT(*) as data_points,
+                    MIN(created_at) as start_date,
+                    MAX(created_at) as end_date
+                ')
+                ->first();
+
+            if ($monthlyData && $monthlyData->total_power_watts > 0 && $monthlyData->data_points > 0) {
+                // Calculate actual kWh from accumulated data
+                // Each data point represents a moment in time
+                // Assuming data is collected every X seconds, we calculate average power first
+                $avgPowerWatts = $monthlyData->total_power_watts / $monthlyData->data_points;
+                $avgPowerKw = $avgPowerWatts / 1000;
+
+                // Calculate hours elapsed in current month
+                $startDate = Carbon::parse($monthlyData->start_date);
+                $endDate = Carbon::parse($monthlyData->end_date);
+                $hoursElapsed = $startDate->diffInHours($endDate);
+
+                if ($hoursElapsed == 0) {
+                    $hoursElapsed = 1; // Minimum 1 hour
+                }
+
+                // Calculate actual kWh consumed so far this month
+                $monthlyKwh = $avgPowerKw * $hoursElapsed;
+
+                return response()->json([
+                    'success' => true,
+                    'monthly_kwh' => round($monthlyKwh, 2),
+                    'avg_power_watts' => round($avgPowerWatts, 2),
+                    'data_points' => $monthlyData->data_points,
+                    'hours_elapsed' => $hoursElapsed,
+                    'period' => [
+                        'start' => $startOfMonth->toDateString(),
+                        'current' => $now->toDateString(),
+                        'month' => $now->format('F Y')
+                    ],
+                    'source' => 'database_current_month'
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No electricity data found for current month',
+                'monthly_kwh' => 0
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error retrieving monthly data: ' . $e->getMessage(),
+                'monthly_kwh' => 0,
+                'trace' => config('app.debug') ? $e->getTraceAsString() : null
+            ], 500);
+        }
+    }
+
+    /**
      * Calculate daily kWh from history data
      */
     private function calculateDailyKwh($data)
