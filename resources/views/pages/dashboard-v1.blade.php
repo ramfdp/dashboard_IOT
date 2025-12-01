@@ -13,11 +13,11 @@
 @endpush
 
 @push('scripts')
-    <!-- Firebase & Auto-PZEM loaded globally in page-js.blade.php -->
     <script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
     <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
+    
     <script src="/assets/js/debug-firebase-listener.js"></script>
     <script src="/assets/js/electricity-linear-regression.js" defer></script>
     <script src="/assets/js/kwh-calc.js" defer></script>

@@ -110,42 +110,113 @@ class AutoPZEMGenerator {
         const dayOfWeek = now.getDay();
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
-        const isWorkingHour = hour >= this.buildingProfile.operatingHours.start &&
-            hour <= this.buildingProfile.operatingHours.end;
+        // Spesifikasi:
+        // - Max kWh: 8080 kWh
+        // - Tegangan: 220-223 V (dengan beban), 380V (tanpa beban)
+        // - Arus: 7.3-15.6 A
+        // - Jam Kerja (08:00-12:00 & 14:00-18:00): Tegangan & Arus Maksimal
+        // - Jam Istirahat (12:00-14:00): Pemakaian berkurang (laptop tidak charging)
+        // - Jam Malam (18:00-08:00): Hanya lampu (4 lampu × 15W × 25% = 15W per ruangan)
+        // - Tegangan maksimal 380V saat tidak ada beban (weekend/jam sangat sepi)
 
-        let basePower = this.buildingProfile.basePowerConsumption;
-        let maxPower = this.buildingProfile.maxPowerConsumption;
-
+        let voltage, current, power;
 
         if (isWeekend) {
-            basePower *= this.buildingProfile.weekendReduction;
-            maxPower *= this.buildingProfile.weekendReduction;
-        }
-
-        let finalPower;
-
-        if (hour >= 7 && hour <= 18 && !isWeekend) {
-            finalPower = 550 + Math.random() * 50;
-        } else if (isWeekend && hour >= 8 && hour <= 17) {
-            finalPower = 300 + Math.random() * 100;
+            // Weekend: Minimal operation (hanya keamanan & lampu darurat)
+            // TIDAK ADA BEBAN SIGNIFIKAN - Tegangan naik ke 380V
+            voltage = 375 + Math.random() * 5; // 375-380 V (tanpa beban)
+            current = 0.3 + Math.random() * 0.2; // 0.3-0.5 A (sangat minimal)
+            power = 200 + Math.random() * 50; // ~200-250 W (tetap rendah meski tegangan tinggi)
         } else {
-            finalPower = 120 + Math.random() * 60;
+            // Weekday operations
+            if ((hour >= 8 && hour < 12) || (hour >= 14 && hour < 18)) {
+                // JAM KERJA: Tegangan & Arus Maksimal
+                // Banyak penggunaan: komputer, AC, printer, charging, dll
+                voltage = 221 + Math.random() * 2; // 221-223 V (maksimal dengan beban)
+                current = 13.5 + Math.random() * 2.1; // 13.5-15.6 A (maksimal)
+                power = voltage * current; // ~2,990-3,459 W
+
+                // Tambahkan variasi natural (fluktuasi peralatan)
+                const variation = (Math.random() - 0.5) * 200;
+                power = power + variation;
+
+            } else if (hour >= 12 && hour < 14) {
+                // JAM ISTIRAHAT (12:00-14:00): Pemakaian berkurang
+                // Laptop tidak charging, sebagian AC tetap jalan, lampu nyala
+                voltage = 220 + Math.random() * 2; // 220-222 V (normal)
+                current = 8.5 + Math.random() * 2.0; // 8.5-10.5 A (berkurang ~35%)
+                power = voltage * current; // ~1,870-2,310 W
+
+                // Variasi kecil
+                const variation = (Math.random() - 0.5) * 100;
+                power = power + variation;
+
+            } else if (hour >= 18 || hour < 8) {
+                // JAM MALAM (18:00-08:00): Night mode
+                // Hanya lampu yang nyala - BEBAN SANGAT MINIMAL
+                // Asumsi: 10 ruangan, setiap ruangan 4 lampu @ 15W, hanya 1 lampu nyala
+                // Total: 10 ruangan × 1 lampu × 15W = 150W
+                // Plus: Emergency lighting, CCTV, server = ~100W
+                // Total: ~250W
+
+                // Tegangan naik karena beban minimal (mendekati 380V tapi tidak penuh)
+                voltage = 350 + Math.random() * 20; // 350-370 V (beban sangat ringan)
+                current = 0.6 + Math.random() * 0.3; // 0.6-0.9 A (minimal)
+                power = 200 + Math.random() * 100; // 200-300 W (lampu + emergency)
+
+            } else {
+                // Jam transisi (06:00-08:00): Persiapan kerja
+                voltage = 220 + Math.random() * 2; // 220-222 V
+                current = 7.3 + Math.random() * 1.5; // 7.3-8.8 A
+                power = voltage * current; // ~1,606-1,954 W
+
+                const variation = (Math.random() - 0.5) * 150;
+                power = power + variation;
+            }
         }
 
-        const voltage = 220 + (Math.random() * 22 - 11);
+        // Pastikan current tidak melebihi range 7.3-15.6 A (kecuali malam hari yang lebih rendah)
+        if ((hour >= 8 && hour < 18) && !isWeekend) {
+            current = Math.max(7.3, Math.min(15.6, current));
+        }
 
-        const current = finalPower / voltage;
-        const lightingPower = Math.random() * 20 + 10;
-        const totalPower = finalPower + lightingPower;
+        // Validasi voltage berdasarkan kondisi beban
+        if (isWeekend || (hour >= 18 || hour < 8)) {
+            // Tanpa beban atau beban minimal: tegangan bisa naik hingga 380V
+            voltage = Math.max(350, Math.min(380, voltage));
+        } else if ((hour >= 8 && hour < 18) && !isWeekend) {
+            // Dengan beban (jam kerja): tegangan normal 220-223V
+            voltage = Math.max(220, Math.min(223, voltage));
+        }
 
-        const energi = (finalPower / 1000 * Math.random()).toFixed(4);
-        const frekuensi = (50 + (Math.random() - 0.5) * 1).toFixed(2);
-        const power_factor = (0.85 + Math.random() * 0.15).toFixed(3);
+        // Recalculate power berdasarkan voltage dan current final (hanya untuk jam kerja)
+        if ((hour >= 8 && hour < 18) && !isWeekend) {
+            power = voltage * current;
+        }
+
+        // Hitung energi kumulatif dalam kWh
+        // Untuk mencapai max 8080 kWh per bulan (30 hari):
+        // 8080 kWh / 30 hari = 269.33 kWh/hari
+        // 269.33 kWh / 24 jam = 11.22 kWh/jam
+        // Dengan interval 10 detik: 11.22 / 360 = 0.0312 kWh per update
+
+        const hoursElapsed = hour + (minute / 60);
+        const dailyTarget = 269.33; // kWh per hari untuk mencapai 8080/bulan
+        const currentDayProgress = (power / 1000) * (hoursElapsed / 24);
+        const energi = (currentDayProgress * (dailyTarget / (power / 1000 * 24))).toFixed(4);
+
+        // Frekuensi dan power factor
+        const frekuensi = (50 + (Math.random() - 0.5) * 0.5).toFixed(2); // 49.75-50.25 Hz
+        const power_factor = (0.85 + Math.random() * 0.10).toFixed(3); // 0.85-0.95
+
+        // Total power (termasuk losses kecil)
+        const lightingPower = Math.random() * 10 + 5; // Losses & parasitic load
+        const totalPower = power + lightingPower;
 
         let generatedData = {
             voltage: Math.round(voltage * 10) / 10,
             current: Math.round(current * 100) / 100,
-            power: Math.round(finalPower),
+            power: Math.round(power),
             energi: parseFloat(energi),
             frekuensi: parseFloat(frekuensi),
             power_factor: parseFloat(power_factor),
@@ -153,9 +224,9 @@ class AutoPZEMGenerator {
             timestamp: this.getIndonesiaTimestamp()
         };
 
-        generatedData = this.applyRealTimeNightReduction(generatedData);
-        this.updateNightModeStatus();
-        generatedData = this.applyNightModeReduction(generatedData);
+        // Tidak perlu night reduction karena sudah dihandle di atas
+        // this.updateNightModeStatus();
+        // generatedData = this.applyNightModeReduction(generatedData);
 
         return generatedData;
     }
@@ -296,7 +367,45 @@ class AutoPZEMGenerator {
         window.electricityChart.data.datasets[0].data = window.globalElectricityData.values;
         window.electricityChart.update('none');
 
+        // Update dashboard statistics to match chart data
+        this.updateDashboardStatistics();
+
         // console.log('[AutoPZEM] 📊 Chart updated with power:', newValue, 'W');
+    }
+
+    // Update main dashboard statistics based on actual chart data
+    updateDashboardStatistics() {
+        if (!window.globalElectricityData || !window.globalElectricityData.values.length) {
+            return;
+        }
+
+        const values = window.globalElectricityData.values;
+        const avgPower = values.reduce((sum, val) => sum + val, 0) / values.length;
+        const maxPower = Math.max(...values);
+        const minPower = Math.min(...values);
+
+        // Calculate kWh estimates
+        const kwhHarian = (avgPower * 24 / 1000).toFixed(2);
+        const kwhMingguan = (avgPower * 24 * 7 / 1000).toFixed(2);
+        const kwhBulanan = (avgPower * 24 * 30 / 1000).toFixed(2);
+
+        const statistics = [
+            { id: 'dayaTertinggi', value: `${maxPower.toFixed(0)} W` },
+            { id: 'dayaTerendah', value: `${minPower.toFixed(0)} W` },
+            { id: 'totalData', value: values.length },
+            { id: 'kwhHarian', value: `${kwhHarian} kWh` },
+            { id: 'kwhMingguan', value: `${kwhMingguan} kWh` },
+            { id: 'kwhBulanan', value: `${kwhBulanan} kWh` }
+        ];
+
+        statistics.forEach(stat => {
+            const el = document.getElementById(stat.id);
+            if (el) {
+                el.textContent = stat.value;
+            }
+        });
+
+        // console.log('[AutoPZEM] 📊 Dashboard statistics updated - Data points:', values.length);
     }
     async sendToDatabase(data) {
         try {
@@ -579,11 +688,34 @@ class AutoPZEMGenerator {
 
         const endTimeInMinutes = timeRangeHours ? (timeRangeHours * 60) : (currentHour * 60 + currentMinute);
 
-        const getBasePowerForHour = (hour) => {
-            if (hour >= 6 && hour <= 8) return 180;
-            else if (hour >= 9 && hour <= 17) return 580;
-            else if (hour >= 18 && hour <= 22) return 320;
-            else return 120; // Night
+        const getBasePowerForHour = (hour, minute = 0) => {
+            const dayOfWeek = now.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+            if (isWeekend) {
+                return 150 + Math.random() * 100; // Weekend minimal
+            }
+
+            // Jam Kerja Pagi (08:00-12:00): Maksimal
+            if (hour >= 8 && hour < 12) {
+                return 3000 + Math.random() * 400; // 3000-3400 W
+            }
+            // Jam Istirahat (12:00-14:00): Berkurang
+            else if (hour >= 12 && hour < 14) {
+                return 1900 + Math.random() * 400; // 1900-2300 W
+            }
+            // Jam Kerja Sore (14:00-18:00): Maksimal
+            else if (hour >= 14 && hour < 18) {
+                return 3000 + Math.random() * 400; // 3000-3400 W
+            }
+            // Jam Malam (18:00-08:00): Minimal (lampu saja)
+            else if (hour >= 18 || hour < 8) {
+                return 220 + Math.random() * 80; // 220-300 W
+            }
+            // Default
+            else {
+                return 1800 + Math.random() * 200;
+            }
         };
 
         let lastPowerValue = getBasePowerForHour(0);
@@ -594,30 +726,33 @@ class AutoPZEMGenerator {
             const timeLabel = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
             labels.push(timeLabel);
 
-            const basePower = getBasePowerForHour(hours);
+            const basePower = getBasePowerForHour(hours, minutes);
 
-            const targetPower = basePower + (Math.sin(totalMinutes / 30) * 20);
-            const randomVariation = (Math.random() - 0.5) * 15;
+            const targetPower = basePower + (Math.sin(totalMinutes / 30) * 50);
+            const randomVariation = (Math.random() - 0.5) * 100;
 
             const powerDifference = targetPower - lastPowerValue;
             const adjustmentRate = 0.3;
 
             let newPowerValue = lastPowerValue + (powerDifference * adjustmentRate) + randomVariation;
 
-            if (Math.random() < 0.05 && hours >= 7 && hours <= 21) {
+            // Spike events (peralatan nyala/mati) hanya di jam kerja
+            if (Math.random() < 0.05 && hours >= 8 && hours < 18) {
                 const spikeDirection = Math.random() > 0.5 ? 1 : -1;
-                newPowerValue += spikeDirection * (20 + Math.random() * 30);
+                newPowerValue += spikeDirection * (50 + Math.random() * 100);
             }
 
-
-            if (hours >= 9 && hours <= 17) {
-                newPowerValue = Math.max(520, Math.min(620, newPowerValue));
-            } else if (hours >= 18 && hours <= 22) {
-                newPowerValue = Math.max(250, Math.min(400, newPowerValue));
-            } else if (hours >= 6 && hours <= 8) {
-                newPowerValue = Math.max(150, Math.min(220, newPowerValue));
+            // Batasi sesuai jam
+            if (hours >= 8 && hours < 12) {
+                newPowerValue = Math.max(2800, Math.min(3500, newPowerValue));
+            } else if (hours >= 12 && hours < 14) {
+                newPowerValue = Math.max(1800, Math.min(2400, newPowerValue));
+            } else if (hours >= 14 && hours < 18) {
+                newPowerValue = Math.max(2800, Math.min(3500, newPowerValue));
+            } else if (hours >= 18 || hours < 8) {
+                newPowerValue = Math.max(200, Math.min(350, newPowerValue));
             } else {
-                newPowerValue = Math.max(100, Math.min(160, newPowerValue));
+                newPowerValue = Math.max(1600, Math.min(2200, newPowerValue));
             }
 
             values.push(Math.round(newPowerValue));
@@ -634,7 +769,7 @@ class AutoPZEMGenerator {
 
         const now = new Date();
         let baseTime = new Date(now.getTime() - (30 * 5 * 60 * 1000));
-        let lastPower = 350;
+        let lastPower = 2500;
 
         for (let i = 0; i < 30; i++) {
             const currentTime = new Date(baseTime.getTime() + (i * 5 * 60 * 1000));
@@ -644,16 +779,17 @@ class AutoPZEMGenerator {
             labels.push(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
 
             let targetPower;
-            if (hours >= 9 && hours <= 17) targetPower = 580;
-            else if (hours >= 18 && hours <= 22) targetPower = 320;
-            else if (hours >= 6 && hours <= 8) targetPower = 180;
-            else targetPower = 120;
+            if (hours >= 8 && hours < 12) targetPower = 3200;
+            else if (hours >= 12 && hours < 14) targetPower = 2000;
+            else if (hours >= 14 && hours < 18) targetPower = 3200;
+            else if (hours >= 18 || hours < 8) targetPower = 250;
+            else targetPower = 1800;
 
-            const variation = (Math.random() - 0.5) * 20;
+            const variation = (Math.random() - 0.5) * 100;
             const transition = (targetPower - lastPower) * 0.2;
             lastPower = lastPower + transition + variation;
 
-            lastPower = Math.max(100, Math.min(620, lastPower));
+            lastPower = Math.max(200, Math.min(3500, lastPower));
             data.push(Math.round(lastPower));
         }
 
@@ -665,7 +801,7 @@ class AutoPZEMGenerator {
 
         const fallbackData = [];
         const fallbackLabels = [];
-        let currentPower = 320;
+        let currentPower = 2500;
 
         for (let i = dataPoints - 1; i >= 0; i--) {
             const timeAgo = new Date(Date.now() - (i * 5 * 60 * 1000));
@@ -675,14 +811,15 @@ class AutoPZEMGenerator {
             fallbackLabels.unshift(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`);
 
             let targetPower;
-            if (hours >= 9 && hours <= 17) targetPower = 580;
-            else if (hours >= 18 && hours <= 22) targetPower = 320;
-            else if (hours >= 6 && hours <= 8) targetPower = 180;
-            else targetPower = 120;
+            if (hours >= 8 && hours < 12) targetPower = 3200;
+            else if (hours >= 12 && hours < 14) targetPower = 2000;
+            else if (hours >= 14 && hours < 18) targetPower = 3200;
+            else if (hours >= 18 || hours < 8) targetPower = 250;
+            else targetPower = 1800;
 
-            const variation = (Math.random() - 0.5) * 15;
+            const variation = (Math.random() - 0.5) * 80;
             const transition = (targetPower - currentPower) * 0.15;
-            currentPower = Math.max(100, Math.min(620, currentPower + transition + variation));
+            currentPower = Math.max(200, Math.min(3500, currentPower + transition + variation));
             fallbackData.unshift(Math.round(currentPower));
         }
         return { data: fallbackData, labels: fallbackLabels, metadata: { interval: 5, unit: 'minutes' } };
@@ -697,7 +834,7 @@ class AutoPZEMGenerator {
         const currentMinute = now.getMinutes();
         const currentTimeInMinutes = currentHour * 60 + currentMinute;
 
-        let lastPower = 120; // Start with night consumption
+        let lastPower = 250; // Start with night consumption (lampu)
 
         for (let totalMinutes = 0; totalMinutes <= currentTimeInMinutes; totalMinutes += 5) {
             const hours = Math.floor(totalMinutes / 60);
@@ -706,14 +843,15 @@ class AutoPZEMGenerator {
             newLabels.push(timeLabel);
 
             let targetPower;
-            if (hours >= 6 && hours <= 8) targetPower = 180;
-            else if (hours >= 9 && hours <= 17) targetPower = 580;
-            else if (hours >= 18 && hours <= 22) targetPower = 320;
-            else targetPower = 120; // Night
+            if (hours >= 8 && hours < 12) targetPower = 3200;
+            else if (hours >= 12 && hours < 14) targetPower = 2000;
+            else if (hours >= 14 && hours < 18) targetPower = 3200;
+            else if (hours >= 18 || hours < 8) targetPower = 250;
+            else targetPower = 1800;
 
-            const variation = (Math.random() - 0.5) * 10;
+            const variation = (Math.random() - 0.5) * 50;
             const transition = (targetPower - lastPower) * 0.25;
-            lastPower = Math.max(100, Math.min(620, lastPower + transition + variation));
+            lastPower = Math.max(200, Math.min(3500, lastPower + transition + variation));
 
             newData.push(Math.round(lastPower));
         }
