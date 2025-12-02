@@ -20,7 +20,7 @@ class DashboardCurrentUsage {
 
     async loadCurrentUsage() {
         try {
-            const response = await fetch('/api/electricity/current-usage', {
+            const response = await fetch(`${window.baseUrl}/api/electricity/current-usage`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',

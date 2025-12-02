@@ -61,6 +61,51 @@ class ListrikController extends Controller
         }
     }
 
+    /**
+     * Get chart data for today
+     */
+    public function getTodayChartData(Request $request)
+    {
+        try {
+            // Ambil data hari ini, limit 50 data terakhir
+            $chartData = Listrik::whereDate('created_at', today())
+                ->orderBy('created_at', 'desc')
+                ->limit(50)
+                ->get(['daya', 'tegangan', 'arus', 'created_at'])
+                ->reverse()
+                ->values();
+
+            $labels = [];
+            $values = [];
+
+            foreach ($chartData as $data) {
+                // Format waktu dari created_at
+                $time = \Carbon\Carbon::parse($data->created_at);
+                $labels[] = $time->format('H:i');
+                $values[] = (float) $data->daya;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'labels' => $labels,
+                    'values' => $values,
+                    'count' => count($values)
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve chart data: ' . $e->getMessage(),
+                'data' => [
+                    'labels' => [],
+                    'values' => [],
+                    'count' => 0
+                ]
+            ], 500);
+        }
+    }
+
     public function show($id)
     {
         try {

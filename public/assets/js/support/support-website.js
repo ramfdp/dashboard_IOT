@@ -180,7 +180,7 @@ class RealTimePowerGenerator {
      */
     async sendToDatabase(data) {
         try {
-            const response = await fetch('/api/listrik', {
+            const response = await fetch(`${window.baseUrl}/api/listrik`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

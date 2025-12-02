@@ -60,7 +60,7 @@
         
         <div class="navbar-item navbar-user dropdown">
             <a href="#" class="navbar-link dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown">
-                <img src="/assets/img/user/ks-icon.png" alt="" /> 
+                <img src="{{ asset('assets/img/user/ks-icon.png') }}" alt="" /> 
                 <span>
                     @if(auth()->check())
                         <span class="d-none d-md-inline">{{ auth()->user()->name }}</span>

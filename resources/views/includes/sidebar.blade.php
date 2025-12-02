@@ -10,10 +10,10 @@
 			@if (!$appSidebarSearch)
 			<div class="menu-profile">
 				<a href="javascript:;" class="menu-profile-link" data-toggle="app-sidebar-profile" data-target="#appSidebarProfileMenu">
-					<div class="menu-profile-cover with-shadow" style="background-image: url('{{ asset('assets/img/login-bg/wisma krakatau background.png') }}'); background-size: cover; background-position: center;"></div>
-					<div class="menu-profile-image">
-						<img src="/assets/img/user/ks-icon.png" alt="" />
-					</div>
+				<div class="menu-profile-cover with-shadow" style="background-image: url('{{ asset('assets/img/login-bg/wisma krakatau background.png') }}'); background-size: cover; background-position: center;"></div>
+				<div class="menu-profile-image">
+					<img src="{{ asset('assets/img/user/ks-icon.png') }}" alt="" />
+				</div>
 					<div class="menu-profile-info">
 					<div class="d-flex align-items-center">
 						<div class="flex-grow-1">

@@ -249,7 +249,7 @@ class ModeManager {
             return;
         }
 
-        fetch('/api/check-schedules', {
+        fetch(`${window.baseUrl}/api/check-schedules`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -43,7 +43,7 @@ class DashboardPeriodAnalysis {
             // Add multiple timestamps untuk super strong cache-busting
             const timestamp = new Date().getTime();
             const randomNum = Math.random().toString(36).substring(7);
-            const url = `/api/electricity/data?period=${this.currentPeriod}&_t=${timestamp}&_r=${randomNum}&_force=${Date.now()}`;
+            const url = `${window.baseUrl}/api/electricity/data?period=${this.currentPeriod}&_t=${timestamp}&_r=${randomNum}&_force=${Date.now()}`;
 
             console.log('🔄 Loading period data:', {
                 period: this.currentPeriod,
@@ -309,7 +309,7 @@ class DashboardPeriodAnalysis {
         try {
             console.log(`Fetching usage data for period: ${this.currentPeriod}`);
 
-            const response = await fetch(`/api/electricity/usage-by-period?period=${this.currentPeriod}`, {
+            const response = await fetch(`${window.baseUrl}/api/electricity/usage-by-period?period=${this.currentPeriod}`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',

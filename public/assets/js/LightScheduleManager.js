@@ -45,7 +45,7 @@ class LightScheduleManager {
         try {
             console.log('Checking light schedules...');
 
-            const response = await fetch('/api/check-schedules', {
+            const response = await fetch(`${window.baseUrl}/api/check-schedules`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -85,16 +85,20 @@ class LightScheduleManager {
             return;
         }
 
+        // Ensure activeDevices and inactiveDevices are arrays
+        const safeActiveDevices = Array.isArray(activeDevices) ? activeDevices : [];
+        const safeInactiveDevices = Array.isArray(inactiveDevices) ? inactiveDevices : [];
+
         // Update the UI to reflect current device states
         const deviceSwitches = document.querySelectorAll('.device-switch');
 
         deviceSwitches.forEach(switchElement => {
             const deviceName = switchElement.getAttribute('name');
 
-            if (activeDevices.includes(deviceName)) {
+            if (safeActiveDevices.includes(deviceName)) {
                 switchElement.checked = true;
                 this.addScheduleIndicator(switchElement, 'active');
-            } else if (inactiveDevices.includes(deviceName)) {
+            } else if (safeInactiveDevices.includes(deviceName)) {
                 switchElement.checked = false;
                 this.addScheduleIndicator(switchElement, 'inactive');
             }
@@ -159,9 +163,14 @@ class LightScheduleManager {
         // Show a subtle notification about schedule execution
         if (data.overtime_active) {
             this.showToast('Overtime is active - devices controlled by overtime system', 'warning');
-        } else if (data.active_devices.length > 0 || data.inactive_devices.length > 0) {
-            const message = `Schedule executed: ${data.active_devices.length} device(s) turned ON, ${data.inactive_devices.length} device(s) turned OFF`;
-            this.showToast(message, 'info');
+        } else {
+            const activeDevices = Array.isArray(data.active_devices) ? data.active_devices : [];
+            const inactiveDevices = Array.isArray(data.inactive_devices) ? data.inactive_devices : [];
+
+            if (activeDevices.length > 0 || inactiveDevices.length > 0) {
+                const message = `Schedule executed: ${activeDevices.length} device(s) turned ON, ${inactiveDevices.length} device(s) turned OFF`;
+                this.showToast(message, 'info');
+            }
         }
     }
 

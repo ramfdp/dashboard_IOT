@@ -153,7 +153,7 @@ class HistoryListrikHandler {
             console.log('[History] Fetching data from API...');
 
             // Make API call to the correct endpoint
-            const response = await fetch(`/api/listrik?${params.toString()}`);
+            const response = await fetch(`${window.baseUrl}/api/listrik?${params.toString()}`);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -449,7 +449,7 @@ class HistoryListrikHandler {
             }
 
             // Make API call untuk mendapatkan semua data
-            const response = await fetch(`/api/history/download?${params.toString()}`);
+            const response = await fetch(`${window.baseUrl}/api/history/download?${params.toString()}`);
             const data = await response.json();
 
             if (data.success && data.data && data.data.length > 0) {

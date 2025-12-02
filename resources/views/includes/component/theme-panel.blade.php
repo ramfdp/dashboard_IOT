@@ -97,32 +97,32 @@
 		<div class="theme-version">
 			<div class="theme-version-item">
 				<a href="../template_html/index_v2.html" class="theme-version-link active">
-					<span style="background-image: url(/assets/img/theme/default.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/default.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_transparent/index_v2.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/transparent.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/transparent.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_apple/index_v2.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/apple.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/apple.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_material/index_v2.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/material.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/material.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_facebook/index_v2.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/facebook.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/facebook.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_google/index_v2.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/google.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/google.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 		</div>
@@ -135,42 +135,42 @@
 		<div class="theme-version">
 			<div class="theme-version-item">
 				<a href="../template_html/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/version/html.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/version/html.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_ajax/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/version/ajax.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/version/ajax.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_angularjs/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/version/angular1x.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/version/angular1x.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_angularjs13/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/version/angular10x.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/version/angular10x.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="javascript:alert('Laravel Version only available in downloaded version.');" class="theme-version-link active">
-					<span style="background-image: url(/assets/img/version/laravel.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/version/laravel.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_vuejs/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/version/vuejs.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/version/vuejs.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../template_reactjs/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/version/reactjs.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/version/reactjs.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="javascript:alert('.NET Core 6.0 MVC Version only available in downloaded version.');" class="theme-version-link">
-					<span style="background-image: url(/assets/img/version/dotnet.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/version/dotnet.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 		</div>
@@ -183,27 +183,27 @@
 		<div class="theme-version">
 			<div class="theme-version-item">
 				<a href="../../../frontend/template/template_one_page_parallax/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/one-page-parallax.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/one-page-parallax.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../../../frontend/template/template_e_commerce/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/e-commerce.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/e-commerce.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../../../frontend/template/template_blog/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/blog.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/blog.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../../../frontend/template/template_forum/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/forum.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/forum.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 			<div class="theme-version-item">
 				<a href="../../../frontend/template/template_corporate/index.html" class="theme-version-link">
-					<span style="background-image: url(/assets/img/theme/corporate.jpg);" class="theme-version-cover"></span>
+					<span style="background-image: url({{ asset('assets/img/theme/corporate.jpg') }});" class="theme-version-cover"></span>
 				</a>
 			</div>
 		</div>

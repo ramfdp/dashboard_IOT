@@ -79,7 +79,7 @@ const getStatusInfo = overtime => {
 // Auto-start overtime when start time is reached
 const startOvertimeAutomatically = async (overtimeId) => {
     try {
-        const response = await apiRequest(`/overtime/${overtimeId}/auto-start`, {
+        const response = await apiRequest(`${window.baseUrl}/overtime/${overtimeId}/auto-start`, {
             method: 'POST',
             body: JSON.stringify({ auto_start: true })
         });
@@ -95,14 +95,14 @@ const startOvertimeAutomatically = async (overtimeId) => {
 const completeOvertimeAutomatically = async (overtimeId) => {
     try {
         showOvertimeNotification(`Auto-completing overtime #${overtimeId}...`, 'warning');
-        const response = await apiRequest(`/overtime/${overtimeId}/auto-complete`, {
+        const response = await apiRequest(`${window.baseUrl}/overtime/${overtimeId}/auto-complete`, {
             method: 'POST',
             body: JSON.stringify({ auto_complete: true })
         });
 
         if (response.success) {
             showOvertimeNotification(`Overtime #${overtimeId} automatically completed`, 'success');
-            const currentData = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+            const currentData = await apiRequest(`${window.baseUrl}/overtime/status-check?_=${Date.now()}`);
             const remainingActiveOvertimes = currentData.overtimes?.filter(o => o.id !== overtimeId).filter(isOvertimeActive) || [];
 
             // Initialize all relay states to 0
@@ -205,7 +205,7 @@ const updateLemburStatusDanRelay = async () => {
     const deviceStates = window.getDeviceStates?.() || {};
     if (deviceStates.manualMode || manualMode) {
         try {
-            const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+            const data = await apiRequest(`${window.baseUrl}/overtime/status-check?_=${Date.now()}`);
             updateTable(data.overtimes);
         } catch (err) {
             console.error("Gagal memuat lembur:", err);
@@ -214,7 +214,7 @@ const updateLemburStatusDanRelay = async () => {
     }
 
     try {
-        const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+        const data = await apiRequest(`${window.baseUrl}/overtime/status-check?_=${Date.now()}`);
         const previousStates = window.previousOvertimeStates || {};
         const currentStates = {};
         let hasStatusChanges = false;
@@ -327,7 +327,7 @@ const editOvertime = async id => {
     editMode = true;
     editingId = id;
     try {
-        const data = await apiRequest(`/overtime/${id}/edit`);
+        const data = await apiRequest(`${window.baseUrl}/overtime/${id}/edit`);
         if (!data.success) return;
 
         const overtime = data.overtime;
@@ -342,7 +342,7 @@ const editOvertime = async id => {
 
         const form = document.querySelector('form[action*="overtime"]');
         if (form) {
-            form.action = `/overtime/${id}/update`;
+            form.action = `${window.baseUrl}/overtime/${id}/update`;
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn) {
                 submitBtn.textContent = 'Update';
@@ -380,7 +380,7 @@ const cancelEdit = () => {
 const deleteOvertime = async id => {
     if (!confirm('Apakah Anda yakin ingin menghapus data lembur ini?')) return;
     try {
-        const data = await apiRequest(`/overtime/${id}`, { method: 'DELETE' });
+        const data = await apiRequest(`${window.baseUrl}/overtime/${id}`, { method: 'DELETE' });
         alert(data.success ? 'Data lembur berhasil dihapus' : 'Gagal menghapus data lembur');
         if (data.success) updateLemburStatusDanRelay();
     } catch (err) {
@@ -391,12 +391,12 @@ const deleteOvertime = async id => {
 const cutOffOvertime = async id => {
     if (!confirm('Apakah Anda yakin ingin menghentikan lembur ini sekarang?')) return;
     try {
-        const data = await apiRequest(`/overtime/${id}/cutoff`, { method: 'POST' });
+        const data = await apiRequest(`${window.baseUrl}/overtime/${id}/cutoff`, { method: 'POST' });
         alert(data.success ? 'Lembur berhasil dihentikan' : data.message || 'Gagal menghentikan lembur');
 
         if (data.success) {
             try {
-                const currentData = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+                const currentData = await apiRequest(`${window.baseUrl}/overtime/status-check?_=${Date.now()}`);
                 const remainingActiveOvertimes = currentData.overtimes?.filter(o => o.id !== id).filter(isOvertimeActive) || [];
 
                 // Initialize all relay states to 0
@@ -443,7 +443,7 @@ const cutOffOvertime = async id => {
 const handleEditSubmit = async () => {
     if (!validateForm()) return;
     try {
-        const data = await apiRequest(`/overtime/${editingId}/update`, {
+        const data = await apiRequest(`${window.baseUrl}/overtime/${editingId}/update`, {
             method: 'PUT',
             body: JSON.stringify(getFormData())
         });
@@ -465,7 +465,7 @@ const forceRefreshRelayState = async () => {
     if (deviceStates.manualMode || manualMode) return;
 
     try {
-        const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+        const data = await apiRequest(`${window.baseUrl}/overtime/status-check?_=${Date.now()}`);
 
         // Initialize all relay states to 0
         let relayStates = {
@@ -569,7 +569,7 @@ const resetToAutoMode = () => {
 // Dedicated function to check for overtime end times
 const checkOvertimeEndTimes = async () => {
     try {
-        const data = await apiRequest(`/overtime/status-check?_=${Date.now()}`);
+        const data = await apiRequest(`${window.baseUrl}/overtime/status-check?_=${Date.now()}`);
         if (!data.overtimes?.length) return;
 
         const now = new Date();
@@ -630,7 +630,7 @@ Object.assign(window, {
     updateLemburStatusDanRelay, manualRelayControl, resetToAutoMode, editOvertime,
     deleteOvertime, cutOffOvertime, cancelEdit, forceRefreshRelayState,
     debugOvertimeStatus: overtimes => overtimes?.some(isOvertimeActive) || false,
-    debugCurrentOvertimeState: () => apiRequest(`/overtime/status-check?_=${Date.now()}`).then(data => {
+    debugCurrentOvertimeState: () => apiRequest(`${window.baseUrl}/overtime/status-check?_=${Date.now()}`).then(data => {
         console.log("Raw server response:", data);
         if (data.overtimes) console.log("Has active:", data.overtimes.some(isOvertimeActive));
     }).catch(err => console.error("Error checking current state:", err)),

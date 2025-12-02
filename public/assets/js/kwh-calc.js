@@ -106,7 +106,7 @@ class KrakatauElectricityCalculator {
 
     async getDataFromMonitoring() {
         try {
-            const response = await fetch('/api/pln/monthly-kwh-data', {
+            const response = await fetch(`${window.baseUrl}/api/pln/monthly-kwh-data`, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',

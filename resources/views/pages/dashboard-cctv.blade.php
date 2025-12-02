@@ -3,15 +3,15 @@
 @section('title', 'Dashboard CCTV')
 
 @push('css')
-    <link href="/assets/plugins/jvectormap-next/jquery-jvectormap.css" rel="stylesheet" />
-    <link href="/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css" rel="stylesheet" />
-    <link href="/assets/plugins/gritter/css/jquery.gritter.css" rel="stylesheet" />
+    <link href="{{ asset('assets/plugins/jvectormap-next/jquery-jvectormap.css') }}" rel="stylesheet" />
+    <link href="{{ asset('assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css') }}" rel="stylesheet" />
+    <link href="{{ asset('assets/plugins/gritter/css/jquery.gritter.css') }}" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet" />
-    <link href="/assets/css/cctv.css" rel="stylesheet" />
+    <link href="{{ asset('assets/css/cctv.css') }}" rel="stylesheet" />
 @endpush
 
 @push('javascripts')
-    <script src="/assets/js/CCTV.js"></script>
+    <script src="{{ asset('assets/js/CCTV.js') }}"></script>
 @endpush
 
 @section('content')

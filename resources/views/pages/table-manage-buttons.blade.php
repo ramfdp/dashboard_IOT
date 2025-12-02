@@ -3,7 +3,7 @@
 @section('title', 'History Data Listrik')
 
 @push('css')
-    <link href="/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css" rel="stylesheet" />
+    <link href="{{ asset('assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css') }}" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet" />
     <style>
         .history-stats-card {
@@ -53,7 +53,7 @@
 
 @push('scripts')
     {{-- History Listrik Handler --}}
-    <script src="/assets/js/history-listrik-handler.js"></script>
+    <script src="{{ asset('assets/js/history-listrik-handler.js') }}"></script>
 @endpush
 
 @section('content')

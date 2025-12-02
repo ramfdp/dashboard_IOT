@@ -8,6 +8,7 @@ use App\Http\Controllers\ListrikController;
 use App\Http\Controllers\ElectricityAnalysisController;
 use App\Http\Controllers\ElectricityDataController;
 use App\Http\Controllers\Api\ElectricityDataController as ApiElectricityDataController;
+use App\Http\Controllers\ProxyController;
 
 
 /*
@@ -27,9 +28,14 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 
 Route::post('/sensor', [SensorController::class, 'store']);
 Route::get('/sensor/latest', [SensorController::class, 'latest']);
+
+// Proxy untuk bypass CORS - fetch data dari API eksternal
+Route::get('/proxy/rama-json', [ProxyController::class, 'getRamaJson']);
+
 Route::get('/power-usage', [PowerUsageController::class, 'getPowerUsage']);
 Route::get('/listrik', [ListrikController::class, 'index']);
 Route::post('/listrik', [ListrikController::class, 'store']);
+Route::get('/listrik/chart-data/today', [ListrikController::class, 'getTodayChartData']);
 Route::get('/listrik/{id}', [ListrikController::class, 'show']);
 Route::put('/listrik/{id}', [ListrikController::class, 'update']);
 Route::delete('/listrik/{id}', [ListrikController::class, 'destroy']);

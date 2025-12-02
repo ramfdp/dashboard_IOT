@@ -3,32 +3,31 @@
 @section('title', 'Dashboard')
 
 @push('css')
-    <link href="/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css" rel="stylesheet" />
-    <link href="/assets/plugins/gritter/css/jquery.gritter.css" rel="stylesheet" />
+    <link href="{{url('/')}}/assets/plugins/bootstrap-datepicker/dist/css/bootstrap-datepicker.css" rel="stylesheet" />
+    <link href="{{url('/')}}/assets/plugins/gritter/css/jquery.gritter.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet" />
-    <link href="/assets/css/indikator.css" rel="stylesheet" />
-    <link href="/assets/css/dashboard-v1.css" rel=" stylesheet" />
-    <link href="/assets/css/krakatau-modal-fixes.css" rel="stylesheet" />
-    <link href="/assets/css/pln-calculator.css" rel="stylesheet" />
+    <link href="{{url('/')}}/assets/css/indikator.css" rel="stylesheet" />
+    <link href="{{url('/')}}/assets/css/dashboard-v1.css" rel=" stylesheet" />
+    <link href="{{url('/')}}/assets/css/krakatau-modal-fixes.css" rel="stylesheet" />
+    <link href="{{url('/')}}/assets/css/pln-calculator.css" rel="stylesheet" />
 @endpush
 
 @push('scripts')
-    <script src="/assets/plugins/gritter/js/jquery.gritter.js"></script>
-    <script src="/assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.2.1/dist/chart.min.js"></script>
+    <script src="{{ asset('assets/plugins/gritter/js/jquery.gritter.js') }}"></script>
+    <script src="{{ asset('assets/plugins/bootstrap-datepicker/dist/js/bootstrap-datepicker.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/regression@2.0.1/dist/regression.min.js"></script>
     
-    <script src="/assets/js/debug-firebase-listener.js"></script>
-    <script src="/assets/js/electricity-linear-regression.js" defer></script>
-    <script src="/assets/js/kwh-calc.js" defer></script>
-    <script src="/assets/js/dashboard-electricity.js" defer></script>
-    <script src="/assets/js/dashboard-period-analysis.js" defer></script>
-    <script src="/assets/js/dashboard-current-usage.js" defer></script>
-    <script src="/assets/js/logika-form-lembur.js"></script>
-    <script type="module" src="/assets/js/overtime-control-fetch.js"></script>
-    <script type="module" src="/assets/js/device-firebase-control.js"></script>
-    <script src="/assets/js/LightScheduleManager.js"></script>
-    <script src="/assets/js/ModeManager.js"></script>
+    <script src="{{ asset('assets/js/debug-firebase-listener.js') }}"></script>
+    <script src="{{ asset('assets/js/electricity-linear-regression.js') }}" defer></script>
+    <script src="{{ asset('assets/js/kwh-calc.js') }}" defer></script>
+    <script src="{{ asset('assets/js/dashboard-electricity.js') }}" defer></script>
+    <script src="{{ asset('assets/js/dashboard-period-analysis.js') }}" defer></script>
+    <script src="{{url('/')}}/assets/js/dashboard-current-usage.js" defer></script>
+    <script src="{{url('/')}}/assets/js/logika-form-lembur.js"></script>
+    <script type="module" src="{{url('/')}}/assets/js/overtime-control-fetch.js"></script>
+    <script type="module" src="{{url('/')}}/assets/js/device-firebase-control.js"></script>
+    <script src="{{url('/')}}/assets/js/LightScheduleManager.js"></script>
+    <script src="{{url('/')}}/assets/js/ModeManager.js"></script>
     <script>
         window.dashboardRoutes = {
             autoMode: '{{ route("dashboard.auto-mode") }}',
@@ -41,8 +40,8 @@
             valuesCount: @json(isset($dataKwh) ? $dataKwh->pluck('daya')->count() : 0)
         };
     </script>
-    <script src="/assets/js/dashboard-mode-control.js"></script>
-    <script src="/assets/js/fetch-api-monitoring.js"></script>
+    <script src="{{ asset('assets/js/dashboard-mode-control.js') }}"></script>
+    <script src="{{ asset('assets/js/fetch-api-monitoring.js') }}"></script>
 @endpush
 
 @section('content')

@@ -142,7 +142,6 @@ class ElectricityLinearRegressionCalculator {
 
     getFallbackElectricityData() {
         if (window.autoPZEMGenerator) {
-            // console.log('[LinearRegression] Using fallback data source from system generator');
 
             if (typeof window.autoPZEMGenerator.generateRealisticFallbackData === 'function') {
                 const fallbackData = window.autoPZEMGenerator.generateRealisticFallbackData(24); // 24 data points for 24 hours

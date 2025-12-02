@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Listrik;
+use App\Services\FirebaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -10,33 +11,86 @@ use Illuminate\Support\Facades\Validator;
 
 class RealTimePowerController extends Controller
 {
-    /**
-     * Store real-time power data from JavaScript generator
-     */
+    protected $firebase;
+
+    public function __construct(FirebaseService $firebase)
+    {
+        $this->firebase = $firebase;
+    }
+
     public function store(Request $request)
     {
         try {
-            $validator = Validator::make($request->all(), [
-                'tegangan' => 'required|numeric|min:0|max:500',
-                'arus' => 'required|numeric|min:0|max:1000',
-                'daya' => 'required|numeric|min:0|max:100000',
-                'energi' => 'required|numeric|min:0',
-                'frekuensi' => 'numeric|min:45|max:55',
-                'power_factor' => 'numeric|min:0|max:1',
-                'lokasi' => 'string|max:255',
-                'building' => 'string|max:255',
-                'timestamp' => 'string'
+            // Try multiple methods to get the data
+            $data = [];
+
+            // Method 1: Check if JSON
+            if ($request->isJson()) {
+                $data = $request->json()->all();
+            }
+
+            // Method 2: Try regular all()
+            if (empty($data)) {
+                $data = $request->all();
+            }
+
+            // Method 3: Try to parse raw input
+            if (empty($data)) {
+                $rawInput = $request->getContent();
+                if (!empty($rawInput)) {
+                    $decoded = json_decode($rawInput, true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $data = $decoded;
+                    }
+                }
+            }
+
+            // Method 4: Try input() method for each field
+            if (empty($data)) {
+                $data = [
+                    'tegangan' => $request->input('tegangan'),
+                    'arus' => $request->input('arus'),
+                    'daya' => $request->input('daya'),
+                    'energi' => $request->input('energi'),
+                    'frekuensi' => $request->input('frekuensi'),
+                    'power_factor' => $request->input('power_factor'),
+                    'timestamp' => $request->input('timestamp'),
+                ];
+                // Remove null values
+                $data = array_filter($data, function ($value) {
+                    return $value !== null;
+                });
+            }
+
+            // Log incoming request for debugging
+            Log::info('Real-time power data received', [
+                'data' => $data,
+                'content_type' => $request->header('Content-Type'),
+                'method' => $request->method(),
+                'has_json' => $request->isJson(),
+                'raw_length' => strlen($request->getContent())
+            ]);
+
+            // Validate required fields
+            $validator = Validator::make($data, [
+                'tegangan' => 'required|numeric',
+                'arus' => 'required|numeric',
+                'daya' => 'required|numeric',
             ]);
 
             if ($validator->fails()) {
+                Log::error('Validation failed for real-time power', [
+                    'errors' => $validator->errors()->toArray(),
+                    'data' => $data,
+                    'all_headers' => $request->headers->all()
+                ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validation error',
+                    'message' => 'Validation failed',
                     'errors' => $validator->errors()
                 ], 422);
             }
-
-            $data = $request->all();
 
             // Store in main electricity table (Listrik) only - optimized single write
             $listrik = Listrik::create([
@@ -46,14 +100,31 @@ class RealTimePowerController extends Controller
                 'energi' => $data['energi'] ?? 0,
                 'frekuensi' => $data['frekuensi'] ?? 50.0,
                 'power_factor' => $data['power_factor'] ?? 0.85,
-                'lokasi' => $data['lokasi'] ?? 'PT Krakatau Sarana Property',
                 'status' => 'active',
                 'tanggal_input' => now('Asia/Jakarta')->toDateString(),
                 'waktu' => $data['timestamp'] ? Carbon::parse($data['timestamp'], 'Asia/Jakarta') : now('Asia/Jakarta'),
             ]);
 
-            // Removed duplicate history write for performance optimization
-            // Data already stored in main table with timestamp for historical analysis
+            // Push to Firebase real-time database
+            try {
+                $this->firebase->setSensorData([
+                    'current' => $data['arus'],
+                    'energi' => $data['energi'] ?? 0,
+                    'frekuensi' => $data['frekuensi'] ?? 50.0,
+                    'lastUpdated' => now('Asia/Jakarta')->toISOString(),
+                    'power' => $data['daya'],
+                    'power_factor' => $data['power_factor'] ?? 0.85,
+                    'timestamp' => now('Asia/Jakarta')->toISOString(),
+                    'voltage' => $data['tegangan']
+                ]);
+                Log::info('Data pushed to Firebase successfully', ['power' => $data['daya']]);
+            } catch (\Exception $e) {
+                // Log error but don't fail the request if Firebase push fails
+                Log::error('Failed to push data to Firebase', [
+                    'error' => $e->getMessage(),
+                    'data' => $data
+                ]);
+            }
 
             return response()->json([
                 'success' => true,
