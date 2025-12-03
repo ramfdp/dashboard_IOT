@@ -29,8 +29,8 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 Route::post('/sensor', [SensorController::class, 'store']);
 Route::get('/sensor/latest', [SensorController::class, 'latest']);
 
-// Proxy untuk bypass CORS - fetch data dari API eksternal
-Route::get('/proxy/rama-json', [ProxyController::class, 'getRamaJson']);
+// Proxy untuk bypass CORS - HANYA fetch dari API data.json
+Route::get('/proxy/iot-data', [ProxyController::class, 'getIotData']);
 
 Route::get('/power-usage', [PowerUsageController::class, 'getPowerUsage']);
 Route::get('/listrik', [ListrikController::class, 'index']);

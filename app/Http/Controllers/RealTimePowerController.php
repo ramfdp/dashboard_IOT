@@ -105,7 +105,9 @@ class RealTimePowerController extends Controller
                 'waktu' => $data['timestamp'] ? Carbon::parse($data['timestamp'], 'Asia/Jakarta') : now('Asia/Jakarta'),
             ]);
 
-            // Push to Firebase real-time database
+            // DISABLED: Push to Firebase - sudah di-handle oleh frontend support-pzem.js
+            // Frontend langsung push ke Firebase, backend hanya save ke database
+            /*
             try {
                 $this->firebase->setSensorData([
                     'current' => $data['arus'],
@@ -125,6 +127,12 @@ class RealTimePowerController extends Controller
                     'data' => $data
                 ]);
             }
+            */
+
+            Log::info('[RealTimePowerController] Data saved to database only (Firebase handled by frontend)', [
+                'power' => $data['daya'],
+                'voltage' => $data['tegangan']
+            ]);
 
             return response()->json([
                 'success' => true,
