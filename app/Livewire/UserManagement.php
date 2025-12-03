@@ -229,7 +229,7 @@ class UserManagement extends Component
             } catch (\Exception $relationError) {
                 // If overtime relationship fails, try checking by employee_name
                 Log::info('Overtime relationship check failed, trying by name: ' . $relationError->getMessage());
-                
+
                 try {
                     $overtimesByName = \App\Models\Overtime::where('employee_name', $user->name)->count();
 
@@ -253,13 +253,13 @@ class UserManagement extends Component
         } catch (\Illuminate\Database\QueryException $e) {
             // Handle database errors
             Log::error('Database error deleting user ID ' . $this->deleteUserId . ': ' . $e->getMessage());
-            
+
             if (str_contains($e->getMessage(), 'foreign key constraint')) {
                 session()->flash('error_user', 'User tidak dapat dihapus karena masih memiliki data terkait di sistem.');
             } else {
                 session()->flash('error_user', 'Terjadi kesalahan database. Silakan coba lagi atau hubungi administrator.');
             }
-            
+
             $this->closeDeleteModal();
         } catch (\Exception $e) {
             Log::error('Unexpected error deleting user ID ' . $this->deleteUserId . ': ' . $e->getMessage());

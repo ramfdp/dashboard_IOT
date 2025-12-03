@@ -23,11 +23,11 @@ class SingleRoleConstraint implements ValidationRule
         // Simple validation for role field (no longer using Spatie Permission)
         // Check if role is valid
         $validRoles = ['admin', 'user'];
-        
+
         if (!in_array($value, $validRoles)) {
             $fail('The selected role is invalid. Must be either admin or user.');
         }
-        
+
         // Additional validation can be added here
         // For example, checking if certain roles are restricted
     }
