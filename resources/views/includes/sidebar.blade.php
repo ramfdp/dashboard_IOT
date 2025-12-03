@@ -118,9 +118,16 @@
 					}
 					$active = (!empty($menu['route-name']) && (Route::currentRouteName() == $menu['route-name'])) ? 'active' : '';
 					$active = (empty($active) && !empty($GLOBALS['parent_active'])) ? 'active' : $active;
+					
+					// Generate proper URL
+					$menuUrl = $menu['url'];
+					if (!str_starts_with($menuUrl, 'http')) {
+						$menuUrl = url($menuUrl);
+					}
+					
 					echo '
 						<div class="menu-item '. $hasSub .' '. $active .'">
-							<a href="'. $menu['url'] .'" class="menu-link">
+							<a href="'. $menuUrl .'" class="menu-link">
 								'. $hasImg .'
 								'. $hasIcon .'
 								'. $hasTitle .'

@@ -32,7 +32,7 @@ class OvertimeController extends Controller
         $relay1 = $relayStatus['relay1'] ?? 0;
         $relay2 = $relayStatus['relay2'] ?? 0;
 
-        $users = User::with('roles')->get();
+        $users = User::all(); // Removed with('roles') - using simple role field
         $roles = Role::all();
 
         return view('pages.dashboard-v1', compact('overtimes', 'dataKwh', 'relay1', 'relay2', 'users', 'roles'));

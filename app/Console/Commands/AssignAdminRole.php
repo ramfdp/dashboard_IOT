@@ -21,17 +21,8 @@ class AssignAdminRole extends Command
             return;
         }
 
-        $adminRole = Role::where('name', 'admin')->first();
-        if (!$adminRole) {
-            $this->error("Admin role not found");
-            return;
-        }
-
-        // Remove existing roles first
-        $user->roles()->detach();
-
-        // Assign admin role
-        $user->assignRole($adminRole);
+        // Update role field directly (no longer using Spatie Permission)
+        $user->update(['role' => 'admin']);
 
         $this->info("Admin role assigned to user: {$user->name}");
 

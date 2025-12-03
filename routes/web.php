@@ -29,7 +29,7 @@ Route::get('/', function () {
     return redirect('/login/v3');
 });
 Route::get('/dashboard/v1', [DashboardController::class, 'index'])
-    ->middleware('role:admin|user')
+    ->middleware('auth') // Changed from 'role:admin|user' to simple 'auth'
     ->name('dashboard-v1');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -145,7 +145,7 @@ Route::get('/helper/css', [MainController::class, 'helperCSS'])->name('helper-cs
 Route::get('/history-kwh', [HistoryKwhController::class, 'index'])->name('history-kwh.index');
 Route::get('/history-kwh/latest', [HistoryKwhController::class, 'latest'])->name('history-kwh.latest');
 
-Route::middleware(['auth', 'role:admin|superadmin'])->prefix('user-management')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('user-management')->group(function () { // Changed from 'role:admin|superadmin'
     Route::get('/', [UserManagementController::class, 'index'])->name('user-management.index');
     Route::post('/', [UserManagementController::class, 'store'])->name('user-management.store');
     Route::put('/{user}', [UserManagementController::class, 'update'])->name('user-management.update');

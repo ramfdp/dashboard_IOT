@@ -13,22 +13,22 @@ return [
         [
             'icon' => 'fa fa-table',
             'title' => 'History Listrik',
-            'url' => '/table/manage/buttons',
+            'url' => 'table/manage/buttons',
             'route-name' => 'table-manage-buttons',
             'permissions' => ['admin', 'user']
         ],
         [
             'icon' => 'fa fa-users',
             'title' => 'Management User',
-            'url' => '/management-user',
+            'url' => 'management-user',
             'route-name' => 'management-user',
             'permissions' => ['admin']
         ],
         [
             'icon' => 'fa fa-camera',
             'title' => 'CCTV',
-            'url' => '/cctv',
-            'route-name' => 'cctv',
+            'url' => 'cctv',
+            'route-name' => 'cctv.dashboard',
             'permissions' => ['admin', 'user']
         ]
     ]

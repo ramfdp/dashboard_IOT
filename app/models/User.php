@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
+// use Spatie\Permission\Traits\HasRoles; // Disabled - permission tables removed
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable; // Removed HasRoles trait
 
     /**
      * The attributes that are mass assignable.
@@ -60,7 +60,23 @@ class User extends Authenticatable
      */
     public function isAdmin()
     {
-        return $this->hasRole('admin');
+        return $this->role === 'admin';
+    }
+    
+    /**
+     * Check if user has a specific role
+     */
+    public function hasRole($role)
+    {
+        return $this->role === $role;
+    }
+    
+    /**
+     * Get role names (compatibility method)
+     */
+    public function getRoleNames()
+    {
+        return collect([$this->role]);
     }
 
     /**
@@ -76,8 +92,7 @@ class User extends Authenticatable
      */
     public function getRoleNameAttribute()
     {
-        $role = $this->roles()->first();
-        return $role?->name ?? 'No Role';
+        return ucfirst($this->role ?? 'user');
     }
 
     /**

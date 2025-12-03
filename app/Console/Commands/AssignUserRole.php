@@ -21,17 +21,8 @@ class AssignUserRole extends Command
             return;
         }
 
-        $userRole = Role::where('name', 'user')->first();
-        if (!$userRole) {
-            $this->error("User role not found");
-            return;
-        }
-
-        // Remove existing roles first
-        $user->roles()->detach();
-
-        // Assign user role
-        $user->assignRole($userRole);
+        // Update role field directly (no longer using Spatie Permission)
+        $user->update(['role' => 'user']);
 
         $this->info("User role assigned to user: {$user->name}");
 

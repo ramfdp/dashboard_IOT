@@ -45,14 +45,6 @@
     
     <!-- BEGIN header-nav -->
     <div class="navbar-nav">
-        <div class="navbar-item d-none d-md-flex align-items-center me-2">
-            <small class="badge bg-secondary me-2" id="dbSyncStatus" title="Database Sync Status">
-                <i class="fa fa-database"></i> DB: Waiting
-            </small>
-            <small class="badge bg-secondary" id="firebaseSyncStatus" title="Firebase Sync Status">
-                <i class="fa fa-cloud"></i> Firebase: Waiting
-            </small>
-        </div>
         
         @isset($appHeaderLanguageBar)
             @include('includes.component.header-language-bar')

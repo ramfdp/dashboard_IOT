@@ -25,7 +25,7 @@ class DashboardController extends Controller
     public function index()
     {
         $roles = Role::all();
-        $users = User::with('roles')->get();
+        $users = User::all(); // Removed with('roles') - using simple role field
         $divisions = Divisi::all();
 
         // Get data KWH for today only with formatted time in Indonesia timezone

@@ -15,7 +15,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::with('roles')->get();
+        $users = User::all(); // Removed with('roles') - using simple role field
 
         $userData = $users->map(function ($user) {
             return [
@@ -96,7 +96,7 @@ class UserController extends Controller
      */
     public function show($id)
     {
-        $user = User::with('roles')->find($id);
+        $user = User::find($id); // Removed with('roles') - using simple role field
 
         if (!$user) {
             return response()->json([

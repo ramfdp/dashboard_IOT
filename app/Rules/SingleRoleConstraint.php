@@ -20,26 +20,14 @@ class SingleRoleConstraint implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        // If we're updating an existing user
-        if ($this->userId) {
-            $user = User::find($this->userId);
-
-            if ($user) {
-                // Check if user already has Spatie roles that would conflict
-                $existingRoles = $user->roles()->count();
-
-                if ($existingRoles > 1) {
-                    $fail('This user has multiple roles assigned. Please resolve role conflicts before updating.');
-                }
-
-                // Check if the new role_id differs from existing Spatie role
-                $currentSpatieRole = $user->roles()->first();
-                if ($currentSpatieRole && $currentSpatieRole->id != $value) {
-                    // This is acceptable - we'll sync it in the model
-                }
-            }
+        // Simple validation for role field (no longer using Spatie Permission)
+        // Check if role is valid
+        $validRoles = ['admin', 'user'];
+        
+        if (!in_array($value, $validRoles)) {
+            $fail('The selected role is invalid. Must be either admin or user.');
         }
-
+        
         // Additional validation can be added here
         // For example, checking if certain roles are restricted
     }

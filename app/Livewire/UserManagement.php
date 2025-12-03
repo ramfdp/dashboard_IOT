@@ -5,10 +5,12 @@ namespace App\Livewire;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\User;
-use Spatie\Permission\Models\Role;
+// use Spatie\Permission\Models\Role; // Not needed - using simple role field
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 use App\Rules\SingleRoleConstraint;
 
 class UserManagement extends Component
@@ -145,25 +147,16 @@ class UserManagement extends Component
         ]);
 
         try {
-            // Get role_id from roles table based on role name
-            $spatie_role = Role::where('name', $this->role_id)->first();
-
-            // Create user with both role string and role_id
+            // Create user with role string only (Spatie Permission tables removed)
             $userData = [
                 'name' => $this->name,
                 'email' => $this->email,
                 'password' => Hash::make($this->password),
                 'email_verified_at' => now(),
                 'role' => $this->role_id, // Store role as string
-                'role_id' => $spatie_role ? $spatie_role->id : null, // Store role_id for Spatie
             ];
 
             $user = User::create($userData);
-
-            // Assign Spatie Permission role
-            if ($spatie_role) {
-                $user->assignRole($spatie_role);
-            }
 
             session()->flash('success_user', 'User berhasil ditambahkan dengan role: ' . ucfirst($this->role_id));
 
@@ -192,14 +185,10 @@ class UserManagement extends Component
         try {
             $user = User::findOrFail($this->editUserId);
 
-            // Get role_id from roles table based on role name
-            $spatie_role = Role::where('name', $this->editRoleId)->first();
-
             $updateData = [
                 'name' => $this->editName,
                 'email' => $this->editEmail,
                 'role' => $this->editRoleId, // Store role as string
-                'role_id' => $spatie_role ? $spatie_role->id : null, // Store role_id for Spatie
             ];
 
             if (!empty($this->editPassword)) {
@@ -207,11 +196,6 @@ class UserManagement extends Component
             }
 
             $user->update($updateData);
-
-            // Sync Spatie Permission role
-            if ($spatie_role) {
-                $user->syncRoles([$spatie_role]);
-            }
 
             session()->flash('success_user', 'User berhasil diupdate dengan role: ' . ucfirst($this->editRoleId));
 
@@ -234,58 +218,52 @@ class UserManagement extends Component
             $user = User::findOrFail($this->deleteUserId);
 
             // Check for related records that might prevent deletion
-            // Using try-catch in case the column doesn't exist yet
             try {
                 $relatedOvertimes = $user->overtimes()->count();
 
                 if ($relatedOvertimes > 0) {
-                    session()->flash('error_user', 'User tidak dapat dihapus karena memiliki data lembur terkait (' . $relatedOvertimes . ' record).');
+                    session()->flash('error_user', 'User tidak dapat dihapus karena memiliki ' . $relatedOvertimes . ' data lembur terkait.');
                     $this->closeDeleteModal();
                     return;
                 }
             } catch (\Exception $relationError) {
-                // If overtime relationship fails, check by employee_name
-                Log::info('Overtime relationship check failed, checking by name: ' . $relationError->getMessage());
-                $overtimesByName = \App\Models\Overtime::where('employee_name', $user->name)->count();
+                // If overtime relationship fails, try checking by employee_name
+                Log::info('Overtime relationship check failed, trying by name: ' . $relationError->getMessage());
+                
+                try {
+                    $overtimesByName = \App\Models\Overtime::where('employee_name', $user->name)->count();
 
-                if ($overtimesByName > 0) {
-                    session()->flash('error_user', 'User tidak dapat dihapus karena memiliki data lembur terkait (' . $overtimesByName . ' record berdasarkan nama).');
-                    $this->closeDeleteModal();
-                    return;
+                    if ($overtimesByName > 0) {
+                        session()->flash('error_user', 'User tidak dapat dihapus karena memiliki ' . $overtimesByName . ' data lembur terkait.');
+                        $this->closeDeleteModal();
+                        return;
+                    }
+                } catch (\Exception $e) {
+                    // If overtime check fails completely, continue anyway
+                    Log::warning('Could not check overtime data: ' . $e->getMessage());
                 }
             }
 
-            // Remove roles and permissions before deleting user (Spatie Permission)
-            // Wrap in try-catch to handle missing permission tables gracefully
-            try {
-                $user->syncRoles([]);
-                $user->syncPermissions([]);
-            } catch (\Exception $permissionError) {
-                // Log the error but continue with deletion
-                Log::warning('Could not sync roles/permissions during user deletion: ' . $permissionError->getMessage());
-            }
-
-            // Delete the user
+            // Delete the user (no need to cleanup Spatie tables - they don't exist)
             $user->delete();
 
-            session()->flash('success_user', 'User berhasil dihapus.');
+            session()->flash('success_user', 'User "' . $user->name . '" berhasil dihapus.');
 
             $this->closeDeleteModal();
         } catch (\Illuminate\Database\QueryException $e) {
-            // Handle SQL constraint violations
-            if ($e->getCode() === '23000') {
+            // Handle database errors
+            Log::error('Database error deleting user ID ' . $this->deleteUserId . ': ' . $e->getMessage());
+            
+            if (str_contains($e->getMessage(), 'foreign key constraint')) {
                 session()->flash('error_user', 'User tidak dapat dihapus karena masih memiliki data terkait di sistem.');
-            } elseif ($e->getCode() === '42S02') {
-                session()->flash('error_user', 'Terjadi kesalahan konfigurasi database. Silahkan hubungi administrator.');
-                Log::error('Missing table error during user deletion: ' . $e->getMessage());
             } else {
-                Log::error('SQL error deleting user: ' . $e->getMessage());
-                session()->flash('error_user', 'Terjadi kesalahan database saat menghapus user. Error: ' . $e->getCode());
+                session()->flash('error_user', 'Terjadi kesalahan database. Silakan coba lagi atau hubungi administrator.');
             }
+            
             $this->closeDeleteModal();
         } catch (\Exception $e) {
-            Log::error('Unexpected error deleting user: ' . $e->getMessage());
-            session()->flash('error_user', 'Gagal menghapus user: ' . $e->getMessage());
+            Log::error('Unexpected error deleting user ID ' . $this->deleteUserId . ': ' . $e->getMessage());
+            session()->flash('error_user', 'Gagal menghapus user. Silakan coba lagi.');
             $this->closeDeleteModal();
         }
     }

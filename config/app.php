@@ -140,7 +140,7 @@ return [
         /*
          * Laravel Framework Service Providers...
          */
-        Spatie\Permission\PermissionServiceProvider::class,
+        // Spatie\Permission\PermissionServiceProvider::class, // Disabled - using simple role field
         Illuminate\Auth\AuthServiceProvider::class,
         Illuminate\Broadcasting\BroadcastServiceProvider::class,
         Illuminate\Bus\BusServiceProvider::class,
