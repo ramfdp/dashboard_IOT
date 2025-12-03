@@ -13,7 +13,7 @@ class ProxyController extends Controller
     public function getRamaJson()
     {
         try {
-            $response = Http::timeout(10)->get('http://115.85.65.125:8084/iot/rama.json');
+            $response = Http::timeout(30)->get('http://115.85.65.125:8084/iot/data.json');
 
             if ($response->successful()) {
                 return response()->json($response->json())

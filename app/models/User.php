@@ -62,7 +62,7 @@ class User extends Authenticatable
     {
         return $this->role === 'admin';
     }
-    
+
     /**
      * Check if user has a specific role
      */
@@ -70,7 +70,7 @@ class User extends Authenticatable
     {
         return $this->role === $role;
     }
-    
+
     /**
      * Get role names (compatibility method)
      */

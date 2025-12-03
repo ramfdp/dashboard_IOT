@@ -81,12 +81,17 @@ class HistoryListrikHandler {
      * Set current month and year as default
      */
     setCurrentMonthYear() {
-        const currentDate = new Date();
-        const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const currentYear = currentDate.getFullYear();
+        // Set to December 2025 by default (latest data in seeder)
+        const defaultMonth = '12'; // December
+        const defaultYear = 2025;
 
-        document.getElementById('filterBulan').value = currentMonth;
-        document.getElementById('filterTahun').value = currentYear;
+        const bulanSelect = document.getElementById('filterBulan');
+        const tahunSelect = document.getElementById('filterTahun');
+
+        if (bulanSelect) bulanSelect.value = defaultMonth;
+        if (tahunSelect) tahunSelect.value = defaultYear;
+
+        console.log('[History] 📅 Default filter set to:', defaultMonth + '/' + defaultYear);
     }
 
     /**
@@ -150,10 +155,19 @@ class HistoryListrikHandler {
                 params.append('tahun', this.currentFilters.tahun);
             }
 
+            // Add timestamp to prevent caching
+            params.append('_t', Date.now());
+
             console.log('[History] Fetching data from API...');
 
             // Make API call to the correct endpoint
-            const response = await fetch(`${window.baseUrl}/api/listrik?${params.toString()}`);
+            const response = await fetch(`${window.baseUrl}/api/listrik?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -161,32 +175,49 @@ class HistoryListrikHandler {
 
             const data = await response.json();
 
-            if (data.success && data.data && data.data.data && data.data.data.length > 0) {
-                console.log('[History] ✅ API data received:', data.data.data.length, 'records');
+            console.log('[History] 📦 Full API Response:', data);
 
-                // Transform data to match expected format
-                const transformedData = {
-                    data: data.data.data.map(item => ({
-                        id: item.id,
-                        timestamp: new Date(item.created_at),
-                        voltage: parseFloat(item.tegangan) || 220,
-                        current: parseFloat(item.arus) || 1.5,
-                        power: parseFloat(item.daya) || 330,
-                        energy: parseFloat(item.energi) || 0.33,
-                        frequency: parseFloat(item.frekuensi) || 50,
-                        pf: parseFloat(item.power_factor) || 0.85,
-                        location: item.lokasi || 'Main Panel'
-                    })),
-                    total: data.data.total,
-                    current_page: data.data.current_page,
-                    per_page: data.data.per_page,
-                    last_page: data.data.last_page
-                };
+            if (data.success && data.data && data.data.data) {
+                if (data.data.data.length > 0) {
+                    console.log('[History] ✅ Real database data received:', data.data.data.length, 'records');
+                    console.log('[History] 📅 First record:', data.data.data[0]);
+                    console.log('[History] 📅 Last record:', data.data.data[data.data.data.length - 1]);
 
-                this.processHistoryData(transformedData);
+                    // Transform data to match expected format
+                    const transformedData = {
+                        data: data.data.data.map(item => ({
+                            id: item.id,
+                            timestamp: new Date(item.created_at),
+                            voltage: parseFloat(item.tegangan) || 220,
+                            current: parseFloat(item.arus) || 1.5,
+                            power: parseFloat(item.daya) || 330,
+                            energy: parseFloat(item.energi) || 0.33,
+                            frequency: parseFloat(item.frekuensi) || 50,
+                            pf: parseFloat(item.power_factor) || 0.85,
+                            location: item.lokasi || 'Main Panel'
+                        })),
+                        total: data.data.total,
+                        current_page: data.data.current_page,
+                        per_page: data.data.per_page,
+                        last_page: data.data.last_page
+                    };
+
+                    this.processHistoryData(transformedData);
+                } else {
+                    // No data for selected month/year - show empty state
+                    console.log('[History] ℹ️ No data found for selected filters');
+                    this.processHistoryData({
+                        data: [],
+                        total: 0,
+                        current_page: 1,
+                        per_page: 50,
+                        last_page: 1
+                    });
+                    this.showInfo('Tidak ada data untuk bulan/tahun yang dipilih');
+                }
             } else {
-                console.warn('[History] ⚠️ No data from API, using simulated data');
-                throw new Error('No data available from server');
+                console.warn('[History] ⚠️ Invalid API response format');
+                throw new Error('Invalid response format from server');
             }
 
         } catch (error) {

@@ -34,7 +34,10 @@ class ListrikController extends Controller
                     'bulan' => $request->bulan,
                     'tahun' => $request->tahun
                 ]
-            ]);
+            ])
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -92,7 +95,10 @@ class ListrikController extends Controller
                     'values' => $values,
                     'count' => count($values)
                 ]
-            ]);
+            ])
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache')
+                ->header('Expires', '0');
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

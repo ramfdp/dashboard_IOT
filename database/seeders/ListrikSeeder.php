@@ -12,7 +12,7 @@ class ListrikSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * Generate data from July 14, 2025 to September 14, 2025
+     * Generate data from July 14, 2025 to December 2, 2025
      */
     public function run(): void
     {
@@ -22,8 +22,7 @@ class ListrikSeeder extends Seeder
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
         $startDate = Carbon::create(2025, 7, 14, 0, 0, 0); // 14 Juli 2025
-        $endDate = Carbon::create(2025, 9, 14, 23, 59, 59); // 14 September 2025
-        $lokasi = 'PT Krakatau Sarana Property';
+        $endDate = Carbon::create(2025, 12, 2, 23, 59, 59); // 2 Desember 2025
 
         $this->command->info("🔄 Generating realistic PZEM sensor data from {$startDate->format('d M Y')} to {$endDate->format('d M Y')}...");
 
@@ -38,19 +37,12 @@ class ListrikSeeder extends Seeder
             $sensorData = $this->generateRealisticPZEMData($currentDate);
 
             $batch[] = [
-                'lokasi' => $lokasi,
                 'tegangan' => $sensorData['tegangan'],
                 'arus' => $sensorData['arus'],
                 'daya' => $sensorData['daya'],
                 'energi' => $sensorData['energi'],
                 'frekuensi' => $sensorData['frekuensi'],
                 'power_factor' => $sensorData['power_factor'],
-                'status' => 'active',
-                'metadata' => json_encode([
-                    'sensor_type' => 'PZEM-004T',
-                    'location_detail' => 'Main Power Line',
-                    'measurement_interval' => '5_minutes'
-                ]),
                 'created_at' => $currentDate->toDateTimeString(),
                 'updated_at' => $currentDate->toDateTimeString(),
             ];
@@ -74,8 +66,7 @@ class ListrikSeeder extends Seeder
         }
 
         $this->command->info("✅ Successfully generated {$totalRecords} PZEM sensor records!");
-        $this->command->info("📍 Location: {$lokasi}");
-        $this->command->info("📅 Period: 14 July 2025 - 14 September 2025");
+        $this->command->info("📅 Period: 14 July 2025 - 2 December 2025");
         $this->command->info("⏱️  Interval: Every 5 minutes");
     }
 

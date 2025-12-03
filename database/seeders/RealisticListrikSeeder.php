@@ -12,13 +12,19 @@ class RealisticListrikSeeder extends Seeder
     public function run(): void
     {
         echo "🚀 Starting Realistic Listrik Seeder...\n";
+
+        // Truncate table to remove all old data
+        echo "🗑️  Truncating listriks table...\n";
+        DB::table('listriks')->truncate();
+        echo "✅ Table cleared successfully!\n\n";
+
         echo "📊 Generating data with 10-second intervals\n";
         echo "⏱️  Following exact rules from support-pzem.js\n\n";
 
         $intervalSeconds = 10;
 
         $startDate = Carbon::create(2025, 7, 14, 0, 0, 0, 'Asia/Jakarta');
-        $endDate = Carbon::now('Asia/Jakarta');
+        $endDate = Carbon::create(2025, 12, 2, 23, 59, 59, 'Asia/Jakarta');
 
         $daysToGenerate = $startDate->diffInDays($endDate);
 
@@ -146,30 +152,16 @@ class RealisticListrikSeeder extends Seeder
         $currentDayProgress = ($power / 1000) * ($hoursElapsed / 24);
         $energi = $currentDayProgress * ($dailyTarget / (($power / 1000) * 24));
 
-        $frekuensi = 50 + ((mt_rand(0, 1000) / 1000) - 0.5) * 0.5; 
-        $powerFactor = 0.85 + (mt_rand(0, 1000) / 1000) * 0.10; 
+        $frekuensi = 50 + ((mt_rand(0, 1000) / 1000) - 0.5) * 0.5;
+        $powerFactor = 0.85 + (mt_rand(0, 1000) / 1000) * 0.10;
 
         return [
-            'lokasi' => 'PT Krakatau Sarana Property',
             'tegangan' => round($voltage, 1),
             'arus' => round($current, 2),
             'daya' => round($power),
             'energi' => round($energi, 4),
             'frekuensi' => round($frekuensi, 2),
             'power_factor' => round($powerFactor, 3),
-            'listrik' => null,
-            'ac' => null,
-            'lampu' => null,
-            'status' => 'active',
-            'source' => 'seeder_realistic_10s',
-            'metadata' => json_encode([
-                'day_type' => $isWeekend ? 'weekend' : 'weekday',
-                'period' => $this->getPeriodName($hour, $isWeekend),
-                'interval' => '10_seconds',
-                'generator' => 'RealisticListrikSeeder_v2.0',
-                'voltage_mode' => ($isWeekend || ($hour >= 18 || $hour < 8)) ? 'high_voltage_no_load' : 'normal_voltage_loaded'
-            ]),
-            'sensor_timestamp' => $datetime->toDateTimeString(),
             'created_at' => $datetime->toDateTimeString(),
             'updated_at' => $datetime->toDateTimeString(),
         ];
@@ -215,7 +207,6 @@ class RealisticListrikSeeder extends Seeder
                 DB::raw('AVG(frekuensi) as avg_frequency'),
                 DB::raw('AVG(power_factor) as avg_power_factor'),
             ])
-            ->where('source', 'seeder_realistic_10s')
             ->first();
 
         if ($stats) {
@@ -236,27 +227,7 @@ class RealisticListrikSeeder extends Seeder
         echo "\n📈 Period Distribution:\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
 
-        $periods = DB::table('listriks')
-            ->select([
-                DB::raw("JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.period')) as period"),
-                DB::raw('COUNT(*) as count'),
-                DB::raw('AVG(daya) as avg_power'),
-            ])
-            ->where('source', 'seeder_realistic_10s')
-            ->whereNotNull('metadata')
-            ->groupBy('period')
-            ->orderBy('avg_power', 'desc')
-            ->get();
-
-        foreach ($periods as $period) {
-            echo sprintf(
-                "%-30s : %6s records (avg: %5.0f W)\n",
-                $period->period ?: 'unknown',
-                number_format($period->count),
-                $period->avg_power
-            );
-        }
-
+        echo "(Period distribution skipped - metadata column removed)\n";
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
 
         // Show hourly distribution
@@ -265,11 +236,10 @@ class RealisticListrikSeeder extends Seeder
 
         $hourly = DB::table('listriks')
             ->select([
-                DB::raw('HOUR(sensor_timestamp) as hour'),
+                DB::raw('HOUR(created_at) as hour'),
                 DB::raw('AVG(daya) as avg_power'),
                 DB::raw('COUNT(*) as count'),
             ])
-            ->where('source', 'seeder_realistic_10s')
             ->groupBy('hour')
             ->orderBy('hour')
             ->get();

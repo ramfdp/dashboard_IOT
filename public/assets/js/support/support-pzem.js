@@ -18,6 +18,7 @@ class AutoPZEMGenerator {
             updateInterval: 10000 // 10 detik
         };
         this.apiDataCache = [];
+        this.apiRandomIndices = []; // Array untuk urutan acak
         this.apiCurrentIndex = 0;
         this.apiLastFetch = null;
 
@@ -41,13 +42,14 @@ class AutoPZEMGenerator {
         };
 
         this.initializeNightMode();
-        // Firebase listener DISABLED - hanya push data dari API
-        // this.setupFirebaseListener();
-        this.setupFirebase(); // Init Firebase tanpa listener
 
-        // Load chart data dulu, baru start
+        // API PUSH MODE - Fetch dari API → Push ke Firebase → Baca dari Firebase
+        this.setupFirebase(); // Init Firebase
+        this.setupFirebaseListener(); // Listener untuk display data
+
+        // Load chart data dari database
         this.loadChartDataFromDatabase().then(() => {
-            // Fetch data dari API eksternal jika enabled
+            // Fetch data dari API dan mulai push ke Firebase
             if (this.apiConfig.enabled) {
                 this.fetchExternalAPI().then(() => {
                     if (!this.isRunning) {
@@ -60,12 +62,15 @@ class AutoPZEMGenerator {
                 }
             }
         });
+
+        console.log('🔥 [AutoPZEM] API → Firebase → Display MODE');
+        console.log('📡 [AutoPZEM] Fetching from API, pushing to Firebase, displaying from Firebase');
     }
 
     // ========== FETCH DATA DARI API EKSTERNAL ==========
     async fetchExternalAPI() {
         try {
-            console.log('🔌 [AutoPZEM] Fetching data from rama.json API via proxy...');
+            console.log('🔌 [AutoPZEM] Fetching data from API via Laravel proxy...');
 
             const response = await fetch(this.apiConfig.url, {
                 method: 'GET',
@@ -79,17 +84,31 @@ class AutoPZEMGenerator {
                 throw new Error(`HTTP ${response.status}`);
             }
 
-            const rawData = await response.json();
+            const result = await response.json();
 
-            if (!Array.isArray(rawData) || rawData.length === 0) {
+            // API mengembalikan object dengan property "data" dan "Count"
+            let rawData = [];
+            if (result.data && Array.isArray(result.data)) {
+                rawData = result.data;
+            } else if (Array.isArray(result)) {
+                rawData = result;
+            } else {
                 throw new Error('Invalid data format from API');
             }
 
+            if (rawData.length === 0) {
+                throw new Error('No data received from API');
+            }
+
             this.apiDataCache = rawData;
+
+            // Generate random indices untuk randomize urutan data
+            this.apiRandomIndices = this.generateRandomIndices(rawData.length);
             this.apiCurrentIndex = 0;
             this.apiLastFetch = Date.now();
 
-            console.log(`✅ [AutoPZEM] Fetched ${rawData.length} records from rama.json API`);
+            console.log(`✅ [AutoPZEM] Fetched ${rawData.length} records from API (via proxy)`);
+            console.log('🔀 [AutoPZEM] Data order randomized');
             console.log('📊 Sample data:', rawData[0]);
 
             // Schedule refresh
@@ -103,27 +122,64 @@ class AutoPZEMGenerator {
             this.apiConfig.enabled = false;
             return false;
         }
+    }    // ========== GENERATE RANDOM INDICES ==========
+    generateRandomIndices(length) {
+        // Buat array dengan urutan 0 sampai length-1
+        const indices = Array.from({ length }, (_, i) => i);
+
+        // Fisher-Yates shuffle algorithm untuk randomize
+        for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+
+        return indices;
     }
 
-    // ========== AMBIL DATA BERIKUTNYA DARI CACHE API ==========
+    // ========== AMBIL DATA BERIKUTNYA DARI CACHE API (RANDOM ORDER) ==========
     getNextAPIData() {
         if (!this.apiDataCache.length) {
             return null;
         }
 
-        const rawData = this.apiDataCache[this.apiCurrentIndex];
+        // Gunakan random index untuk akses data secara acak
+        const randomIndex = this.apiRandomIndices[this.apiCurrentIndex];
+        const rawData = this.apiDataCache[randomIndex];
 
         // Increment index dengan looping
-        this.apiCurrentIndex = (this.apiCurrentIndex + 1) % this.apiDataCache.length;
+        this.apiCurrentIndex = (this.apiCurrentIndex + 1) % this.apiRandomIndices.length;
+
+        // Jika sudah mencapai akhir, shuffle lagi untuk variasi
+        if (this.apiCurrentIndex === 0) {
+            console.log('🔀 [AutoPZEM] Reshuffling data order...');
+            this.apiRandomIndices = this.generateRandomIndices(this.apiDataCache.length);
+        }
+
+        // Parse frequency - handle format "50 Hz" atau "50"
+        let frequency = 50.0;
+        if (rawData['frekuensi '] !== undefined) {
+            const freqStr = String(rawData['frekuensi ']).replace(/[^0-9.]/g, '');
+            frequency = parseFloat(freqStr) || 50.0;
+        } else if (rawData.frekuensi !== undefined) {
+            const freqStr = String(rawData.frekuensi).replace(/[^0-9.]/g, '');
+            frequency = parseFloat(freqStr) || 50.0;
+        }
+
+        // Parse energy - handle key dengan spasi
+        let energi = 0;
+        if (rawData['energi '] !== undefined) {
+            energi = parseFloat(rawData['energi ']) || 0;
+        } else if (rawData.energi !== undefined) {
+            energi = parseFloat(rawData.energi) || 0;
+        }
 
         // Normalisasi data dari format API eksternal
-        // Format API: tegangan=560V (3 phase), perlu dibagi 3 untuk single phase display
         return {
             voltage: parseFloat(rawData.tegangan) || 220,
             current: parseFloat(rawData.arus) || 0,
             power: parseFloat(rawData.daya) || 0,
-            energi: parseFloat(rawData.energi) / 1000 || 0, // Wh to kWh
-            frekuensi: parseFloat(rawData.frekuensi) || 50.0, // Parse "50 Hz" string
+            energi: energi / 1000, // Wh to kWh
+            frekuensi: frequency,
             power_factor: parseFloat(rawData.power_factor) || 0.85,
             totalPower: parseFloat(rawData.daya) || 0,
             timestamp: this.getIndonesiaTimestamp()
@@ -241,7 +297,7 @@ class AutoPZEMGenerator {
 
                 if (!firebase.apps || !firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
-                    console.log('🔥 [AutoPZEM] Firebase initialized (PUSH ONLY mode)');
+                    console.log('🔥 [AutoPZEM] Firebase initialized (API → Firebase → Display mode)');
                 }
 
             } catch (error) {
@@ -250,6 +306,62 @@ class AutoPZEMGenerator {
         };
 
         initFirebase();
+    }
+
+    // ========== SETUP FIREBASE LISTENER (HANYA BACA DATA) ==========
+    setupFirebaseListener() {
+        const startListener = () => {
+            try {
+                if (typeof firebase === 'undefined' || !firebase.database) {
+                    setTimeout(startListener, 500);
+                    return;
+                }
+
+                const sensorRef = firebase.database().ref('sensor');
+
+                console.log('🔊 [AutoPZEM] Firebase listener started - waiting for data...');
+
+                sensorRef.on('value', (snapshot) => {
+                    const firebaseData = snapshot.val();
+
+                    if (!firebaseData) {
+                        console.warn('⚠️ [AutoPZEM] No data in Firebase');
+                        return;
+                    }
+
+                    // Transform Firebase data ke format yang dibutuhkan
+                    const data = {
+                        voltage: parseFloat(firebaseData.voltage) || 220,
+                        current: parseFloat(firebaseData.current) || 0,
+                        power: parseFloat(firebaseData.power) || 0,
+                        energi: parseFloat(firebaseData.energi) || 0,
+                        frekuensi: parseFloat(firebaseData.frekuensi) || 50,
+                        power_factor: parseFloat(firebaseData.power_factor) || 0.85,
+                        totalPower: parseFloat(firebaseData.power) || 0,
+                        timestamp: firebaseData.timestamp || this.getIndonesiaTimestamp()
+                    };
+
+                    console.log('📥 [AutoPZEM] Data received from Firebase:', {
+                        V: data.voltage,
+                        A: data.current,
+                        W: data.power,
+                        PF: data.power_factor
+                    });
+
+                    // Update display dengan data dari Firebase
+                    this.currentData = data;
+                    this.updateDisplay(data);
+
+                }, (error) => {
+                    console.error('❌ [AutoPZEM] Firebase listener error:', error);
+                });
+
+            } catch (error) {
+                console.error('[AutoPZEM] setupFirebaseListener error:', error);
+            }
+        };
+
+        startListener();
     }
 
 
@@ -370,22 +482,11 @@ class AutoPZEMGenerator {
     updateDisplay(data) {
         this.updateNightModeIndicator();
 
-        // Update UI langsung dari data API
+        // Update UI langsung dari data Firebase listener
         this.updateUI(data);
 
-        this.databaseSyncCounter++;
-
-        if (this.databaseSyncCounter >= 3) {
-            // Kirim ke database (untuk semua mode)
-            this.sendToDatabase(data);
-            this.databaseSyncCounter = 0;
-        }
-
-        // Push ke Firebase HANYA jika data dari API eksternal
-        // Tidak ada delay/counter - langsung push setiap update
-        if (this.apiConfig.enabled && this.apiDataCache.length > 0) {
-            this.pushToFirebase(data);
-        }
+        // Data sudah disimpan ke database oleh interval di start()
+        // Listener hanya untuk display, tidak simpan database lagi
     }
 
     // ========== UPDATE UI ELEMENTS ==========
@@ -673,8 +774,8 @@ class AutoPZEMGenerator {
 
         this.isRunning = true;
 
-        const mode = this.apiConfig.enabled ? 'API + FIREBASE' : 'GENERATOR';
-        console.log(`🚀 [AutoPZEM] Started in ${mode} mode`);
+        console.log('🚀 [AutoPZEM] Started in API → Firebase → Display mode');
+        console.log('📡 [AutoPZEM] Fetching from API, pushing to Firebase every 10 seconds');
 
         // Wait for dashboard-electricity.js to create chart first
         setTimeout(() => {
@@ -682,24 +783,27 @@ class AutoPZEMGenerator {
             console.log('[AutoPZEM] Chart initialization check completed');
         }, 3000);
 
+        // Interval untuk fetch API dan push ke Firebase
         this.interval = setInterval(() => {
-            let data;
-
-            // Prioritas: gunakan data dari API eksternal jika tersedia
             if (this.apiConfig.enabled && this.apiDataCache.length > 0) {
-                data = this.getNextAPIData();
-                console.log(`📡 [AutoPZEM] API data [${this.apiCurrentIndex}/${this.apiDataCache.length}] | V:${data.voltage} A:${data.current} W:${data.power} PF:${data.power_factor}`);
-            } else {
-                // Fallback ke generator
-                data = this.generateRealisticValues();
-                console.log('🔄 [AutoPZEM] Using generated data');
-            }
+                // Ambil data dari API (random order)
+                const data = this.getNextAPIData();
 
-            if (data) {
-                this.currentData = data;
-                this.updateDisplay(data);
+                if (data) {
+                    console.log(`📡 [AutoPZEM] Fetched API data [${this.apiCurrentIndex}/${this.apiDataCache.length}]`);
+
+                    // Push ke Firebase
+                    this.pushToFirebase(data).then(() => {
+                        console.log('✅ [AutoPZEM] Data pushed to Firebase');
+                    });
+
+                    // Simpan ke database setiap 10 detik (setiap update)
+                    this.sendToDatabase(data);
+                }
+            } else {
+                console.warn('⚠️ [AutoPZEM] No API data available');
             }
-        }, this.apiConfig.enabled ? this.apiConfig.updateInterval : 3000);
+        }, 10000); // Fixed 10 detik interval
     }
 
     stop() {

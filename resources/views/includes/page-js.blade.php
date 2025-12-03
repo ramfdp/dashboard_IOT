@@ -6,7 +6,7 @@
 <!-- ================== BEGIN Firebase & Auto-PZEM (Global) ================== -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="{{ asset('assets/js/support/support-pzem.js') }}"></script>
+<script src="{{ asset('assets/js/support/support-pzem.js') }}?v={{ time() }}"></script>
 <!-- ================== END Firebase & Auto-PZEM ================== -->
 
 @stack('scripts')
