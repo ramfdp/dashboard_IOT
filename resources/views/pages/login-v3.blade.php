@@ -33,7 +33,7 @@
             </div>
             
             <div class="login-content">
-                <form action="{{ route('login.post') }}" method="POST" class="fs-13px">
+                <form action="{{ route('login-v3') }}" method="POST" class="fs-13px">
                     @csrf
                     
                     @if ($errors->any())

@@ -116,7 +116,7 @@ class ElectricityDataController extends Controller
             case 'harian':
                 return $this->generateDemoHourlyData(24);
             case 'mingguan':
-                return $this->generateDemoHourlyData(168); 
+                return $this->generateDemoHourlyData(168);
             case 'bulanan':
                 return $this->generateDemoHourlyData(720);
             default:
@@ -408,6 +408,22 @@ class ElectricityDataController extends Controller
     }
 
     /**
+     * Generate demo kWh data based on time of day
+     */
+    private function generateDemoKwh()
+    {
+        $hour = Carbon::now('Asia/Jakarta')->hour;
+
+        if ($hour >= 7 && $hour <= 18) {
+            // Working hours - higher consumption
+            return round((550 * 24 / 1000) + (rand(-50, 50) / 10), 2);
+        } else {
+            // Off hours - lower consumption
+            return round((150 * 24 / 1000) + (rand(-20, 20) / 10), 2);
+        }
+    }
+
+    /**
      * Get usage data based on selected period (untuk sinkronisasi dengan periode analisis)
      */
     public function getUsageByPeriod(Request $request)
@@ -538,6 +554,6 @@ class ElectricityDataController extends Controller
      */
     private function estimateDailyKwh($avgPower)
     {
-        return ($avgPower * 24) / 1000; 
+        return ($avgPower * 24) / 1000;
     }
 }

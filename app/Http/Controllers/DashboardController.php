@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\models\Role;
-use App\models\User;
-use App\models\Divisi;
-use App\models\LightSchedule;
-use App\models\Listrik;
-use App\models\Overtime;
+use App\Models\Role;
+use App\Models\User;
+use App\Models\Divisi;
+use App\Models\LightSchedule;
+use App\Models\Listrik;
+use App\Models\Overtime;
 use App\Services\FirebaseService;
 use Illuminate\Support\Facades\Log;
 
@@ -384,8 +384,11 @@ class DashboardController extends Controller
     {
         try {
             $now = now();
-            $currentDay = $now->dayOfWeek; // 0 = Sunday, 1 = Monday, etc.
-            $currentTime = $now->format('H:i');
+            
+            // Map day of week to string
+            $dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            $currentDay = $dayNames[$now->dayOfWeek]; // Convert 0-6 to day name
+            $currentTime = $now->format('H:i:s');
 
             // Get active schedules for current day and time
             $activeSchedules = LightSchedule::where('day_of_week', $currentDay)
@@ -408,9 +411,9 @@ class DashboardController extends Controller
                     return [
                         'id' => $schedule->id,
                         'name' => $schedule->name,
-                        'relay_number' => $schedule->relay_number,
                         'start_time' => $schedule->start_time,
                         'end_time' => $schedule->end_time,
+                        'day_of_week' => $schedule->day_of_week,
                     ];
                 })
             ];
@@ -432,7 +435,10 @@ class DashboardController extends Controller
     {
         try {
             $now = Carbon::now();
-            $currentDay = $now->dayOfWeek; // 0 = Sunday, 1 = Monday, etc.
+            
+            // Map day of week to string
+            $dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            $currentDay = $dayNames[$now->dayOfWeek]; // Convert 0-6 to day name
             $currentTime = $now->format('H:i:s');
 
             $activeSchedules = LightSchedule::where('is_active', true)
@@ -472,12 +478,16 @@ class DashboardController extends Controller
             }
 
             $now = Carbon::now();
-            $currentDay = $now->dayOfWeek;
+            
+            // Map day of week to string
+            $dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            $currentDay = $dayNames[$now->dayOfWeek]; // Convert 0-6 to day name
             $currentTime = $now->format('H:i:s');
 
+            // Note: relay_number field doesn't exist in light_schedules table
+            // Removed the relay_number filter
             $activeSchedule = LightSchedule::where('is_active', true)
                 ->where('day_of_week', $currentDay)
-                ->where('relay_number', $relayNumber)
                 ->where('start_time', '<=', $currentTime)
                 ->where('end_time', '>=', $currentTime)
                 ->first();

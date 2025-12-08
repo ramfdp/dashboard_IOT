@@ -23,13 +23,13 @@ use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\RelayController;
 use App\Http\Controllers\CCTVController;
 use App\Http\Controllers\MainController;
-
+use Livewire\Livewire;
 
 Route::get('/', function () {
     return redirect('/login/v3');
 });
 Route::get('/dashboard/v1', [DashboardController::class, 'index'])
-    ->middleware('auth') // Changed from 'role:admin|user' to simple 'auth'
+    ->middleware('auth')
     ->name('dashboard-v1');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -105,6 +105,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/table/manage/scroller', [MainController::class, 'tableManageScroller'])->name('table-manage-scroller');
     Route::get('/table/manage/select', [MainController::class, 'tableManageSelect'])->name('table-manage-select');
     Route::get('/table/manage/combine', [MainController::class, 'tableManageCombine'])->name('table-manage-combine');
+
+    // Livewire routes configuration (with subfolder prefix)
+    Livewire::setUpdateRoute(function ($handle) {
+        return Route::post('/dashboard_IOT/public/livewire/update', $handle);
+    });
+    Livewire::setScriptRoute(function ($handle) {
+        return Route::get('/dashboard_IOT/public/livewire/livewire.js', $handle);
+    });
 });
 
 Route::get('/chart/flot', [MainController::class, 'chartFlot'])->name('chart-flot');
@@ -114,8 +122,12 @@ Route::get('/chart/apex', [MainController::class, 'chartApex'])->name('chart-ape
 
 Route::get('/page-option/page-blank', [MainController::class, 'pageBlank'])->name('page-blank');
 
-Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+// Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+// Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+// Redirect any /login access to the active login page /login/v3
+Route::get('/login', function () {
+    return redirect()->route('login-v3');
+})->name('login');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/listrik/detail/{id}', [ListrikController::class, 'detail'])->name('listrik.detail');
 
@@ -138,6 +150,7 @@ Route::post('/listrik', [ListrikController::class, 'store']);
 Route::get('/listrik/{lokasi}', [ListrikController::class, 'getData']);
 
 Route::get('/login/v3', [MainController::class, 'loginV3'])->name('login-v3');
+Route::post('/login/v3', [AuthController::class, 'login'])->name('login.post');
 Route::get('/register/v3', [MainController::class, 'registerV3'])->name('register-v3');
 
 Route::get('/helper/css', [MainController::class, 'helperCSS'])->name('helper-css');

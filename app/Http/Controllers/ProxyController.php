@@ -14,7 +14,6 @@ class ProxyController extends Controller
     public function getIotData()
     {
         try {
-            // HARD-CODED: Hanya ambil dari API data.json ini saja
             $apiUrl = 'http://115.85.65.125:8084/iot/data.json';
             \Log::info('[ProxyController] Fetching from IOT API: ' . $apiUrl);
 
@@ -22,6 +21,30 @@ class ProxyController extends Controller
 
             if ($response->successful()) {
                 $data = $response->json();
+
+                // Format semua nilai numerik menjadi 2 angka di belakang koma (maksimal 2 digit)
+                $formatNumericFields = function (&$arr) use (&$formatNumericFields) {
+                    foreach ($arr as $key => &$value) {
+                        if (is_array($value)) {
+                            $formatNumericFields($value);
+                        } elseif (is_numeric($value)) {
+                            $value = number_format((float)$value, 2, '.', '');
+                        }
+                    }
+                };
+
+                if (isset($data['data']) && is_array($data['data'])) {
+                    foreach ($data['data'] as &$row) {
+                        $formatNumericFields($row);
+                    }
+                    unset($row);
+                } elseif (is_array($data)) {
+                    foreach ($data as &$row) {
+                        $formatNumericFields($row);
+                    }
+                    unset($row);
+                }
+
                 \Log::info('[ProxyController] Successfully fetched ' . (isset($data['data']) ? count($data['data']) : 0) . ' records');
 
                 return response()->json($data)
