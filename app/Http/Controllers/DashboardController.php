@@ -384,7 +384,7 @@ class DashboardController extends Controller
     {
         try {
             $now = now();
-            
+
             // Map day of week to string
             $dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             $currentDay = $dayNames[$now->dayOfWeek]; // Convert 0-6 to day name
@@ -435,7 +435,7 @@ class DashboardController extends Controller
     {
         try {
             $now = Carbon::now();
-            
+
             // Map day of week to string
             $dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             $currentDay = $dayNames[$now->dayOfWeek]; // Convert 0-6 to day name
@@ -478,7 +478,7 @@ class DashboardController extends Controller
             }
 
             $now = Carbon::now();
-            
+
             // Map day of week to string
             $dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             $currentDay = $dayNames[$now->dayOfWeek]; // Convert 0-6 to day name
